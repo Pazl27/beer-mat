@@ -11,6 +11,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.beer_mat.tabs.drinks.DrinksScreen
+import com.example.beer_mat.tabs.food.FoodScreen
+import com.example.beer_mat.tabs.members.MembersScreen
 import com.example.beer_mat.ui.theme.BeerMatTheme
 
 class MainActivity : ComponentActivity() {
@@ -35,7 +38,7 @@ fun MainScreen() {
         topBar = {
             TabRow(
                 selectedTabIndex = selectedTabIndex,
-                modifier = Modifier.padding(top = 10.dp)
+                modifier = Modifier.padding(top = 30.dp)
             ) {
                 tabs.forEachIndexed { index, title ->
                     Tab(
@@ -48,26 +51,11 @@ fun MainScreen() {
         }
     ) { innerPadding ->
         when (selectedTabIndex) {
-            0 -> FoodScreen(Modifier.padding(innerPadding))
-            1 -> DrinksScreen(Modifier.padding(innerPadding))
-            2 -> MembersScreen(Modifier.padding(innerPadding))
+            0 -> FoodScreen().Content(Modifier.padding(innerPadding))
+            1 -> DrinksScreen().Content(Modifier.padding(innerPadding))
+            2 -> MembersScreen().Content(Modifier.padding(innerPadding))
         }
     }
-}
-
-@Composable
-fun FoodScreen(modifier: Modifier = Modifier) {
-    Text(text = "Food Content", modifier = modifier)
-}
-
-@Composable
-fun DrinksScreen(modifier: Modifier = Modifier) {
-    Text(text = "Drinks Content", modifier = modifier)
-}
-
-@Composable
-fun MembersScreen(modifier: Modifier = Modifier) {
-    Text(text = "Members Content", modifier = modifier)
 }
 
 @Preview(showBackground = true)
