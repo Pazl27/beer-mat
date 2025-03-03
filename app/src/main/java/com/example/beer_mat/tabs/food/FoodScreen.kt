@@ -8,7 +8,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.platform.LocalContext
 import com.example.beer_mat.components.AddFloatingActionButton
 import com.example.beer_mat.components.ShowDialog
 
