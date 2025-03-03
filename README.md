@@ -18,3 +18,29 @@
 - user and items
 - items
 - user
+
+## Price list
+
+### Speisen
+
+Hot Dog		2,00	€
+Bratwurst		2,00	€
+Paar Bratwürste		3,00	€
+Steak		3,50	€
+		
+Kuchen		1,00	€
+
+### Getränke
+
+Mineralwasser (Flasche 0,5l)		1,50	€
+Cola Mix (Flasche 0,5l)		2,00	€
+Iso Sport (Flasche 0,5l)		2,00	€
+Bio Apfel-Birnen-Schorle (Flasche 0,5l)		2,00	€
+		
+Bier (Flasche 0,5l)		2,50	€
+Radler (Flasche 0,5l)		2,50	€
+Alkoholfreies Bier (Flasche 0,5l)		2,50	€
+Alkoholfreies Radler (Flasche 0,5l)		2,50	€
+		
+Kaffee  (Tasse) mit/ohne Zucker mit/ohne Milch 		1,50	€
+
