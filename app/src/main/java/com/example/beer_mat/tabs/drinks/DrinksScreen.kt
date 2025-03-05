@@ -8,8 +8,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.example.beer_mat.components.AddFloatingActionButton
 import com.example.beer_mat.components.ShowDialog
+import com.example.beer_mat.tabs.SharedViewModel
 
-class DrinksScreen {
+class DrinksScreen(private val viewModel: SharedViewModel) {
     @Composable
     fun Content(modifier: Modifier = Modifier) {
         var showDialog by remember { mutableStateOf(false) }

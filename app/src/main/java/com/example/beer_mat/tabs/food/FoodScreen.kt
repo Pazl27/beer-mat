@@ -10,10 +10,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import com.example.beer_mat.components.AddFloatingActionButton
 import com.example.beer_mat.components.ShowDialog
+import com.example.beer_mat.tabs.SharedViewModel
 
-class FoodScreen {
+class FoodScreen(private val viewModel: SharedViewModel) {
     @Composable
     fun Content(modifier: Modifier = Modifier) {
+        // data of view model is accessable
         var showDialog by remember { mutableStateOf(false) }
 
         ShowDialog(

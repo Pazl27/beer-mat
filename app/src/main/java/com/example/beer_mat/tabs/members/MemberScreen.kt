@@ -9,8 +9,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import com.example.beer_mat.components.AddFloatingActionButton
 import com.example.beer_mat.components.ShowDialog
+import com.example.beer_mat.tabs.SharedViewModel
 
-class MembersScreen {
+class MembersScreen(private val viewModel: SharedViewModel) {
     @Composable
     fun Content(modifier: Modifier = Modifier) {
         var showDialog by remember { mutableStateOf(false) }
