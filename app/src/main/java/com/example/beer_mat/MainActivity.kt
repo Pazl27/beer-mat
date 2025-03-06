@@ -36,10 +36,6 @@ fun MainScreen(viewModel: SharedViewModel) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabs = listOf("Food", "Drinks", "Members")
 
-    val foodScreen = remember { FoodScreen(viewModel) }
-    val drinksScreen = remember { DrinksScreen(viewModel) }
-    val membersScreen = remember { MembersScreen(viewModel) }
-
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
@@ -58,9 +54,9 @@ fun MainScreen(viewModel: SharedViewModel) {
         }
     ) { innerPadding ->
         when (selectedTabIndex) {
-            0 -> foodScreen.Content(Modifier.padding(innerPadding))
-            1 -> drinksScreen.Content(Modifier.padding(innerPadding))
-            2 -> membersScreen.Content(Modifier.padding(innerPadding))
+            0 -> FoodScreen(viewModel, Modifier.padding(innerPadding))
+            1 -> DrinksScreen(viewModel, Modifier.padding(innerPadding))
+            2 -> MembersScreen(viewModel, Modifier.padding(innerPadding))
         }
     }
 }

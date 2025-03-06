@@ -16,3 +16,14 @@ fun ShowDialog(showDialog: Boolean, title: String, message: String, onDismiss: (
         onDismiss()
     }
 }
+
+@Composable
+fun ShowAddingNewFoodToListDialog(){
+    // todo: implement right logic - edit foodlist and display
+}
+
+@Composable
+
+fun ShowAddingFoodToMemberDialog(){
+    // todo: Implement adding logic here (e.g., select member, add item with price)
+}

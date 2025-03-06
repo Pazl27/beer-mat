@@ -11,26 +11,26 @@ import com.example.beer_mat.components.AddFloatingActionButton
 import com.example.beer_mat.components.ShowDialog
 import com.example.beer_mat.tabs.SharedViewModel
 
-class MembersScreen(private val viewModel: SharedViewModel) {
-    @Composable
-    fun Content(modifier: Modifier = Modifier) {
-        var showDialog by remember { mutableStateOf(false) }
+@Composable
+fun MembersScreen(viewModel: SharedViewModel, modifier: Modifier = Modifier) {
 
-        ShowDialog(
-            showDialog = showDialog,
-            title = "Members",
-            message = "Member added",
-            onDismiss = { showDialog = false }
+    var showDialog by remember { mutableStateOf(false) }
+
+    ShowDialog(
+        showDialog = showDialog,
+        title = "Members",
+        message = "Member added",
+        onDismiss = { showDialog = false }
+    )
+
+    Box(modifier = modifier.fillMaxSize()) {
+        Text(text = "Food Content", modifier = Modifier.align(Alignment.TopStart))
+        AddFloatingActionButton().Content(
+            modifier = Modifier.align(Alignment.BottomEnd),
+            onClick = {
+                showDialog = true
+            }
         )
-
-        Box(modifier = modifier.fillMaxSize()) {
-            Text(text = "Food Content", modifier = Modifier.align(Alignment.TopStart))
-            AddFloatingActionButton().Content(
-                modifier = Modifier.align(Alignment.BottomEnd),
-                onClick = {
-                    showDialog = true
-                }
-            )
-        }
     }
+
 }
