@@ -17,11 +17,13 @@ import com.example.beer_mat.tabs.food.FoodScreen
 import com.example.beer_mat.tabs.members.MembersScreen
 import com.example.beer_mat.ui.theme.BeerMatTheme
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.beer_mat.database.AppDatabase
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val database = AppDatabase.getDatabase(this)
         setContent {
             BeerMatTheme {
                 val viewModel: SharedViewModel = viewModel()
