@@ -18,12 +18,19 @@ fun ShowDialog(showDialog: Boolean, title: String, message: String, onDismiss: (
 }
 
 @Composable
-fun ShowAddingNewFoodToListDialog(){
-    // todo: implement right logic - edit foodlist and display
+fun ShowAddingNewFoodToListDialog(showDialog: Boolean, title: String, message: String, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+
+    if (showDialog) {
+        val builder = AlertDialog.Builder(context)
+        builder.setTitle(title).setMessage(message)
+        val dialog = builder.create()
+        dialog.show()
+        onDismiss()
+    }
 }
 
 @Composable
-
 fun ShowAddingFoodToMemberDialog(){
     // todo: Implement adding logic here (e.g., select member, add item with price)
 }

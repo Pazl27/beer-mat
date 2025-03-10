@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.example.beer_mat.components.AddFloatingActionButton
 import com.example.beer_mat.components.ShowAddingFoodToMemberDialog
 import com.example.beer_mat.components.ShowAddingNewFoodToListDialog
+import com.example.beer_mat.components.ShowDialog
 import com.example.beer_mat.tabs.FoodItem
 import com.example.beer_mat.tabs.SharedViewModel
 
@@ -49,6 +50,13 @@ fun FoodScreen(viewModel: SharedViewModel, modifier: Modifier = Modifier) {
         }
     }
 
+    ShowAddingNewFoodToListDialog(
+        showDialog = showAddingNewFoodToListDialog,
+        title = "Drinks",
+        message = "Drinks added",
+        onDismiss = { showAddingNewFoodToListDialog = false }
+    )
+
     // Floating action button to add completely new food item
     Box(modifier = modifier.fillMaxSize()) {
         Text(text = "Food Content", modifier = Modifier.align(Alignment.TopStart))
@@ -59,10 +67,6 @@ fun FoodScreen(viewModel: SharedViewModel, modifier: Modifier = Modifier) {
             }
         )
     }
-
-    ShowAddingNewFoodToListDialog(
-        // todo: implement right logic - edit foodlist
-    )
 
     // ShowDialog for selecting amount of the selected food item
     selectedFoodItem?.let { food ->
@@ -90,7 +94,7 @@ fun FoodItemRow(food: FoodItem) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(text = food.name, modifier = Modifier.weight(1f))
-            Text(text = "$${food.price}", style = MaterialTheme.typography.bodyMedium)
+            Text(text = "${food.price} €", style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
