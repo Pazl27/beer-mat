@@ -11,19 +11,23 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.beer_mat.database.AppDatabase
 import com.example.beer_mat.tabs.SharedViewModel
 import com.example.beer_mat.tabs.drinks.DrinksScreen
 import com.example.beer_mat.tabs.food.FoodScreen
 import com.example.beer_mat.tabs.members.MembersScreen
 import com.example.beer_mat.ui.theme.BeerMatTheme
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.beer_mat.database.AppDatabase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 
 class MainActivity : ComponentActivity() {
+    private val applicationScope = CoroutineScope(SupervisorJob())
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        val database = AppDatabase.getDatabase(this)
+        val database = AppDatabase.getDatabase(this, applicationScope)
         setContent {
             BeerMatTheme {
                 val viewModel: SharedViewModel = viewModel()
