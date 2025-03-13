@@ -12,33 +12,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.beer_mat.database.AppDatabase
-import com.example.beer_mat.tabs.SharedViewModel
 import com.example.beer_mat.tabs.drinks.DrinksScreen
 import com.example.beer_mat.tabs.food.FoodScreen
 import com.example.beer_mat.tabs.members.MembersScreen
 import com.example.beer_mat.ui.theme.BeerMatTheme
-import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.*
 
 class MainActivity : ComponentActivity() {
     private val applicationScope = CoroutineScope(SupervisorJob())
+    private lateinit var database: AppDatabase
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        val database = AppDatabase.getDatabase(this, applicationScope)
+
+        database = AppDatabase.getDatabase(this, applicationScope)
+
         setContent {
             BeerMatTheme {
-                val viewModel: SharedViewModel = viewModel()
-                MainScreen(viewModel)
+                MainScreen(database)
             }
         }
     }
 }
 
 @Composable
-fun MainScreen(viewModel: SharedViewModel) {
+fun MainScreen(database: AppDatabase) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabs = listOf("Food", "Drinks", "Members")
 
@@ -60,9 +59,9 @@ fun MainScreen(viewModel: SharedViewModel) {
         }
     ) { innerPadding ->
         when (selectedTabIndex) {
-            0 -> FoodScreen(viewModel, Modifier.padding(innerPadding))
-            1 -> DrinksScreen(viewModel, Modifier.padding(innerPadding))
-            2 -> MembersScreen(viewModel, Modifier.padding(innerPadding))
+            0 -> FoodScreen(database, Modifier.padding(innerPadding))
+            1 -> DrinksScreen(database, Modifier.padding(innerPadding))
+            2 -> MembersScreen(database, Modifier.padding(innerPadding))
         }
     }
 }
@@ -70,8 +69,7 @@ fun MainScreen(viewModel: SharedViewModel) {
 @Preview(showBackground = true)
 @Composable
 fun MainScreenPreview() {
-    val fakeViewModel = SharedViewModel()
     BeerMatTheme {
-        MainScreen(fakeViewModel)
+        Text("Preview Mode")
     }
 }

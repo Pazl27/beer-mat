@@ -1,37 +1,29 @@
 package com.example.beer_mat.tabs.food
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.Alignment
-import androidx.compose.material3.Text
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.beer_mat.components.AddFloatingActionButton
-import com.example.beer_mat.components.ShowAddingFoodToMemberDialog
-import com.example.beer_mat.components.ShowAddingNewFoodToListDialog
-import com.example.beer_mat.components.ShowDialog
-import com.example.beer_mat.tabs.FoodItem
-import com.example.beer_mat.tabs.SharedViewModel
+import com.example.beer_mat.database.AppDatabase
+import com.example.beer_mat.database.FoodItem
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @Composable
-fun FoodScreen(viewModel: SharedViewModel, modifier: Modifier = Modifier) {
+fun FoodScreen(database: AppDatabase, modifier: Modifier = Modifier) {
+    var foodList by remember { mutableStateOf<List<FoodItem>>(emptyList()) }
+    val coroutineScope = rememberCoroutineScope()
 
-    var showAddingNewFoodToListDialog by remember { mutableStateOf(false) }
-    var showAddingFoodToMember by remember { mutableStateOf(false) }
-    var selectedFoodItem by remember { mutableStateOf<FoodItem?>(null) }
-    var selectedAmount by remember { mutableStateOf(0) }
-    val foodList = viewModel.foodList
+    LaunchedEffect(Unit) {
+        coroutineScope.launch(Dispatchers.IO) {
+            val foodItems = database.foodDao().getAllFoodItems()
+            foodList = foodItems
+        }
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -41,44 +33,15 @@ fun FoodScreen(viewModel: SharedViewModel, modifier: Modifier = Modifier) {
                 modifier = Modifier.padding(16.dp)
             )
 
-            // Display the food list
             LazyColumn(modifier = Modifier.fillMaxSize()) {
-                itemsIndexed(foodList) { index, food ->
+                items(foodList) { food ->
                     FoodItemRow(food)
                 }
             }
         }
     }
-
-    ShowAddingNewFoodToListDialog(
-        showDialog = showAddingNewFoodToListDialog,
-        title = "Drinks",
-        message = "Drinks added",
-        onDismiss = { showAddingNewFoodToListDialog = false }
-    )
-
-    // Floating action button to add completely new food item
-    Box(modifier = modifier.fillMaxSize()) {
-        Text(text = "Food Content", modifier = Modifier.align(Alignment.TopStart))
-        AddFloatingActionButton().Content(
-            modifier = Modifier.align(Alignment.BottomEnd),
-            onClick = {
-                showAddingNewFoodToListDialog = true
-            }
-        )
-    }
-
-    // ShowDialog for selecting amount of the selected food item
-    selectedFoodItem?.let { food ->
-        ShowAddingFoodToMemberDialog(
-            // todo: Implement adding logic here (e.g., select member, add item with price)
-            //  1 - open dialog with selecting amount
-            //  2 - open dialog with selecting right member
-        )
-    }
 }
 
-// Display food list
 @Composable
 fun FoodItemRow(food: FoodItem) {
     Card(

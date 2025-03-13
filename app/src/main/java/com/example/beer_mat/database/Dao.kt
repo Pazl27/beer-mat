@@ -7,35 +7,26 @@ import androidx.room.Query
 @Dao
 interface FoodDao {
     @Insert
-    suspend fun insert(foodItem: FoodItem)
+    fun insert(foodItem: FoodItem)
 
     @Query("SELECT * FROM food")
-    suspend fun getAllFoodItems(): List<FoodItem>
-
-    @Query("DELETE FROM food WHERE id = :id")
-    suspend fun deleteFoodItem(id: Int)
+    fun getAllFoodItems(): List<FoodItem>
 }
 
 @Dao
 interface DrinkDao {
     @Insert
-    suspend fun insert(drinkItem: DrinkItem)
+    fun insert(drinkItem: DrinkItem)
 
     @Query("SELECT * FROM drinks")
-    suspend fun getAllDrinkItems(): List<DrinkItem>
-
-    @Query("DELETE FROM drinks WHERE id = :id")
-    suspend fun deleteDrinkItem(id: Int)
+    fun getAllDrinkItems(): List<DrinkItem>
 }
 
 @Dao
 interface MemberDao {
     @Insert
-    suspend fun insert(member: Member)
+    fun insert(member: Member)
 
     @Query("SELECT * FROM members")
-    suspend fun getAllMembers(): List<Member>
-
-    @Query("DELETE FROM members WHERE id = :id")
-    suspend fun deleteMember(id: Int)
+    fun getAllMembers(): List<Member>
 }

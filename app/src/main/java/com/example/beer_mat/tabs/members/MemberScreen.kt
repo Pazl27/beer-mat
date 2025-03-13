@@ -1,36 +1,63 @@
 package com.example.beer_mat.tabs.members
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.Alignment
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import com.example.beer_mat.components.AddFloatingActionButton
-import com.example.beer_mat.components.ShowDialog
-import com.example.beer_mat.tabs.SharedViewModel
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.example.beer_mat.database.AppDatabase
+import com.example.beer_mat.database.Member
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @Composable
-fun MembersScreen(viewModel: SharedViewModel, modifier: Modifier = Modifier) {
+fun MembersScreen(database: AppDatabase, modifier: Modifier = Modifier) {
+    var membersList by remember { mutableStateOf<List<Member>>(emptyList()) }
+    val coroutineScope = rememberCoroutineScope()
 
-    var showDialog by remember { mutableStateOf(false) }
-
-    ShowDialog(
-        showDialog = showDialog,
-        title = "Members",
-        message = "Member added",
-        onDismiss = { showDialog = false }
-    )
-
-    Box(modifier = modifier.fillMaxSize()) {
-        Text(text = "Food Content", modifier = Modifier.align(Alignment.TopStart))
-        AddFloatingActionButton().Content(
-            modifier = Modifier.align(Alignment.BottomEnd),
-            onClick = {
-                showDialog = true
-            }
-        )
+    LaunchedEffect(Unit) {
+        coroutineScope.launch(Dispatchers.IO) {
+            val memberItems = database.memberDao().getAllMembers()
+            membersList = memberItems
+        }
     }
 
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Text(
+                text = "Members",
+                style = MaterialTheme.typography.headlineLarge,
+                modifier = Modifier.padding(16.dp)
+            )
+
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(membersList) { member ->
+                    MemberItemRow(member)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun MemberItemRow(member: Member) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = member.name, modifier = Modifier.weight(1f))
+            Text(text = "${member.amountToPay} €", style = MaterialTheme.typography.bodyMedium)
+        }
+    }
 }
