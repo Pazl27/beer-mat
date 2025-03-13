@@ -8,19 +8,21 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
-class AddFloatingActionButton {
-    @Composable
-    fun Content(modifier: Modifier = Modifier, onClick: () -> Unit) {
-        Box(modifier = modifier.padding(16.dp)) {
-            FloatingActionButton(
-                onClick = onClick,
-                modifier = Modifier.size(56.dp)
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = "Add")
-            }
+@Composable
+fun AddFloatingActionButton(onClick: () -> Unit, selectedTabIndex: Int) {
+    Box(
+        contentAlignment = Alignment.BottomEnd,
+        modifier = Modifier.padding(16.dp)
+    ) {
+        FloatingActionButton(
+            onClick = onClick,
+            modifier = Modifier.size(56.dp)
+        ) {
+            Icon(Icons.Filled.Add, contentDescription = "Add")
         }
     }
 }

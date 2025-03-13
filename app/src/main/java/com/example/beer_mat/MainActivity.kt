@@ -4,14 +4,18 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.example.beer_mat.components.AddFloatingActionButton
 import com.example.beer_mat.database.AppDatabase
+import com.example.beer_mat.database.DrinkItem
+import com.example.beer_mat.database.FoodItem
+import com.example.beer_mat.database.Member
 import com.example.beer_mat.tabs.drinks.DrinksScreen
 import com.example.beer_mat.tabs.food.FoodScreen
 import com.example.beer_mat.tabs.members.MembersScreen
@@ -40,6 +44,7 @@ class MainActivity : ComponentActivity() {
 fun MainScreen(database: AppDatabase) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabs = listOf("Food", "Drinks", "Members")
+    var showDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -56,6 +61,9 @@ fun MainScreen(database: AppDatabase) {
                     )
                 }
             }
+        },
+        floatingActionButton = {
+            AddFloatingActionButton(onClick = { showDialog = true }, selectedTabIndex = selectedTabIndex)
         }
     ) { innerPadding ->
         when (selectedTabIndex) {
@@ -64,12 +72,72 @@ fun MainScreen(database: AppDatabase) {
             2 -> MembersScreen(database, Modifier.padding(innerPadding))
         }
     }
+
+    if (showDialog) {
+        AddItemDialog(
+            onDismiss = { showDialog = false },
+            onAddItem = { name, price ->
+                when (selectedTabIndex) {
+                    0 -> {
+                        val newItem = FoodItem(name = name, price = price)
+                        CoroutineScope(Dispatchers.IO).launch {
+                            database.foodDao().insert(newItem)
+                        }
+                    }
+                    1 -> {
+                        val newItem = DrinkItem(name = name, price = price)
+                        CoroutineScope(Dispatchers.IO).launch {
+                            database.drinkDao().insert(newItem)
+                        }
+                    }
+                    2 -> {
+                        val newItem = Member(name = name, amountToPay = price)
+                        CoroutineScope(Dispatchers.IO).launch {
+                            database.memberDao().insert(newItem)
+                        }
+                    }
+                }
+                showDialog = false
+            }
+        )
+    }
 }
 
-@Preview(showBackground = true)
 @Composable
-fun MainScreenPreview() {
-    BeerMatTheme {
-        Text("Preview Mode")
-    }
+fun AddItemDialog(onDismiss: () -> Unit, onAddItem: (String, Double) -> Unit) {
+    var name by remember { mutableStateOf("") }
+    var price by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add Item") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Name") }
+                )
+                OutlinedTextField(
+                    value = price,
+                    onValueChange = { price = it },
+                    label = { Text("Price") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                val priceValue = price.toDoubleOrNull() ?: 0.0
+                onAddItem(name, priceValue)
+            }) {
+                Text("Add")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
