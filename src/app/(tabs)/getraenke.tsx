@@ -11,15 +11,15 @@ interface Getraenk {
 
 export default function GetraenkePage() {
   const [getraenke, setGetraenke] = useState<Getraenk[]>([
-    { id: '1', name: 'Pils',         price: 4.20, category: 'Bier',       volume: '0,5l' },
-    { id: '2', name: 'Weissbier',    price: 4.50, category: 'Bier',       volume: '0,5l' },
-    { id: '3', name: 'Kölsch',       price: 2.80, category: 'Bier',       volume: '0,2l' },
-    { id: '4', name: 'Cola',         price: 3.50, category: 'Softdrinks', volume: '0,33l' },
-    { id: '5', name: 'Wasser',       price: 2.80, category: 'Softdrinks', volume: '0,5l' },
-    { id: '6', name: 'Apfelschorle', price: 3.20, category: 'Softdrinks', volume: '0,5l' },
-    { id: '7', name: 'Riesling',     price: 5.90, category: 'Wein',       volume: '0,2l' },
-    { id: '8', name: 'Espresso',     price: 2.20, category: 'Heißgetränke' },
-    { id: '9', name: 'Cappuccino',   price: 3.40, category: 'Heißgetränke' },
+    { id: '1', name: 'Bier', price: 2.50, category: 'Bier', volume: 'Flasche, 0,5l' },
+    { id: '2', name: 'Radler', price: 2.50, category: 'Bier', volume: 'Flasche, 0,5l' },
+    { id: '3', name: 'Alkoholfreies Bier', price: 2.50, category: 'Bier', volume: 'Flasche, 0,5l' },
+    { id: '4', name: 'Alkoholfreies Radler', price: 2.50, category: 'Bier', volume: 'Flasche, 0,5l' },
+    { id: '5', name: 'Mineralwasser', price: 1.50, category: 'Softdrinks', volume: 'Flasche, 0,5l' },
+    { id: '6', name: 'Cola Mix', price: 2.00, category: 'Softdrinks', volume: 'Flasche, 0,5l' },
+    { id: '7', name: 'Iso Sport', price: 2.00, category: 'Softdrinks', volume: 'Flasche, 0,5l' },
+    { id: '8', name: 'Bio Apfel-Birnen-Schorle', price: 2.00, category: 'Softdrinks', volume: 'Flasche, 0,5l' },
+    { id: '9', name: 'Kaffee (Tasse)', price: 1.50, category: 'Heißgetränke', volume: 'mit/ohne Zucker, mit/ohne Milch' },
   ]);
 
   const [showAddForm, setShowAddForm] = useState(false);
@@ -204,11 +204,6 @@ export default function GetraenkePage() {
                       <Text className="text-xl font-bold text-blue-600">
                         €{getraenk.price.toFixed(2)}
                       </Text>
-                      {getraenk.volume && (
-                        <Text className="text-xs text-gray-500">
-                          {getraenk.volume}
-                        </Text>
-                      )}
                     </View>
                   </View>
                   

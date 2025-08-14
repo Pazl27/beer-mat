@@ -10,12 +10,11 @@ interface Speise {
 
 export default function SpeisenPage() {
   const [speisen, setSpeisen] = useState<Speise[]>([
-    { id: '1', name: 'Schnitzel Wiener Art', price: 12.90, category: 'Hauptgericht' },
-    { id: '2', name: 'Currywurst mit Pommes', price: 8.50, category: 'Hauptgericht' },
-    { id: '3', name: 'Caesar Salad', price: 9.90, category: 'Salat' },
-    { id: '4', name: 'Pommes Frites', price: 4.50, category: 'Beilage' },
-    { id: '5', name: 'Chicken Wings', price: 7.90, category: 'Vorspeise' },
-    { id: '6', name: 'Tiramisu', price: 5.50, category: 'Nachspeise' },
+    { id: '1', name: 'Hot Dog', price: 2.00, category: 'Hauptgericht' },
+    { id: '2', name: 'Bratwurst', price: 2.00, category: 'Hauptgericht' },
+    { id: '3', name: 'Paar Bratwürste', price: 3.00, category: 'Hauptgericht' },
+    { id: '4', name: 'Steak', price: 3.50, category: 'Hauptgericht' },
+    { id: '5', name: 'Kuchen', price: 1.00, category: 'Nachspeise' },
   ]);
 
   const [showAddForm, setShowAddForm] = useState(false);

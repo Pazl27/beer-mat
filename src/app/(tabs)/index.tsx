@@ -19,19 +19,19 @@ export default function PersonenPage() {
     {
       id: '1',
       name: 'Max Mustermann',
-      totalDebt: 15.50,
+      totalDebt: 5.50,
       items: [
-        { id: '1', name: 'Bier', price: 4.50, type: 'getraenk', timestamp: new Date() },
-        { id: '2', name: 'Schnitzel', price: 11.00, type: 'speise', timestamp: new Date() }
+        { id: '1', name: 'Bier (Flasche, 0,5l)', price: 2.50, type: 'getraenk', timestamp: new Date() },
+        { id: '2', name: 'Steak', price: 3.50, type: 'speise', timestamp: new Date() }
       ]
     },
     {
       id: '2',
       name: 'Anna Schmidt',
-      totalDebt: 8.90,
+      totalDebt: 3.50,
       items: [
-        { id: '3', name: 'Cola', price: 3.20, type: 'getraenk', timestamp: new Date() },
-        { id: '4', name: 'Pommes', price: 5.70, type: 'speise', timestamp: new Date() }
+        { id: '3', name: 'Cola Mix (Flasche, 0,5l)', price: 2.00, type: 'getraenk', timestamp: new Date() },
+        { id: '4', name: 'Kaffee (Tasse)', price: 1.50, type: 'getraenk', timestamp: new Date() }
       ]
     }
   ]);
