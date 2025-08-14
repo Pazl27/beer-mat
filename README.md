@@ -71,18 +71,23 @@ Deploy on all platforms with Expo Application Services (EAS).
 
 ## App Overview
 - adding food
-- adding trinks
+- adding drinks
 - adding people
 
 - adding food/drinks to people
 - see money dept for each person
 - pay dept
+    - all in one
+    - chosen ones / step by step
 
 ## Page Overview
+- Persons-Page
+- Food-Page
+- Drinks-Page
 
 ### Start Page
 - see all people
-- add buttton for new people
+- add button for new people
 
 ### Person page
 - see all items
@@ -90,7 +95,10 @@ Deploy on all platforms with Expo Application Services (EAS).
 - button for clearing dept
 - button for adding new stuff
 - remove single items form list not all
+- details
+    - see all foods/drinks listed
+    - remove whole person
 
 ### Food/Drinks page
 - page for food and drinks
-- ability to add foods/drinks and change price
+- ability to add foods/drinks and change price/delete entry
