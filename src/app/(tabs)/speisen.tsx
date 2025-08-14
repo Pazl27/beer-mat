@@ -30,7 +30,19 @@ export default function SpeisenPage() {
     speise.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const categories = ['Vorspeise', 'Hauptgericht', 'Beilage', 'Salat', 'Nachspeise'];
+  const categories = ['Vorspeise', 'Hauptgericht', 'Beilage', 'Salat', 'Nachspeise', 'Süßes'];
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'Vorspeise': return '🥗';
+      case 'Hauptgericht': return '🍖';
+      case 'Beilage': return '🍟';
+      case 'Salat': return '🥙';
+      case 'Nachspeise': return '🍰';
+      case 'Süßes': return '🍭';
+      default: return '🍽️';
+    }
+  };
 
   const addSpeise = () => {
     if (newSpeise.name.trim() && newSpeise.price) {
@@ -133,7 +145,7 @@ export default function SpeisenPage() {
                       ? 'text-white font-semibold'
                       : 'text-gray-700'
                   }`}>
-                    {category}
+                    {getCategoryIcon(category)} {category}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -171,7 +183,7 @@ export default function SpeisenPage() {
           return (
             <View key={category} className="mb-6">
               <Text className="text-xl font-bold text-gray-800 mb-3 text-center">
-                {category} ({items.length})
+                {getCategoryIcon(category)} {category} ({items.length})
               </Text>
               
               {items.map((speise) => (
