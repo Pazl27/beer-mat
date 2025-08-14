@@ -155,7 +155,7 @@ export default function SpeisenPage() {
 
           return (
             <View key={category} className="mb-6">
-              <Text className="text-xl font-bold text-gray-800 mb-3">
+              <Text className="text-xl font-bold text-gray-800 mb-3 text-center">
                 {category} ({items.length})
               </Text>
               
@@ -168,9 +168,6 @@ export default function SpeisenPage() {
                     <View className="flex-1">
                       <Text className="text-lg font-semibold text-gray-800">
                         {speise.name}
-                      </Text>
-                      <Text className="text-sm text-gray-500 mt-1">
-                        {speise.category}
                       </Text>
                     </View>
                     <View className="items-end">

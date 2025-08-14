@@ -180,7 +180,7 @@ export default function GetraenkePage() {
 
           return (
             <View key={category} className="mb-6">
-              <Text className="text-xl font-bold text-gray-800 mb-3">
+              <Text className="text-xl font-bold text-gray-800 mb-3 text-center">
                 {getCategoryIcon(category)} {category} ({items.length})
               </Text>
               
@@ -194,19 +194,11 @@ export default function GetraenkePage() {
                       <Text className="text-lg font-semibold text-gray-800">
                         {getraenk.name}
                       </Text>
-                      <View className="flex-row items-center mt-1">
-                        <Text className="text-sm text-gray-500">
-                          {getraenk.category}
+                      {getraenk.volume && (
+                        <Text className="text-sm text-gray-600 font-medium mt-1">
+                          {getraenk.volume}
                         </Text>
-                        {getraenk.volume && (
-                          <>
-                            <Text className="text-sm text-gray-400 mx-2">•</Text>
-                            <Text className="text-sm text-gray-600 font-medium">
-                              {getraenk.volume}
-                            </Text>
-                          </>
-                        )}
-                      </View>
+                      )}
                     </View>
                     <View className="items-end">
                       <Text className="text-xl font-bold text-blue-600">
