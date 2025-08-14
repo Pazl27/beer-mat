@@ -188,6 +188,14 @@ export default function SpeisenPage() {
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
+                      className="bg-gray-100 px-3 py-2 rounded-lg"
+                      onPress={() => {
+                        Alert.alert('Info', 'Bearbeiten wird noch implementiert');
+                      }}
+                    >
+                      <Text className="text-gray-700 font-medium">⚙️</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
                       className="bg-red-100 px-3 py-2 rounded-lg"
                       onPress={() => deleteSpeise(speise.id)}
                     >
