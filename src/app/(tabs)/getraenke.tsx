@@ -29,6 +29,12 @@ export default function GetraenkePage() {
     category: 'Bier',
     volume: ''
   });
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter getraenke based on search query
+  const filteredGetraenke = getraenke.filter(getraenk =>
+    getraenk.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const categories = ['Bier', 'Wein', 'Softdrinks', 'Heißgetränke', 'Spirituosen'];
 
@@ -63,7 +69,7 @@ export default function GetraenkePage() {
   };
 
   const groupedGetraenke = categories.reduce((acc, category) => {
-    acc[category] = getraenke.filter(g => g.category === category);
+    acc[category] = filteredGetraenke.filter(g => g.category === category);
     return acc;
   }, {} as Record<string, Getraenk[]>);
 
@@ -92,6 +98,16 @@ export default function GetraenkePage() {
           >
             <Text className="text-white font-semibold">+ Getränk</Text>
           </TouchableOpacity>
+        </View>
+
+        {/* Search Bar */}
+        <View className="mb-4">
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Getränk suchen..."
+            className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-base"
+          />
         </View>
 
         {/* Add Form */}

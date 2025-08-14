@@ -38,6 +38,12 @@ export default function PersonenPage() {
   
   const [showAddForm, setShowAddForm] = useState(false);
   const [newPersonName, setNewPersonName] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter persons based on search query
+  const filteredPersons = persons.filter(person =>
+    person.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const addPerson = () => {
     if (newPersonName.trim()) {
@@ -89,6 +95,16 @@ export default function PersonenPage() {
           </TouchableOpacity>
         </View>
 
+        {/* Search Bar */}
+        <View className="mb-4">
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Person suchen..."
+            className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-base"
+          />
+        </View>
+
         {/* Add Person Form */}
         {showAddForm && (
           <View className="bg-white p-4 rounded-lg mb-4 shadow-sm border border-gray-200">
@@ -127,7 +143,7 @@ export default function PersonenPage() {
         )}
 
         {/* Personen Liste */}
-        {persons.map((person) => (
+        {filteredPersons.map((person) => (
           <View
             key={person.id}
             className="bg-white rounded-lg p-4 mb-4 shadow-sm border border-gray-200"
@@ -211,7 +227,7 @@ export default function PersonenPage() {
           </View>
         ))}
 
-        {persons.length === 0 && (
+        {filteredPersons.length === 0 && (
           <View className="flex-1 justify-center items-center py-20">
             <Text className="text-6xl mb-4">👥</Text>
             <Text className="text-xl font-semibold text-gray-600 mb-2">

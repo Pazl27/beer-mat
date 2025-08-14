@@ -23,6 +23,12 @@ export default function SpeisenPage() {
     price: '',
     category: 'Hauptgericht'
   });
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter speisen based on search query
+  const filteredSpeisen = speisen.filter(speise =>
+    speise.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const categories = ['Vorspeise', 'Hauptgericht', 'Beilage', 'Salat', 'Nachspeise'];
 
@@ -56,7 +62,7 @@ export default function SpeisenPage() {
   };
 
   const groupedSpeisen = categories.reduce((acc, category) => {
-    acc[category] = speisen.filter(s => s.category === category);
+    acc[category] = filteredSpeisen.filter(s => s.category === category);
     return acc;
   }, {} as Record<string, Speise[]>);
 
@@ -74,6 +80,16 @@ export default function SpeisenPage() {
           >
             <Text className="text-white font-semibold">+ Speise</Text>
           </TouchableOpacity>
+        </View>
+
+        {/* Search Bar */}
+        <View className="mb-4">
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Speise suchen..."
+            className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-base"
+          />
         </View>
 
         {/* Add Form */}
@@ -208,7 +224,7 @@ export default function SpeisenPage() {
           );
         })}
 
-        {speisen.length === 0 && (
+        {filteredSpeisen.length === 0 && (
           <View className="flex-1 justify-center items-center py-20">
             <Text className="text-6xl mb-4">🍽️</Text>
             <Text className="text-xl font-semibold text-gray-600 mb-2">
