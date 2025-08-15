@@ -7,7 +7,6 @@ interface Item {
   name: string;
   price: number;
   type: 'speise' | 'getraenk';
-  timestamp: Date;
 }
 
 interface Person {
@@ -26,18 +25,18 @@ export default function PersonDetailPage() {
     name: 'Max Mustermann',
     totalDebt: 22.50,
     items: [
-      { id: '1', name: 'Bier', price: 2.50, type: 'getraenk', timestamp: new Date() },
-      { id: '2', name: 'Bier', price: 2.50, type: 'getraenk', timestamp: new Date() },
-      { id: '3', name: 'Bier', price: 2.50, type: 'getraenk', timestamp: new Date() },
-      { id: '4', name: 'Bier', price: 2.50, type: 'getraenk', timestamp: new Date() },
-      { id: '5', name: 'Bier', price: 2.50, type: 'getraenk', timestamp: new Date() },
-      { id: '6', name: 'Cola Mix', price: 2.00, type: 'getraenk', timestamp: new Date() },
-      { id: '7', name: 'Cola Mix', price: 2.00, type: 'getraenk', timestamp: new Date() },
-      { id: '8', name: 'Hot Dog', price: 2.00, type: 'speise', timestamp: new Date() },
-      { id: '9', name: 'Hot Dog', price: 2.00, type: 'speise', timestamp: new Date() },
-      { id: '10', name: 'Hot Dog', price: 2.00, type: 'speise', timestamp: new Date() },
-      { id: '11', name: 'Bratwurst', price: 2.00, type: 'speise', timestamp: new Date() },
-      { id: '12', name: 'Bratwurst', price: 2.00, type: 'speise', timestamp: new Date() },
+      { id: '1', name: 'Bier', price: 2.50, type: 'getraenk' },
+      { id: '2', name: 'Bier', price: 2.50, type: 'getraenk' },
+      { id: '3', name: 'Bier', price: 2.50, type: 'getraenk' },
+      { id: '4', name: 'Bier', price: 2.50, type: 'getraenk' },
+      { id: '5', name: 'Bier', price: 2.50, type: 'getraenk' },
+      { id: '6', name: 'Cola Mix', price: 2.00, type: 'getraenk' },
+      { id: '7', name: 'Cola Mix', price: 2.00, type: 'getraenk' },
+      { id: '8', name: 'Hot Dog', price: 2.00, type: 'speise' },
+      { id: '9', name: 'Hot Dog', price: 2.00, type: 'speise' },
+      { id: '10', name: 'Hot Dog', price: 2.00, type: 'speise' },
+      { id: '11', name: 'Bratwurst', price: 2.00, type: 'speise' },
+      { id: '12', name: 'Bratwurst', price: 2.00, type: 'speise' },
     ]
   });
 
