@@ -12,7 +12,6 @@ interface Person {
     name: string;
     price: number;
     type: 'speise' | 'getraenk';
-    timestamp: Date;
   }>;
 }
 
@@ -23,8 +22,8 @@ export default function PersonenPage() {
       name: 'Max Mustermann',
       totalDebt: 5.50,
       items: [
-        { id: '1', name: 'Bier (Flasche, 0,5l)', price: 2.50, type: 'getraenk', timestamp: new Date() },
-        { id: '2', name: 'Steak', price: 3.50, type: 'speise', timestamp: new Date() }
+        { id: '1', name: 'Bier (Flasche, 0,5l)', price: 2.50, type: 'getraenk' },
+        { id: '2', name: 'Steak', price: 3.50, type: 'speise' }
       ]
     },
     {
@@ -32,8 +31,8 @@ export default function PersonenPage() {
       name: 'Anna Schmidt',
       totalDebt: 3.50,
       items: [
-        { id: '3', name: 'Cola Mix (Flasche, 0,5l)', price: 2.00, type: 'getraenk', timestamp: new Date() },
-        { id: '4', name: 'Kaffee (Tasse)', price: 1.50, type: 'getraenk', timestamp: new Date() }
+        { id: '3', name: 'Cola Mix (Flasche, 0,5l)', price: 2.00, type: 'getraenk' },
+        { id: '4', name: 'Kaffee (Tasse)', price: 1.50, type: 'getraenk' }
       ]
     }
   ]);

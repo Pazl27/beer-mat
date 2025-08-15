@@ -10,7 +10,6 @@ interface Person {
     name: string;
     price: number;
     type: 'speise' | 'getraenk';
-    timestamp: Date;
   }>;
 }
 
