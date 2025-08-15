@@ -411,12 +411,6 @@ export default function PersonenPage() {
 
               {/* Delete Person Button */}
               <View className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 mb-6">
-                <Text className="text-lg font-bold text-gray-800 mb-2">
-                  Gefährliche Aktionen
-                </Text>
-                <Text className="text-sm text-gray-600 mb-4">
-                  Das Löschen einer Person kann nicht rückgängig gemacht werden.
-                </Text>
                 <TouchableOpacity
                   onPress={() => deletePerson(selectedPersonForDetails.id, selectedPersonForDetails.name)}
                   className="bg-red-600 py-3 rounded-lg"
