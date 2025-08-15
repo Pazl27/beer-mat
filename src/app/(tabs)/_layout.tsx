@@ -1,7 +1,25 @@
+import { drizzle } from 'drizzle-orm/expo-sqlite';
 import { Tabs } from 'expo-router';
+import { useSQLiteContext } from 'expo-sqlite';
 import { Text } from 'react-native';
+import * as schema from '../db/schema';
+import { useEffect } from 'react';
 
 export default function TabLayout() {
+
+    const db = useSQLiteContext();
+    const drizzleDb = drizzle(db, { schema})
+
+    useEffect(() => {
+      const load = async () => {
+        const data = await drizzleDb.query.users.findMany();
+        console.log('Loaded users:', data);
+      }
+
+      load();
+    }, []);
+
+
   return (
     <Tabs
       screenOptions={{
