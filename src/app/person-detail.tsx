@@ -81,24 +81,6 @@ export default function PersonDetailPage() {
     );
   };
 
-  const removeItem = (itemId: string) => {
-    Alert.alert(
-      'Artikel entfernen',
-      'Möchten Sie diesen Artikel von der Rechnung entfernen?',
-      [
-        { text: 'Abbrechen', style: 'cancel' },
-        {
-          text: 'Entfernen',
-          style: 'destructive',
-          onPress: () => {
-            // TODO: Implement item removal logic
-            Alert.alert('Info', 'Artikel wurde entfernt');
-          }
-        }
-      ]
-    );
-  };
-
   return (
     <View className="flex-1 bg-gray-50">
       <ScrollView className="flex-1 px-4 py-6">
@@ -157,61 +139,6 @@ export default function PersonDetailPage() {
             ))}
           </View>
         )}
-
-        {/* Einzelne Artikel */}
-        <View className="bg-white rounded-lg p-4 mb-4 shadow-sm border border-gray-200">
-          <Text className="text-lg font-bold text-gray-800 mb-3">
-            Alle Artikel (chronologisch)
-          </Text>
-          {person.items.map((item) => (
-            <View key={item.id} className="flex-row justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
-              <View className="flex-1">
-                <Text className="text-base text-gray-700">
-                  {item.name} {item.type === 'speise' ? '🍽️' : '🍺'}
-                </Text>
-                <Text className="text-xs text-gray-500">
-                  {item.timestamp.toLocaleTimeString()}
-                </Text>
-              </View>
-              <View className="flex-row items-center">
-                <Text className="text-base font-semibold text-gray-800 mr-3">
-                  €{item.price.toFixed(2)}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => removeItem(item.id)}
-                  className="bg-red-100 px-2 py-1 rounded"
-                >
-                  <Text className="text-red-700 text-xs">✕</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {/* Action Buttons */}
-        <View className="gap-3 mb-6">
-          <TouchableOpacity
-            className="bg-green-600 py-4 rounded-lg"
-            onPress={() => {
-              Alert.alert('Info', 'Artikel hinzufügen wird noch implementiert');
-            }}
-          >
-            <Text className="text-white text-center font-semibold text-lg">
-              + Artikel hinzufügen
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className="bg-blue-600 py-4 rounded-lg"
-            onPress={() => {
-              Alert.alert('Info', 'Schulden begleichen wird noch implementiert');
-            }}
-          >
-            <Text className="text-white text-center font-semibold text-lg">
-              Alle Schulden begleichen
-            </Text>
-          </TouchableOpacity>
-        </View>
 
         {/* Delete Person Button */}
         <View className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 mb-6">
