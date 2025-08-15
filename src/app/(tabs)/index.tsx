@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
+import { router } from 'expo-router';
 
 interface Person {
   id: string;
@@ -39,6 +40,7 @@ export default function PersonenPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newPersonName, setNewPersonName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPersonForDetails, setSelectedPersonForDetails] = useState<Person | null>(null);
 
   // Filter persons based on search query
   const filteredPersons = persons.filter(person =>
@@ -77,6 +79,78 @@ export default function PersonenPage() {
         }
       ]
     );
+  };
+
+  const deletePerson = (personId: string, personName: string) => {
+    Alert.alert(
+      'Person löschen',
+      `Möchten Sie ${personName} wirklich vollständig löschen? Diese Aktion kann nicht rückgängig gemacht werden.`,
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        {
+          text: 'Löschen',
+          style: 'destructive',
+          onPress: () => {
+            setPersons(persons.filter(p => p.id !== personId));
+            setSelectedPersonForDetails(null);
+            Alert.alert('Info', `${personName} wurde gelöscht`);
+          }
+        }
+      ]
+    );
+  };
+
+  const removeItemFromPerson = (personId: string, itemId: string) => {
+    setPersons(persons.map(person => {
+      if (person.id === personId) {
+        const updatedItems = person.items.filter(item => item.id !== itemId);
+        const newTotalDebt = updatedItems.reduce((sum, item) => sum + item.price, 0);
+        return {
+          ...person,
+          items: updatedItems,
+          totalDebt: newTotalDebt
+        };
+      }
+      return person;
+    }));
+    
+    // Update the selected person for details modal
+    if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
+      const updatedPerson = persons.find(p => p.id === personId);
+      if (updatedPerson) {
+        const updatedItems = updatedPerson.items.filter(item => item.id !== itemId);
+        const newTotalDebt = updatedItems.reduce((sum, item) => sum + item.price, 0);
+        setSelectedPersonForDetails({
+          ...updatedPerson,
+          items: updatedItems,
+          totalDebt: newTotalDebt
+        });
+      }
+    }
+  };
+
+  // Group items by name and type for summary in details modal
+  const getGroupedItems = (person: Person) => {
+    const grouped = person.items.reduce((acc, item) => {
+      const key = `${item.type}-${item.name}`;
+      if (!acc[key]) {
+        acc[key] = {
+          name: item.name,
+          type: item.type,
+          count: 0,
+          totalPrice: 0,
+          unitPrice: item.price
+        };
+      }
+      acc[key].count += 1;
+      acc[key].totalPrice += item.price;
+      return acc;
+    }, {} as Record<string, { name: string; type: 'speise' | 'getraenk'; count: number; totalPrice: number; unitPrice: number }>);
+
+    return {
+      getraenke: Object.values(grouped).filter(item => item.type === 'getraenk'),
+      speisen: Object.values(grouped).filter(item => item.type === 'speise')
+    };
   };
 
   return (
@@ -194,8 +268,7 @@ export default function PersonenPage() {
               <TouchableOpacity
                 className="flex-1 bg-blue-100 py-2 rounded-lg"
                 onPress={() => {
-                  // TODO: Navigate to person detail page
-                  Alert.alert('Info', 'Person Details Seite wird noch implementiert');
+                  setSelectedPersonForDetails(person);
                 }}
               >
                 <Text className="text-blue-700 text-center font-medium">
@@ -247,6 +320,116 @@ export default function PersonenPage() {
           </View>
         )}
       </ScrollView>
+
+      {/* Person Details Modal */}
+      <Modal
+        visible={selectedPersonForDetails !== null}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        {selectedPersonForDetails && (
+          <View className="flex-1 bg-gray-50">
+            {/* Modal Header */}
+            <View className="bg-white px-4 py-3 border-b border-gray-200 flex-row justify-between items-center">
+              <View className="flex-1" />
+              <Text className="text-lg font-semibold text-gray-800">
+                Person Details
+              </Text>
+              <View className="flex-1 items-end">
+                <TouchableOpacity
+                  onPress={() => setSelectedPersonForDetails(null)}
+                  className="bg-gray-100 px-3 py-1 rounded-lg"
+                >
+                  <Text className="text-gray-700 font-medium">✕</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <ScrollView className="flex-1 px-4 py-6">
+              {/* Person Header */}
+              <View className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
+                <Text className="text-2xl font-bold text-gray-800 text-center mb-2">
+                  {selectedPersonForDetails.name}
+                </Text>
+                <View className="items-center">
+                  <Text className="text-3xl font-bold text-red-600">
+                    €{selectedPersonForDetails.totalDebt.toFixed(2)}
+                  </Text>
+                  <Text className="text-sm text-gray-500">zu zahlen</Text>
+                </View>
+                <View className="mt-4 pt-4 border-t border-gray-100">
+                  <Text className="text-sm text-gray-600 text-center">
+                    Insgesamt {selectedPersonForDetails.items.length} Artikel
+                  </Text>
+                </View>
+              </View>
+
+              {(() => {
+                const grouped = getGroupedItems(selectedPersonForDetails);
+                return (
+                  <>
+                    {/* Getränke Summary */}
+                    {grouped.getraenke.length > 0 && (
+                      <View className="bg-white rounded-lg p-4 mb-4 shadow-sm border border-gray-200">
+                        <Text className="text-xl font-bold text-gray-800 mb-3">
+                          🍺 Getränke
+                        </Text>
+                        {grouped.getraenke.map((item, index) => (
+                          <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                            <Text className="text-base text-gray-700">
+                              {item.count}x {item.name}
+                            </Text>
+                            <Text className="text-base font-semibold text-blue-600">
+                              €{item.totalPrice.toFixed(2)}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+
+                    {/* Speisen Summary */}
+                    {grouped.speisen.length > 0 && (
+                      <View className="bg-white rounded-lg p-4 mb-4 shadow-sm border border-gray-200">
+                        <Text className="text-xl font-bold text-gray-800 mb-3">
+                          🍽️ Speisen
+                        </Text>
+                        {grouped.speisen.map((item, index) => (
+                          <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                            <Text className="text-base text-gray-700">
+                              {item.count}x {item.name}
+                            </Text>
+                            <Text className="text-base font-semibold text-green-600">
+                              €{item.totalPrice.toFixed(2)}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </>
+                );
+              })()}
+
+              {/* Delete Person Button */}
+              <View className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 mb-6">
+                <Text className="text-lg font-bold text-gray-800 mb-2">
+                  Gefährliche Aktionen
+                </Text>
+                <Text className="text-sm text-gray-600 mb-4">
+                  Das Löschen einer Person kann nicht rückgängig gemacht werden.
+                </Text>
+                <TouchableOpacity
+                  onPress={() => deletePerson(selectedPersonForDetails.id, selectedPersonForDetails.name)}
+                  className="bg-red-600 py-3 rounded-lg"
+                >
+                  <Text className="text-white text-center font-semibold">
+                    🗑️ Person löschen
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        )}
+      </Modal>
     </View>
   );
 }
