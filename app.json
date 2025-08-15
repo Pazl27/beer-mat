@@ -12,7 +12,8 @@
         {
           "origin": "https://n"
         }
-      ]
+      ],
+      "expo-sqlite"
     ],
     "name": "beer-mat",
     "slug": "beer-mat"
