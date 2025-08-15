@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import SpeiseDetails from '../speise-detail';
 
 interface Speise {
   id: string;
@@ -26,6 +27,7 @@ export default function SpeisenPage() {
     info: ''
   });
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSpeise, setSelectedSpeise] = useState<Speise | null>(null);
 
   // Filter speisen based on search query
   const filteredSpeisen = speisen.filter(speise =>
@@ -62,18 +64,11 @@ export default function SpeisenPage() {
   };
 
   const deleteSpeise = (id: string) => {
-    Alert.alert(
-      'Speise löschen',
-      'Möchten Sie diese Speise wirklich löschen?',
-      [
-        { text: 'Abbrechen', style: 'cancel' },
-        {
-          text: 'Löschen',
-          style: 'destructive',
-          onPress: () => setSpeisen(speisen.filter(s => s.id !== id))
-        }
-      ]
-    );
+    setSpeisen(speisen.filter(s => s.id !== id));
+  };
+
+  const updateSpeise = (updatedSpeise: Speise) => {
+    setSpeisen(speisen.map(s => s.id === updatedSpeise.id ? updatedSpeise : s));
   };
 
   const groupedSpeisen = categories.reduce((acc, category) => {
@@ -234,16 +229,10 @@ export default function SpeisenPage() {
                     <TouchableOpacity
                       className="bg-gray-100 px-3 py-2 rounded-lg"
                       onPress={() => {
-                        Alert.alert('Info', 'Bearbeiten wird noch implementiert');
+                        setSelectedSpeise(speise);
                       }}
                     >
                       <Text className="text-gray-700 font-medium">⚙️</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      className="bg-red-100 px-3 py-2 rounded-lg"
-                      onPress={() => deleteSpeise(speise.id)}
-                    >
-                      <Text className="text-red-700 font-medium">🗑️</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -272,6 +261,17 @@ export default function SpeisenPage() {
           </View>
         )}
       </ScrollView>
+
+      {/* Speise Details Modal */}
+      {selectedSpeise && (
+        <SpeiseDetails
+          speise={selectedSpeise}
+          visible={selectedSpeise !== null}
+          onClose={() => setSelectedSpeise(null)}
+          onUpdate={updateSpeise}
+          onDelete={deleteSpeise}
+        />
+      )}
     </View>
   );
 }
