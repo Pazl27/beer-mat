@@ -134,7 +134,7 @@ export default function GetraenkePage() {
               className="border border-gray-300 rounded-lg px-3 py-2 mb-3 text-base"
             />
 
-            <Text className="text-sm font-medium text-gray-700 mb-2">Menge (optional):</Text>
+            <Text className="text-sm font-medium text-gray-700 mb-2">Weitere Info (optional):</Text>
             <TextInput
               value={newGetraenk.volume}
               onChangeText={(text) => setNewGetraenk({ ...newGetraenk, volume: text })}
@@ -217,8 +217,8 @@ export default function GetraenkePage() {
                       )}
                     </View>
                     <View className="items-end">
-                      <Text className="text-xl font-bold text-blue-600">
-                        €{getraenk.price.toFixed(2)}
+                      <Text className="text-xl font-bold text-green-600">
+                        {getraenk.price.toFixed(2)}€
                       </Text>
                     </View>
                   </View>

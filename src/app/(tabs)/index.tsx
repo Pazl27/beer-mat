@@ -233,7 +233,7 @@ export default function PersonenPage() {
               </View>
               <View className="items-end">
                 <Text className="text-2xl font-bold text-red-600">
-                  €{person.totalDebt.toFixed(2)}
+                  {person.totalDebt.toFixed(2)}€
                 </Text>
                 <Text className="text-sm text-gray-500">zu zahlen</Text>
               </View>
@@ -251,7 +251,7 @@ export default function PersonenPage() {
                       {item.name} {item.type === 'speise' ? '🍽️' : '🍺'}
                     </Text>
                     <Text className="text-sm font-medium text-gray-800">
-                      €{item.price.toFixed(2)}
+                      {item.price.toFixed(2)}€
                     </Text>
                   </View>
                 ))}
@@ -353,7 +353,7 @@ export default function PersonenPage() {
                 </Text>
                 <View className="items-center">
                   <Text className="text-3xl font-bold text-red-600">
-                    €{selectedPersonForDetails.totalDebt.toFixed(2)}
+                    {selectedPersonForDetails.totalDebt.toFixed(2)}€
                   </Text>
                   <Text className="text-sm text-gray-500">zu zahlen</Text>
                 </View>
@@ -379,8 +379,8 @@ export default function PersonenPage() {
                             <Text className="text-base text-gray-700">
                               {item.count}x {item.name}
                             </Text>
-                            <Text className="text-base font-semibold text-blue-600">
-                              €{item.totalPrice.toFixed(2)}
+                            <Text className="text-base font-semibold text-green-600">
+                              {item.totalPrice.toFixed(2)}€
                             </Text>
                           </View>
                         ))}
@@ -399,7 +399,7 @@ export default function PersonenPage() {
                               {item.count}x {item.name}
                             </Text>
                             <Text className="text-base font-semibold text-green-600">
-                              €{item.totalPrice.toFixed(2)}
+                              {item.totalPrice.toFixed(2)}€
                             </Text>
                           </View>
                         ))}

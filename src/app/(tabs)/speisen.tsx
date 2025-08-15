@@ -6,6 +6,7 @@ interface Speise {
   name: string;
   price: number;
   category: string;
+  info?: string;
 }
 
 export default function SpeisenPage() {
@@ -21,7 +22,8 @@ export default function SpeisenPage() {
   const [newSpeise, setNewSpeise] = useState({
     name: '',
     price: '',
-    category: 'Hauptgericht'
+    category: 'Hauptgericht',
+    info: ''
   });
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -50,10 +52,11 @@ export default function SpeisenPage() {
         id: Date.now().toString(),
         name: newSpeise.name.trim(),
         price: parseFloat(newSpeise.price),
-        category: newSpeise.category
+        category: newSpeise.category,
+        info: newSpeise.info.trim() || undefined
       };
       setSpeisen([...speisen, speise]);
-      setNewSpeise({ name: '', price: '', category: 'Hauptgericht' });
+      setNewSpeise({ name: '', price: '', category: 'Hauptgericht', info: '' });
       setShowAddForm(false);
     }
   };
@@ -128,6 +131,14 @@ export default function SpeisenPage() {
               className="border border-gray-300 rounded-lg px-3 py-2 mb-3 text-base"
             />
 
+            <Text className="text-sm font-medium text-gray-700 mb-2">Weitere Info (optional):</Text>
+            <TextInput
+              value={newSpeise.info}
+              onChangeText={(text) => setNewSpeise({ ...newSpeise, info: text })}
+              placeholder="z.B. mit Pommes und Salat"
+              className="border border-gray-300 rounded-lg px-3 py-2 mb-3 text-base"
+            />
+
             <Text className="text-sm font-medium text-gray-700 mb-2">Kategorie:</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
               {categories.map((category) => (
@@ -163,7 +174,7 @@ export default function SpeisenPage() {
               <TouchableOpacity
                 onPress={() => {
                   setShowAddForm(false);
-                  setNewSpeise({ name: '', price: '', category: 'Hauptgericht' });
+                  setNewSpeise({ name: '', price: '', category: 'Hauptgericht', info: '' });
                 }}
                 className="flex-1 bg-gray-400 py-2 rounded-lg"
               >
@@ -196,10 +207,15 @@ export default function SpeisenPage() {
                       <Text className="text-lg font-semibold text-gray-800">
                         {speise.name}
                       </Text>
+                      {speise.info && (
+                        <Text className="text-sm text-gray-600 font-medium mt-1">
+                          {speise.info}
+                        </Text>
+                      )}
                     </View>
                     <View className="items-end">
                       <Text className="text-xl font-bold text-green-600">
-                        €{speise.price.toFixed(2)}
+                        {speise.price.toFixed(2)}€
                       </Text>
                     </View>
                   </View>
