@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { router } from 'expo-router';
+import PersonBegleichen from '../person-begleichen';
 
 interface Person {
   id: string;
@@ -41,6 +42,7 @@ export default function PersonenPage() {
   const [newPersonName, setNewPersonName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPersonForDetails, setSelectedPersonForDetails] = useState<Person | null>(null);
+  const [selectedPersonForBegleichen, setSelectedPersonForBegleichen] = useState<Person | null>(null);
 
   // Filter persons based on search query
   const filteredPersons = persons.filter(person =>
@@ -62,23 +64,57 @@ export default function PersonenPage() {
   };
 
   const clearDebt = (personId: string) => {
-    Alert.alert(
-      'Schulden begleichen',
-      'Möchten Sie die Schulden für diese Person wirklich begleichen?',
-      [
-        { text: 'Abbrechen', style: 'cancel' },
-        {
-          text: 'Begleichen',
-          onPress: () => {
-            setPersons(persons.map(person => 
-              person.id === personId 
-                ? { ...person, totalDebt: 0, items: [] }
-                : person
-            ));
-          }
+    setPersons(persons.map(person => 
+      person.id === personId 
+        ? { ...person, totalDebt: 0, items: [] }
+        : person
+    ));
+  };
+
+  const payItem = (personId: string, itemName: string, itemType: 'speise' | 'getraenk') => {
+    setPersons(persons.map(person => {
+      if (person.id === personId) {
+        // Find the first item with matching name and type to remove
+        const itemIndex = person.items.findIndex(item => 
+          item.name === itemName && item.type === itemType
+        );
+        
+        if (itemIndex !== -1) {
+          const updatedItems = [...person.items];
+          const removedItem = updatedItems.splice(itemIndex, 1)[0];
+          const newTotalDebt = person.totalDebt - removedItem.price;
+          
+          return {
+            ...person,
+            items: updatedItems,
+            totalDebt: Math.max(0, newTotalDebt)
+          };
         }
-      ]
-    );
+      }
+      return person;
+    }));
+    
+    // Update selected person for begleichen modal if it's open
+    if (selectedPersonForBegleichen && selectedPersonForBegleichen.id === personId) {
+      const updatedPerson = persons.find(p => p.id === personId);
+      if (updatedPerson) {
+        const itemIndex = updatedPerson.items.findIndex(item => 
+          item.name === itemName && item.type === itemType
+        );
+        
+        if (itemIndex !== -1) {
+          const updatedItems = [...updatedPerson.items];
+          const removedItem = updatedItems.splice(itemIndex, 1)[0];
+          const newTotalDebt = updatedPerson.totalDebt - removedItem.price;
+          
+          setSelectedPersonForBegleichen({
+            ...updatedPerson,
+            items: updatedItems,
+            totalDebt: Math.max(0, newTotalDebt)
+          });
+        }
+      }
+    }
   };
 
   const deletePerson = (personId: string, personName: string) => {
@@ -289,7 +325,7 @@ export default function PersonenPage() {
               {person.totalDebt > 0 && (
                 <TouchableOpacity
                   className="flex-1 bg-red-100 py-2 rounded-lg"
-                  onPress={() => clearDebt(person.id)}
+                  onPress={() => setSelectedPersonForBegleichen(person)}
                 >
                   <Text className="text-red-700 text-center font-medium">
                     Begleichen
@@ -424,6 +460,17 @@ export default function PersonenPage() {
           </View>
         )}
       </Modal>
+
+      {/* Person Begleichen Modal */}
+      {selectedPersonForBegleichen && (
+        <PersonBegleichen
+          person={selectedPersonForBegleichen}
+          visible={selectedPersonForBegleichen !== null}
+          onClose={() => setSelectedPersonForBegleichen(null)}
+          onPayItem={payItem}
+          onPayAll={clearDebt}
+        />
+      )}
     </View>
   );
 }
