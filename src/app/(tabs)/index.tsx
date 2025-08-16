@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { router } from 'expo-router';
 import PersonBegleichen from '../person-begleichen';
+import PersonArtikelHinzufuegen from '../person-artikel-hinzufuegen';
 
 interface Person {
   id: string;
@@ -42,6 +43,7 @@ export default function PersonenPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPersonForDetails, setSelectedPersonForDetails] = useState<Person | null>(null);
   const [selectedPersonForBegleichen, setSelectedPersonForBegleichen] = useState<Person | null>(null);
+  const [selectedPersonForArtikelHinzufuegen, setSelectedPersonForArtikelHinzufuegen] = useState<Person | null>(null);
 
   // Filter persons based on search query
   const filteredPersons = persons.filter(person =>
@@ -188,6 +190,63 @@ export default function PersonenPage() {
     };
   };
 
+  const handleAddItemsToPerson = (personId: string, selectedItems: Array<{name: string, price: number, type: 'speise' | 'getraenk', quantity: number}>) => {
+    setPersons(prevPersons => {
+      return prevPersons.map(person => {
+        if (person.id === personId) {
+          const newItems = [...person.items];
+          let totalPriceAdded = 0;
+          
+          selectedItems.forEach(selectedItem => {
+            for (let i = 0; i < selectedItem.quantity; i++) {
+              newItems.push({
+                id: Date.now().toString() + Math.random(),
+                name: selectedItem.name,
+                price: selectedItem.price,
+                type: selectedItem.type
+              });
+              totalPriceAdded += selectedItem.price;
+            }
+          });
+          
+          return {
+            ...person,
+            items: newItems,
+            totalDebt: person.totalDebt + totalPriceAdded
+          };
+        }
+        return person;
+      });
+    });
+
+    // Update selectedPersonForDetails if it's the same person
+    if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
+      const updatedPerson = persons.find(p => p.id === personId);
+      if (updatedPerson) {
+        const newItems = [...updatedPerson.items];
+        let totalPriceAdded = 0;
+        
+        selectedItems.forEach(selectedItem => {
+          for (let i = 0; i < selectedItem.quantity; i++) {
+            newItems.push({
+              id: Date.now().toString() + Math.random(),
+              name: selectedItem.name,
+              price: selectedItem.price,
+              type: selectedItem.type
+            });
+            totalPriceAdded += selectedItem.price;
+          }
+        });
+        
+        setSelectedPersonForDetails({
+          ...updatedPerson,
+          items: newItems,
+          totalDebt: updatedPerson.totalDebt + totalPriceAdded
+        });
+      }
+    }
+  };
+
   return (
     <View className="flex-1 bg-gray-50">
       <ScrollView className="flex-1 px-4 py-6">
@@ -312,10 +371,7 @@ export default function PersonenPage() {
               </TouchableOpacity>
               <TouchableOpacity
                 className="flex-1 bg-green-100 py-2 rounded-lg"
-                onPress={() => {
-                  // TODO: Navigate to add items page
-                  Alert.alert('Info', 'Artikel hinzufügen wird noch implementiert');
-                }}
+                  onPress={() => setSelectedPersonForArtikelHinzufuegen(person)}
               >
                 <Text className="text-green-700 text-center font-medium">
                   + Artikel
@@ -468,6 +524,16 @@ export default function PersonenPage() {
           onClose={() => setSelectedPersonForBegleichen(null)}
           onPayItem={payItem}
           onPayAll={clearDebt}
+        />
+      )}
+
+      {/* Person Artikel Hinzufügen Modal */}
+      {selectedPersonForArtikelHinzufuegen && (
+        <PersonArtikelHinzufuegen
+          person={selectedPersonForArtikelHinzufuegen}
+          visible={selectedPersonForArtikelHinzufuegen !== null}
+          onClose={() => setSelectedPersonForArtikelHinzufuegen(null)}
+          onAddItems={handleAddItemsToPerson}
         />
       )}
     </View>
