@@ -46,16 +46,20 @@ export default function PersonArtikelHinzufuegen({
   const getraenke: Getraenk[] = [
     { id: '1', name: 'Bier', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
     { id: '2', name: 'Radler', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
-    { id: '3', name: 'Cola Mix', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
-    { id: '4', name: 'Mineralwasser', price: 1.50, category: 'Softdrinks', info: 'Flasche, 0,5l' },
-    { id: '5', name: 'Kaffee', price: 1.50, category: 'Heißgetränke', info: 'Tasse' },
+    { id: '3', name: 'Alkoholfreies Bier', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
+    { id: '4', name: 'Alkoholfreies Radler', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
+    { id: '5', name: 'Mineralwasser', price: 1.50, category: 'Softdrinks', info: 'Flasche, 0,5l' },
+    { id: '6', name: 'Cola Mix', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
+    { id: '7', name: 'Iso Sport', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
+    { id: '8', name: 'Bio Apfel-Birnen-Schorle', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
+    { id: '9', name: 'Kaffee (Tasse)', price: 1.50, category: 'Heißgetränke', info: 'mit/ohne Zucker, mit/ohne Milch' },
   ];
 
   const speisen: Speise[] = [
     { id: '1', name: 'Hot Dog', price: 2.00, category: 'Hauptgericht' },
     { id: '2', name: 'Bratwurst', price: 2.00, category: 'Hauptgericht' },
-    { id: '3', name: 'Steak', price: 3.50, category: 'Hauptgericht' },
-    { id: '4', name: 'Pommes', price: 1.50, category: 'Beilage' },
+    { id: '3', name: 'Paar Bratwürste', price: 3.00, category: 'Hauptgericht' },
+    { id: '4', name: 'Steak', price: 3.50, category: 'Hauptgericht' },
     { id: '5', name: 'Kuchen', price: 1.00, category: 'Nachspeise' },
   ];
 
