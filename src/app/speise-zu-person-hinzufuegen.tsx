@@ -161,13 +161,18 @@ export default function SpeiseZuPersonHinzufuegen({
       <View className="flex-1 bg-gray-50">
         {/* Modal Header */}
         <View className="bg-white px-4 py-3 border-b border-gray-200 flex-row justify-between items-center">
-          <TouchableOpacity onPress={onClose}>
-            <Ionicons name="arrow-back" size={24} color="#374151" />
-          </TouchableOpacity>
+          <View className="flex-1" />
           <Text className="text-lg font-semibold text-gray-800">
             Zu Person hinzufügen
           </Text>
-          <View style={{ width: 24 }} />
+          <View className="flex-1 items-end">
+            <TouchableOpacity
+              onPress={onClose}
+              className="bg-gray-100 px-3 py-1 rounded-lg"
+            >
+              <Text className="text-gray-700 font-medium">✕</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <ScrollView className="flex-1 px-4 py-6">
