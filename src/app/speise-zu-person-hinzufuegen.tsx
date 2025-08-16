@@ -1,0 +1,311 @@
+import React, { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+interface Person {
+  id: string;
+  name: string;
+  totalDebt: number;
+  items: Array<{
+    id: string;
+    name: string;
+    price: number;
+    type: 'speise' | 'getraenk';
+  }>;
+}
+
+interface Speise {
+  id: string;
+  name: string;
+  price: number;
+  category: string;
+  info?: string;
+}
+
+interface SpeiseZuPersonHinzufuegenProps {
+  speise: Speise;
+  visible: boolean;
+  onClose: () => void;
+  onAddToPerson: (personId: string, speise: Speise, quantity: number) => void;
+}
+
+export default function SpeiseZuPersonHinzufuegen({ 
+  speise, 
+  visible, 
+  onClose, 
+  onAddToPerson 
+}: SpeiseZuPersonHinzufuegenProps) {
+  // Mock-Daten für Personen (später aus echten Daten holen)
+  const [persons] = useState<Person[]>([
+    {
+      id: '1',
+      name: 'Max Mustermann',
+      totalDebt: 5.50,
+      items: [
+        { id: '1', name: 'Bier (Flasche, 0,5l)', price: 2.50, type: 'getraenk' },
+        { id: '2', name: 'Steak', price: 3.50, type: 'speise' }
+      ]
+    },
+    {
+      id: '2',
+      name: 'Anna Schmidt',
+      totalDebt: 3.50,
+      items: [
+        { id: '3', name: 'Cola Mix (Flasche, 0,5l)', price: 2.00, type: 'getraenk' },
+        { id: '4', name: 'Kaffee (Tasse)', price: 1.50, type: 'getraenk' }
+      ]
+    },
+    {
+      id: '3',
+      name: 'Tom Weber',
+      totalDebt: 0,
+      items: []
+    },
+    {
+      id: '4',
+      name: 'Lisa Müller',
+      totalDebt: 7.20,
+      items: [
+        { id: '5', name: 'Hot Dog', price: 2.00, type: 'speise' },
+        { id: '6', name: 'Pommes', price: 1.50, type: 'speise' },
+        { id: '7', name: 'Cola Mix (Flasche, 0,5l)', price: 2.00, type: 'getraenk' },
+        { id: '8', name: 'Kaffee (Tasse)', price: 1.70, type: 'getraenk' }
+      ]
+    }
+  ]);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
+
+  // Filter persons based on search query
+  const filteredPersons = persons.filter(person =>
+    person.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const getSpeiseEmoji = (speiseName: string) => {
+    const name = speiseName.toLowerCase();
+    if (name.includes('hot dog')) return '🌭';
+    if (name.includes('bratwurst') || name.includes('wurst')) return '🌭';
+    if (name.includes('steak') || name.includes('fleisch')) return '🥩';
+    if (name.includes('kuchen') || name.includes('torte')) return '🍰';
+    if (name.includes('pommes')) return '🍟';
+    if (name.includes('salat')) return '🥗';
+    return '🍽️';
+  };
+
+  const updateQuantity = (personId: string, change: number) => {
+    setSelectedQuantities(prev => {
+      const current = prev[personId] || 0;
+      const newQuantity = Math.max(0, current + change);
+      if (newQuantity === 0) {
+        const { [personId]: removed, ...rest } = prev;
+        return rest;
+      }
+      return { ...prev, [personId]: newQuantity };
+    });
+  };
+
+  const getTotalItems = () => {
+    return Object.values(selectedQuantities).reduce((sum, qty) => sum + qty, 0);
+  };
+
+  const getTotalPrice = () => {
+    return getTotalItems() * speise.price;
+  };
+
+  const handleAddToPersons = () => {
+    if (Object.keys(selectedQuantities).length === 0) {
+      Alert.alert('Keine Auswahl', 'Bitte wählen Sie mindestens eine Person aus.');
+      return;
+    }
+
+    const totalItems = getTotalItems();
+    const totalPrice = getTotalPrice();
+
+    Alert.alert(
+      'Speise hinzufügen',
+      `Möchten Sie ${totalItems}x "${speise.name}" für ${totalPrice.toFixed(2)}€ zu den ausgewählten Personen hinzufügen?`,
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        {
+          text: 'Hinzufügen',
+          onPress: () => {
+            Object.entries(selectedQuantities).forEach(([personId, quantity]) => {
+              onAddToPerson(personId, speise, quantity);
+            });
+            
+            setSelectedQuantities({});
+            onClose();
+            
+            const personNames = Object.keys(selectedQuantities)
+              .map(id => persons.find(p => p.id === id)?.name)
+              .filter(Boolean)
+              .join(', ');
+            
+            Alert.alert(
+              'Hinzugefügt', 
+              `${totalItems}x "${speise.name}" wurde zu ${personNames} hinzugefügt.`
+            );
+          }
+        }
+      ]
+    );
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
+      <View className="flex-1 bg-gray-50">
+        {/* Modal Header */}
+        <View className="bg-white px-4 py-3 border-b border-gray-200 flex-row justify-between items-center">
+          <TouchableOpacity onPress={onClose}>
+            <Ionicons name="arrow-back" size={24} color="#374151" />
+          </TouchableOpacity>
+          <Text className="text-lg font-semibold text-gray-800">
+            Zu Person hinzufügen
+          </Text>
+          <View style={{ width: 24 }} />
+        </View>
+
+        <ScrollView className="flex-1 px-4 py-6">
+          {/* Speise Header */}
+          <View className="bg-white rounded-lg p-4 mb-6 shadow-sm border border-gray-200">
+            <Text className="text-2xl text-center mb-2">
+              {getSpeiseEmoji(speise.name)}
+            </Text>
+            <Text className="text-xl font-bold text-gray-800 text-center mb-2">
+              {speise.name}
+            </Text>
+            <View className="flex-row justify-center items-center gap-4">
+              <Text className="text-sm text-gray-600">
+                {speise.category}
+              </Text>
+              <Text className="text-lg font-semibold text-green-600">
+                {speise.price.toFixed(2)}€
+              </Text>
+            </View>
+            {speise.info && (
+              <Text className="text-sm text-gray-500 text-center mt-2">
+                {speise.info}
+              </Text>
+            )}
+          </View>
+
+          {/* Suchleiste */}
+          <View className="mb-4">
+            <TextInput
+              className="bg-white px-4 py-3 rounded-lg border border-gray-200 text-gray-800"
+              placeholder="Person suchen..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
+
+          {/* Personen Liste */}
+          <Text className="text-lg font-semibold text-gray-800 mb-4">
+            👥 Personen ({filteredPersons.length})
+          </Text>
+
+          <View className="space-y-3">
+            {filteredPersons.map((person) => (
+              <View key={person.id} className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                <View className="flex-row justify-between items-center">
+                  <View className="flex-1">
+                    <Text className="text-lg font-semibold text-gray-800">
+                      👤 {person.name}
+                    </Text>
+                    <Text className="text-sm text-gray-600 mt-1">
+                      Aktuelle Schulden: {person.totalDebt.toFixed(2)}€
+                    </Text>
+                    <Text className="text-sm text-gray-500">
+                      {person.items.length} Artikel
+                    </Text>
+                  </View>
+
+                  <View className="flex-row items-center gap-3">
+                    <TouchableOpacity
+                      onPress={() => updateQuantity(person.id, -1)}
+                      className="bg-red-100 w-8 h-8 rounded-full justify-center items-center"
+                      disabled={(selectedQuantities[person.id] || 0) === 0}
+                    >
+                      <Text className="text-red-700 font-bold text-lg">−</Text>
+                    </TouchableOpacity>
+                    
+                    <Text className="text-lg font-bold text-gray-800 w-8 text-center">
+                      {selectedQuantities[person.id] || 0}
+                    </Text>
+                    
+                    <TouchableOpacity
+                      onPress={() => updateQuantity(person.id, 1)}
+                      className="bg-green-100 w-8 h-8 rounded-full justify-center items-center"
+                    >
+                      <Text className="text-green-700 font-bold text-lg">+</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+
+          {filteredPersons.length === 0 && (
+            <View className="flex-1 justify-center items-center py-20">
+              <Text className="text-6xl mb-4">🔍</Text>
+              <Text className="text-xl font-semibold text-gray-600 mb-2">
+                Keine Personen gefunden
+              </Text>
+              <Text className="text-gray-500 text-center">
+                {searchQuery ? 'Versuchen Sie einen anderen Suchbegriff' : 'Fügen Sie zuerst Personen hinzu'}
+              </Text>
+            </View>
+          )}
+
+          {/* Zusammenfassung */}
+          {getTotalItems() > 0 && (
+            <View className="bg-blue-50 rounded-lg p-4 mt-6 mb-6 border border-blue-200">
+              <Text className="text-lg font-bold text-blue-800 mb-2 text-center">
+                📋 Zusammenfassung
+              </Text>
+              <Text className="text-base text-blue-700 text-center mb-2">
+                {getTotalItems()}x {speise.name}
+              </Text>
+              <Text className="text-xl font-bold text-blue-600 text-center">
+                Gesamtpreis: {getTotalPrice().toFixed(2)}€
+              </Text>
+            </View>
+          )}
+
+          {/* Spacer für Button */}
+          <View className="h-20" />
+        </ScrollView>
+
+        {/* Hinzufügen Button */}
+        <View className="p-4 bg-white border-t border-gray-200">
+          <TouchableOpacity
+            onPress={handleAddToPersons}
+            className={`p-4 rounded-lg items-center ${
+              getTotalItems() > 0 
+                ? 'bg-green-500' 
+                : 'bg-gray-300'
+            }`}
+            disabled={getTotalItems() === 0}
+          >
+            <Text className={`text-lg font-semibold ${
+              getTotalItems() > 0 
+                ? 'text-white' 
+                : 'text-gray-500'
+            }`}>
+              {getTotalItems() > 0 
+                ? `Hinzufügen (${getTotalPrice().toFixed(2)}€)`
+                : 'Keine Auswahl'
+              }
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}

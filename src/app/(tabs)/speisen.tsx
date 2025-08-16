@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import SpeiseDetails from '../speise-detail';
+import SpeiseZuPersonHinzufuegen from '../speise-zu-person-hinzufuegen';
 
 interface Speise {
   id: string;
@@ -28,6 +29,7 @@ export default function SpeisenPage() {
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpeise, setSelectedSpeise] = useState<Speise | null>(null);
+  const [selectedSpeiseForPerson, setSelectedSpeiseForPerson] = useState<Speise | null>(null);
 
   // Filter speisen based on search query
   const filteredSpeisen = speisen.filter(speise =>
@@ -69,6 +71,16 @@ export default function SpeisenPage() {
 
   const updateSpeise = (updatedSpeise: Speise) => {
     setSpeisen(speisen.map(s => s.id === updatedSpeise.id ? updatedSpeise : s));
+  };
+
+  const handleAddSpeiseToPerson = (personId: string, speise: Speise, quantity: number) => {
+    // TODO: Hier würde die echte Logik zum Hinzufügen zur Datenbank kommen
+    // Für jetzt nur eine Bestätigung
+    Alert.alert(
+      'Speise hinzugefügt',
+      `${quantity}x "${speise.name}" wurde erfolgreich hinzugefügt!`,
+      [{ text: 'OK' }]
+    );
   };
 
   const groupedSpeisen = categories.reduce((acc, category) => {
@@ -219,7 +231,7 @@ export default function SpeisenPage() {
                     <TouchableOpacity
                       className="flex-1 bg-blue-100 py-2 rounded-lg"
                       onPress={() => {
-                        Alert.alert('Info', 'Zu Person hinzufügen wird noch implementiert');
+                        setSelectedSpeiseForPerson(speise);
                       }}
                     >
                       <Text className="text-blue-700 text-center font-medium">
@@ -263,6 +275,7 @@ export default function SpeisenPage() {
       </ScrollView>
 
       {/* Speise Details Modal */}
+      {/* Speise Details Modal */}
       {selectedSpeise && (
         <SpeiseDetails
           speise={selectedSpeise}
@@ -270,6 +283,16 @@ export default function SpeisenPage() {
           onClose={() => setSelectedSpeise(null)}
           onUpdate={updateSpeise}
           onDelete={deleteSpeise}
+        />
+      )}
+
+      {/* Speise zu Person hinzufügen Modal */}
+      {selectedSpeiseForPerson && (
+        <SpeiseZuPersonHinzufuegen
+          speise={selectedSpeiseForPerson}
+          visible={selectedSpeiseForPerson !== null}
+          onClose={() => setSelectedSpeiseForPerson(null)}
+          onAddToPerson={handleAddSpeiseToPerson}
         />
       )}
     </View>

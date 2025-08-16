@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import GetraenkDetails from '../getraenk-detail';
+import GetraenkZuPersonHinzufuegen from '../getraenk-zu-person-hinzufuegen';
 
 interface Getraenk {
   id: string;
@@ -32,6 +33,7 @@ export default function GetraenkePage() {
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGetraenk, setSelectedGetraenk] = useState<Getraenk | null>(null);
+  const [selectedGetraenkForPerson, setSelectedGetraenkForPerson] = useState<Getraenk | null>(null);
 
   // Filter getraenke based on search query
   const filteredGetraenke = getraenke.filter(getraenk =>
@@ -61,6 +63,16 @@ export default function GetraenkePage() {
 
   const updateGetraenk = (updatedGetraenk: Getraenk) => {
     setGetraenke(getraenke.map(g => g.id === updatedGetraenk.id ? updatedGetraenk : g));
+  };
+
+  const handleAddGetraenkToPerson = (personId: string, getraenk: Getraenk, quantity: number) => {
+    // TODO: Hier würde die echte Logik zum Hinzufügen zur Datenbank kommen
+    // Für jetzt nur eine Bestätigung
+    Alert.alert(
+      'Getränk hinzugefügt',
+      `${quantity}x "${getraenk.name}" wurde erfolgreich hinzugefügt!`,
+      [{ text: 'OK' }]
+    );
   };
 
   const groupedGetraenke = categories.reduce((acc, category) => {
@@ -222,7 +234,7 @@ export default function GetraenkePage() {
                     <TouchableOpacity
                       className="flex-1 bg-blue-100 py-2 rounded-lg"
                       onPress={() => {
-                        Alert.alert('Info', 'Zu Person hinzufügen wird noch implementiert');
+                        setSelectedGetraenkForPerson(getraenk);
                       }}
                     >
                       <Text className="text-blue-700 text-center font-medium">
@@ -266,6 +278,7 @@ export default function GetraenkePage() {
       </ScrollView>
 
       {/* Getränk Details Modal */}
+      {/* Getränk Details Modal */}
       {selectedGetraenk && (
         <GetraenkDetails
           getraenk={selectedGetraenk}
@@ -273,6 +286,16 @@ export default function GetraenkePage() {
           onClose={() => setSelectedGetraenk(null)}
           onUpdate={updateGetraenk}
           onDelete={deleteGetraenk}
+        />
+      )}
+
+      {/* Getränk zu Person hinzufügen Modal */}
+      {selectedGetraenkForPerson && (
+        <GetraenkZuPersonHinzufuegen
+          getraenk={selectedGetraenkForPerson}
+          visible={selectedGetraenkForPerson !== null}
+          onClose={() => setSelectedGetraenkForPerson(null)}
+          onAddToPerson={handleAddGetraenkToPerson}
         />
       )}
     </View>
