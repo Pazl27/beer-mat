@@ -178,25 +178,12 @@ export default function SpeiseZuPersonHinzufuegen({
         <ScrollView className="flex-1 px-4 py-6">
           {/* Speise Header */}
           <View className="bg-white rounded-lg p-4 mb-6 shadow-sm border border-gray-200">
-            <Text className="text-2xl text-center mb-2">
-              {getSpeiseEmoji(speise.name)}
-            </Text>
             <Text className="text-xl font-bold text-gray-800 text-center mb-2">
-              {speise.name}
+              {getSpeiseEmoji(speise.name)} {speise.name}
             </Text>
-            <View className="flex-row justify-center items-center gap-4">
-              <Text className="text-sm text-gray-600">
-                {speise.category}
-              </Text>
-              <Text className="text-lg font-semibold text-green-600">
-                {speise.price.toFixed(2)}€
-              </Text>
-            </View>
-            {speise.info && (
-              <Text className="text-sm text-gray-500 text-center mt-2">
-                {speise.info}
-              </Text>
-            )}
+            <Text className="text-lg font-semibold text-green-600 text-center">
+              {speise.price.toFixed(2)}€
+            </Text>
           </View>
 
           {/* Suchleiste */}

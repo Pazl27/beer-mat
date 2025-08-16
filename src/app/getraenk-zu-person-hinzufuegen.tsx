@@ -180,25 +180,12 @@ export default function GetraenkZuPersonHinzufuegen({
         <ScrollView className="flex-1 px-4 py-6">
           {/* Getränk Header */}
           <View className="bg-white rounded-lg p-4 mb-6 shadow-sm border border-gray-200">
-            <Text className="text-2xl text-center mb-2">
-              {getGetraenkEmoji(getraenk.name)}
-            </Text>
             <Text className="text-xl font-bold text-gray-800 text-center mb-2">
-              {getraenk.name}
+              {getGetraenkEmoji(getraenk.name)} {getraenk.name}
             </Text>
-            <View className="flex-row justify-center items-center gap-4">
-              <Text className="text-sm text-gray-600">
-                {getraenk.category}
-              </Text>
-              <Text className="text-lg font-semibold text-green-600">
-                {getraenk.price.toFixed(2)}€
-              </Text>
-            </View>
-            {getraenk.info && (
-              <Text className="text-sm text-gray-500 text-center mt-2">
-                {getraenk.info}
-              </Text>
-            )}
+            <Text className="text-lg font-semibold text-green-600 text-center">
+              {getraenk.price.toFixed(2)}€
+            </Text>
           </View>
 
           {/* Suchleiste */}
