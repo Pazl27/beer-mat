@@ -75,12 +75,7 @@ export default function SpeisenPage() {
 
   const handleAddSpeiseToPerson = (personId: string, speise: Speise, quantity: number) => {
     // TODO: Hier würde die echte Logik zum Hinzufügen zur Datenbank kommen
-    // Für jetzt nur eine Bestätigung
-    Alert.alert(
-      'Speise hinzugefügt',
-      `${quantity}x "${speise.name}" wurde erfolgreich hinzugefügt!`,
-      [{ text: 'OK' }]
-    );
+    // Success-Feedback wird bereits in der Modal-Komponente angezeigt
   };
 
   const groupedSpeisen = categories.reduce((acc, category) => {

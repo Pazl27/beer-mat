@@ -67,12 +67,7 @@ export default function GetraenkePage() {
 
   const handleAddGetraenkToPerson = (personId: string, getraenk: Getraenk, quantity: number) => {
     // TODO: Hier würde die echte Logik zum Hinzufügen zur Datenbank kommen
-    // Für jetzt nur eine Bestätigung
-    Alert.alert(
-      'Getränk hinzugefügt',
-      `${quantity}x "${getraenk.name}" wurde erfolgreich hinzugefügt!`,
-      [{ text: 'OK' }]
-    );
+    // Success-Feedback wird bereits in der Modal-Komponente angezeigt
   };
 
   const groupedGetraenke = categories.reduce((acc, category) => {
