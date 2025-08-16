@@ -1,25 +1,27 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import GetraenkDetails from '../getraenk-detail';
+import GetraenkZuPersonHinzufuegen from '../getraenk-zu-person-hinzufuegen';
 
 interface Getraenk {
   id: string;
   name: string;
   price: number;
   category: string;
-  volume?: string;
+  info?: string;
 }
 
 export default function GetraenkePage() {
   const [getraenke, setGetraenke] = useState<Getraenk[]>([
-    { id: '1', name: 'Bier', price: 2.50, category: 'Bier', volume: 'Flasche, 0,5l' },
-    { id: '2', name: 'Radler', price: 2.50, category: 'Bier', volume: 'Flasche, 0,5l' },
-    { id: '3', name: 'Alkoholfreies Bier', price: 2.50, category: 'Bier', volume: 'Flasche, 0,5l' },
-    { id: '4', name: 'Alkoholfreies Radler', price: 2.50, category: 'Bier', volume: 'Flasche, 0,5l' },
-    { id: '5', name: 'Mineralwasser', price: 1.50, category: 'Softdrinks', volume: 'Flasche, 0,5l' },
-    { id: '6', name: 'Cola Mix', price: 2.00, category: 'Softdrinks', volume: 'Flasche, 0,5l' },
-    { id: '7', name: 'Iso Sport', price: 2.00, category: 'Softdrinks', volume: 'Flasche, 0,5l' },
-    { id: '8', name: 'Bio Apfel-Birnen-Schorle', price: 2.00, category: 'Softdrinks', volume: 'Flasche, 0,5l' },
-    { id: '9', name: 'Kaffee (Tasse)', price: 1.50, category: 'Heißgetränke', volume: 'mit/ohne Zucker, mit/ohne Milch' },
+    { id: '1', name: 'Bier', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
+    { id: '2', name: 'Radler', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
+    { id: '3', name: 'Alkoholfreies Bier', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
+    { id: '4', name: 'Alkoholfreies Radler', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
+    { id: '5', name: 'Mineralwasser', price: 1.50, category: 'Softdrinks', info: 'Flasche, 0,5l' },
+    { id: '6', name: 'Cola Mix', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
+    { id: '7', name: 'Iso Sport', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
+    { id: '8', name: 'Bio Apfel-Birnen-Schorle', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
+    { id: '9', name: 'Kaffee (Tasse)', price: 1.50, category: 'Heißgetränke', info: 'mit/ohne Zucker, mit/ohne Milch' },
   ]);
 
   const [showAddForm, setShowAddForm] = useState(false);
@@ -27,9 +29,11 @@ export default function GetraenkePage() {
     name: '',
     price: '',
     category: 'Bier',
-    volume: ''
+    info: ''
   });
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedGetraenk, setSelectedGetraenk] = useState<Getraenk | null>(null);
+  const [selectedGetraenkForPerson, setSelectedGetraenkForPerson] = useState<Getraenk | null>(null);
 
   // Filter getraenke based on search query
   const filteredGetraenke = getraenke.filter(getraenk =>
@@ -45,27 +49,25 @@ export default function GetraenkePage() {
         name: newGetraenk.name.trim(),
         price: parseFloat(newGetraenk.price),
         category: newGetraenk.category,
-        volume: newGetraenk.volume.trim() || undefined
+        info: newGetraenk.info.trim() || undefined
       };
       setGetraenke([...getraenke, getraenk]);
-      setNewGetraenk({ name: '', price: '', category: 'Bier', volume: '' });
+      setNewGetraenk({ name: '', price: '', category: 'Bier', info: '' });
       setShowAddForm(false);
     }
   };
 
   const deleteGetraenk = (id: string) => {
-    Alert.alert(
-      'Getränk löschen',
-      'Möchten Sie dieses Getränk wirklich löschen?',
-      [
-        { text: 'Abbrechen', style: 'cancel' },
-        {
-          text: 'Löschen',
-          style: 'destructive',
-          onPress: () => setGetraenke(getraenke.filter(g => g.id !== id))
-        }
-      ]
-    );
+    setGetraenke(getraenke.filter(g => g.id !== id));
+  };
+
+  const updateGetraenk = (updatedGetraenk: Getraenk) => {
+    setGetraenke(getraenke.map(g => g.id === updatedGetraenk.id ? updatedGetraenk : g));
+  };
+
+  const handleAddGetraenkToPerson = (personId: string, getraenk: Getraenk, quantity: number) => {
+    // TODO: Hier würde die echte Logik zum Hinzufügen zur Datenbank kommen
+    // Success-Feedback wird bereits in der Modal-Komponente angezeigt
   };
 
   const groupedGetraenke = categories.reduce((acc, category) => {
@@ -134,10 +136,10 @@ export default function GetraenkePage() {
               className="border border-gray-300 rounded-lg px-3 py-2 mb-3 text-base"
             />
 
-            <Text className="text-sm font-medium text-gray-700 mb-2">Menge (optional):</Text>
+            <Text className="text-sm font-medium text-gray-700 mb-2">Weitere Info (optional):</Text>
             <TextInput
-              value={newGetraenk.volume}
-              onChangeText={(text) => setNewGetraenk({ ...newGetraenk, volume: text })}
+              value={newGetraenk.info}
+              onChangeText={(text) => setNewGetraenk({ ...newGetraenk, info: text })}
               placeholder="z.B. 0,5l"
               className="border border-gray-300 rounded-lg px-3 py-2 mb-3 text-base"
             />
@@ -177,7 +179,7 @@ export default function GetraenkePage() {
               <TouchableOpacity
                 onPress={() => {
                   setShowAddForm(false);
-                  setNewGetraenk({ name: '', price: '', category: 'Bier', volume: '' });
+                  setNewGetraenk({ name: '', price: '', category: 'Bier', info: '' });
                 }}
                 className="flex-1 bg-gray-400 py-2 rounded-lg"
               >
@@ -210,15 +212,15 @@ export default function GetraenkePage() {
                       <Text className="text-lg font-semibold text-gray-800">
                         {getraenk.name}
                       </Text>
-                      {getraenk.volume && (
+                      {getraenk.info && (
                         <Text className="text-sm text-gray-600 font-medium mt-1">
-                          {getraenk.volume}
+                          {getraenk.info}
                         </Text>
                       )}
                     </View>
                     <View className="items-end">
-                      <Text className="text-xl font-bold text-blue-600">
-                        €{getraenk.price.toFixed(2)}
+                      <Text className="text-xl font-bold text-green-600">
+                        {getraenk.price.toFixed(2)}€
                       </Text>
                     </View>
                   </View>
@@ -227,7 +229,7 @@ export default function GetraenkePage() {
                     <TouchableOpacity
                       className="flex-1 bg-blue-100 py-2 rounded-lg"
                       onPress={() => {
-                        Alert.alert('Info', 'Zu Person hinzufügen wird noch implementiert');
+                        setSelectedGetraenkForPerson(getraenk);
                       }}
                     >
                       <Text className="text-blue-700 text-center font-medium">
@@ -237,16 +239,10 @@ export default function GetraenkePage() {
                     <TouchableOpacity
                       className="bg-gray-100 px-3 py-2 rounded-lg"
                       onPress={() => {
-                        Alert.alert('Info', 'Bearbeiten wird noch implementiert');
+                        setSelectedGetraenk(getraenk);
                       }}
                     >
                       <Text className="text-gray-700 font-medium">⚙️</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      className="bg-red-100 px-3 py-2 rounded-lg"
-                      onPress={() => deleteGetraenk(getraenk.id)}
-                    >
-                      <Text className="text-red-700 font-medium">🗑️</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -275,6 +271,28 @@ export default function GetraenkePage() {
           </View>
         )}
       </ScrollView>
+
+      {/* Getränk Details Modal */}
+      {/* Getränk Details Modal */}
+      {selectedGetraenk && (
+        <GetraenkDetails
+          getraenk={selectedGetraenk}
+          visible={selectedGetraenk !== null}
+          onClose={() => setSelectedGetraenk(null)}
+          onUpdate={updateGetraenk}
+          onDelete={deleteGetraenk}
+        />
+      )}
+
+      {/* Getränk zu Person hinzufügen Modal */}
+      {selectedGetraenkForPerson && (
+        <GetraenkZuPersonHinzufuegen
+          getraenk={selectedGetraenkForPerson}
+          visible={selectedGetraenkForPerson !== null}
+          onClose={() => setSelectedGetraenkForPerson(null)}
+          onAddToPerson={handleAddGetraenkToPerson}
+        />
+      )}
     </View>
   );
 }
