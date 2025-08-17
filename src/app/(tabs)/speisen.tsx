@@ -1,12 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
-
-interface Speise {
-  id: string;
-  name: string;
-  price: number;
-  category: string;
-}
+import SpeiseDetails from '@/components/speise-detail';
+import SpeiseZuPersonHinzufuegen from '@/components/speise-zu-person-hinzufuegen';
+import { Speise } from '@/types';
 
 export default function SpeisenPage() {
   const [speisen, setSpeisen] = useState<Speise[]>([
@@ -21,9 +17,12 @@ export default function SpeisenPage() {
   const [newSpeise, setNewSpeise] = useState({
     name: '',
     price: '',
-    category: 'Hauptgericht'
+    category: 'Hauptgericht',
+    info: ''
   });
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSpeise, setSelectedSpeise] = useState<Speise | null>(null);
+  const [selectedSpeiseForPerson, setSelectedSpeiseForPerson] = useState<Speise | null>(null);
 
   // Filter speisen based on search query
   const filteredSpeisen = speisen.filter(speise =>
@@ -50,27 +49,26 @@ export default function SpeisenPage() {
         id: Date.now().toString(),
         name: newSpeise.name.trim(),
         price: parseFloat(newSpeise.price),
-        category: newSpeise.category
+        category: newSpeise.category,
+        info: newSpeise.info.trim() || undefined
       };
       setSpeisen([...speisen, speise]);
-      setNewSpeise({ name: '', price: '', category: 'Hauptgericht' });
+      setNewSpeise({ name: '', price: '', category: 'Hauptgericht', info: '' });
       setShowAddForm(false);
     }
   };
 
   const deleteSpeise = (id: string) => {
-    Alert.alert(
-      'Speise löschen',
-      'Möchten Sie diese Speise wirklich löschen?',
-      [
-        { text: 'Abbrechen', style: 'cancel' },
-        {
-          text: 'Löschen',
-          style: 'destructive',
-          onPress: () => setSpeisen(speisen.filter(s => s.id !== id))
-        }
-      ]
-    );
+    setSpeisen(speisen.filter(s => s.id !== id));
+  };
+
+  const updateSpeise = (updatedSpeise: Speise) => {
+    setSpeisen(speisen.map(s => s.id === updatedSpeise.id ? updatedSpeise : s));
+  };
+
+  const handleAddSpeiseToPerson = (personId: string, speise: Speise, quantity: number) => {
+    // TODO: Hier würde die echte Logik zum Hinzufügen zur Datenbank kommen
+    // Success-Feedback wird bereits in der Modal-Komponente angezeigt
   };
 
   const groupedSpeisen = categories.reduce((acc, category) => {
@@ -110,7 +108,7 @@ export default function SpeisenPage() {
             <Text className="text-lg font-semibold mb-4 text-gray-800">
               Neue Speise hinzufügen
             </Text>
-            
+
             <Text className="text-sm font-medium text-gray-700 mb-2">Name:</Text>
             <TextInput
               value={newSpeise.name}
@@ -125,6 +123,14 @@ export default function SpeisenPage() {
               onChangeText={(text) => setNewSpeise({ ...newSpeise, price: text })}
               placeholder="z.B. 12.90"
               keyboardType="decimal-pad"
+              className="border border-gray-300 rounded-lg px-3 py-2 mb-3 text-base"
+            />
+
+            <Text className="text-sm font-medium text-gray-700 mb-2">Weitere Info (optional):</Text>
+            <TextInput
+              value={newSpeise.info}
+              onChangeText={(text) => setNewSpeise({ ...newSpeise, info: text })}
+              placeholder="z.B. mit Pommes und Salat"
               className="border border-gray-300 rounded-lg px-3 py-2 mb-3 text-base"
             />
 
@@ -163,7 +169,7 @@ export default function SpeisenPage() {
               <TouchableOpacity
                 onPress={() => {
                   setShowAddForm(false);
-                  setNewSpeise({ name: '', price: '', category: 'Hauptgericht' });
+                  setNewSpeise({ name: '', price: '', category: 'Hauptgericht', info: '' });
                 }}
                 className="flex-1 bg-gray-400 py-2 rounded-lg"
               >
@@ -185,7 +191,7 @@ export default function SpeisenPage() {
               <Text className="text-xl font-bold text-gray-800 mb-3 text-center">
                 {getCategoryIcon(category)} {category} ({items.length})
               </Text>
-              
+
               {items.map((speise) => (
                 <View
                   key={speise.id}
@@ -196,19 +202,24 @@ export default function SpeisenPage() {
                       <Text className="text-lg font-semibold text-gray-800">
                         {speise.name}
                       </Text>
+                      {speise.info && (
+                        <Text className="text-sm text-gray-600 font-medium mt-1">
+                          {speise.info}
+                        </Text>
+                      )}
                     </View>
                     <View className="items-end">
                       <Text className="text-xl font-bold text-green-600">
-                        €{speise.price.toFixed(2)}
+                        {speise.price.toFixed(2)}€
                       </Text>
                     </View>
                   </View>
-                  
+
                   <View className="flex-row gap-2 mt-3">
                     <TouchableOpacity
                       className="flex-1 bg-blue-100 py-2 rounded-lg"
                       onPress={() => {
-                        Alert.alert('Info', 'Zu Person hinzufügen wird noch implementiert');
+                        setSelectedSpeiseForPerson(speise);
                       }}
                     >
                       <Text className="text-blue-700 text-center font-medium">
@@ -218,16 +229,10 @@ export default function SpeisenPage() {
                     <TouchableOpacity
                       className="bg-gray-100 px-3 py-2 rounded-lg"
                       onPress={() => {
-                        Alert.alert('Info', 'Bearbeiten wird noch implementiert');
+                        setSelectedSpeise(speise);
                       }}
                     >
                       <Text className="text-gray-700 font-medium">⚙️</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      className="bg-red-100 px-3 py-2 rounded-lg"
-                      onPress={() => deleteSpeise(speise.id)}
-                    >
-                      <Text className="text-red-700 font-medium">🗑️</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -256,6 +261,28 @@ export default function SpeisenPage() {
           </View>
         )}
       </ScrollView>
+
+      {/* Speise Details Modal */}
+      {/* Speise Details Modal */}
+      {selectedSpeise && (
+        <SpeiseDetails
+          speise={selectedSpeise}
+          visible={selectedSpeise !== null}
+          onClose={() => setSelectedSpeise(null)}
+          onUpdate={updateSpeise}
+          onDelete={deleteSpeise}
+        />
+      )}
+
+      {/* Speise zu Person hinzufügen Modal */}
+      {selectedSpeiseForPerson && (
+        <SpeiseZuPersonHinzufuegen
+          speise={selectedSpeiseForPerson}
+          visible={selectedSpeiseForPerson !== null}
+          onClose={() => setSelectedSpeiseForPerson(null)}
+          onAddToPerson={handleAddSpeiseToPerson}
+        />
+      )}
     </View>
   );
 }
