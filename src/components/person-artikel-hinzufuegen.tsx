@@ -1,46 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal } from 'react-native';
+import { Getraenk, Speise, PersonArtikelHinzufuegenProps } from '@/types';
 
-interface Person {
-  id: string;
-  name: string;
-  totalDebt: number;
-  items: Array<{
-    id: string;
-    name: string;
-    price: number;
-    type: 'speise' | 'getraenk';
-  }>;
-}
-
-interface Getraenk {
-  id: string;
-  name: string;
-  price: number;
-  category: string;
-  info?: string;
-}
-
-interface Speise {
-  id: string;
-  name: string;
-  price: number;
-  category: string;
-  info?: string;
-}
-
-interface PersonArtikelHinzufuegenProps {
-  person: Person;
-  visible: boolean;
-  onClose: () => void;
-  onAddItems: (personId: string, selectedItems: Array<{name: string, price: number, type: 'speise' | 'getraenk', quantity: number}>) => void;
-}
-
-export default function PersonArtikelHinzufuegen({ 
-  person, 
-  visible, 
-  onClose, 
-  onAddItems 
+export default function PersonArtikelHinzufuegen({
+  person,
+  visible,
+  onClose,
+  onAddItems
 }: PersonArtikelHinzufuegenProps) {
   // Mock-Daten für Getränke und Speisen (später aus echten Listen holen)
   const getraenke: Getraenk[] = [
@@ -65,7 +31,7 @@ export default function PersonArtikelHinzufuegen({
 
   const [getraenkeExpanded, setGetraenkeExpanded] = useState(false);
   const [speisenExpanded, setSpeisenExpanded] = useState(false);
-  
+
   // State für ausgewählte Mengen
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
 
@@ -118,11 +84,11 @@ export default function PersonArtikelHinzufuegen({
 
   const handleAddItems = () => {
     const itemsToAdd: Array<{name: string, price: number, type: 'speise' | 'getraenk', quantity: number}> = [];
-    
+
     Object.entries(selectedQuantities).forEach(([itemId, quantity]) => {
       const getraenk = getraenke.find(g => g.id === itemId);
       const speise = speisen.find(s => s.id === itemId);
-      
+
       if (getraenk) {
         itemsToAdd.push({
           name: getraenk.name,
@@ -212,7 +178,7 @@ export default function PersonArtikelHinzufuegen({
                 </Text>
               </View>
             </TouchableOpacity>
-            
+
             {getraenkeExpanded && (
               <View className="p-2">
                 {getraenke.map((item) => (
@@ -269,7 +235,7 @@ export default function PersonArtikelHinzufuegen({
                 </Text>
               </View>
             </TouchableOpacity>
-            
+
             {speisenExpanded && (
               <View className="p-2">
                 {speisen.map((item) => (

@@ -1,24 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-
-interface Item {
-  id: string;
-  name: string;
-  price: number;
-  type: 'speise' | 'getraenk';
-}
-
-interface Person {
-  id: string;
-  name: string;
-  totalDebt: number;
-  items: Item[];
-}
+import { Person } from '@/types';
 
 export default function PersonDetailPage() {
   const { personId } = useLocalSearchParams();
-  
+
   // Mock data - in real app this would come from a store/database
   const [person] = useState<Person>({
     id: '1',

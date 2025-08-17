@@ -2,7 +2,7 @@ import { drizzle } from 'drizzle-orm/expo-sqlite';
 import { Tabs } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { Text } from 'react-native';
-import * as schema from '../db/schema';
+import * as schema from '@/db/schema';
 import { useEffect } from 'react';
 
 export default function TabLayout() {

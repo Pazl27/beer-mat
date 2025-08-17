@@ -1,40 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal } from 'react-native';
+import { Person, GroupedItem, PersonBegleichenProps } from '@/types';
 
-interface Person {
-  id: string;
-  name: string;
-  totalDebt: number;
-  items: Array<{
-    id: string;
-    name: string;
-    price: number;
-    type: 'speise' | 'getraenk';
-  }>;
-}
-
-interface GroupedItem {
-  name: string;
-  type: 'speise' | 'getraenk';
-  count: number;
-  totalPrice: number;
-  unitPrice: number;
-}
-
-interface PersonBegleichenProps {
-  person: Person;
-  visible: boolean;
-  onClose: () => void;
-  onPayItem: (personId: string, itemName: string, itemType: 'speise' | 'getraenk') => void;
-  onPayAll: (personId: string) => void;
-}
-
-export default function PersonBegleichen({ 
-  person, 
-  visible, 
-  onClose, 
+export default function PersonBegleichen({
+  person,
+  visible,
+  onClose,
   onPayItem,
-  onPayAll 
+  onPayAll
 }: PersonBegleichenProps) {
   // Group items by name and type for summary
   const getGroupedItems = (person: Person) => {

@@ -1,15 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
-import SpeiseDetails from '../speise-detail';
-import SpeiseZuPersonHinzufuegen from '../speise-zu-person-hinzufuegen';
-
-interface Speise {
-  id: string;
-  name: string;
-  price: number;
-  category: string;
-  info?: string;
-}
+import SpeiseDetails from '@/components/speise-detail';
+import SpeiseZuPersonHinzufuegen from '@/components/speise-zu-person-hinzufuegen';
+import { Speise } from '@/types';
 
 export default function SpeisenPage() {
   const [speisen, setSpeisen] = useState<Speise[]>([
@@ -115,7 +108,7 @@ export default function SpeisenPage() {
             <Text className="text-lg font-semibold mb-4 text-gray-800">
               Neue Speise hinzufügen
             </Text>
-            
+
             <Text className="text-sm font-medium text-gray-700 mb-2">Name:</Text>
             <TextInput
               value={newSpeise.name}
@@ -198,7 +191,7 @@ export default function SpeisenPage() {
               <Text className="text-xl font-bold text-gray-800 mb-3 text-center">
                 {getCategoryIcon(category)} {category} ({items.length})
               </Text>
-              
+
               {items.map((speise) => (
                 <View
                   key={speise.id}
@@ -221,7 +214,7 @@ export default function SpeisenPage() {
                       </Text>
                     </View>
                   </View>
-                  
+
                   <View className="flex-row gap-2 mt-3">
                     <TouchableOpacity
                       className="flex-1 bg-blue-100 py-2 rounded-lg"

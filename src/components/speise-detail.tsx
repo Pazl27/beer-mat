@@ -1,28 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
+import { Speise, SpeiseDetailsProps } from '@/types';
 
-interface Speise {
-  id: string;
-  name: string;
-  price: number;
-  category: string;
-  info?: string;
-}
-
-interface SpeiseDetailsProps {
-  speise: Speise;
-  visible: boolean;
-  onClose: () => void;
-  onUpdate: (updatedSpeise: Speise) => void;
-  onDelete: (id: string) => void;
-}
-
-export default function SpeiseDetails({ 
-  speise, 
-  visible, 
-  onClose, 
-  onUpdate, 
-  onDelete 
+export default function SpeiseDetails({
+  speise,
+  visible,
+  onClose,
+  onUpdate,
+  onDelete
 }: SpeiseDetailsProps) {
   const [editedPrice, setEditedPrice] = useState(speise.price.toString());
   const [editedInfo, setEditedInfo] = useState(speise.info || '');
@@ -143,7 +128,7 @@ export default function SpeiseDetails({
               keyboardType="decimal-pad"
               className="border border-gray-300 rounded-lg px-4 py-3 text-base mb-4"
             />
-            
+
             <Text className="text-sm font-medium text-gray-700 mb-2">Weitere Info (optional):</Text>
             <TextInput
               value={editedInfo}

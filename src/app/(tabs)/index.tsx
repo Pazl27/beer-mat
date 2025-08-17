@@ -1,20 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
-import { router } from 'expo-router';
-import PersonBegleichen from '../person-begleichen';
-import PersonArtikelHinzufuegen from '../person-artikel-hinzufuegen';
-
-interface Person {
-  id: string;
-  name: string;
-  totalDebt: number;
-  items: Array<{
-    id: string;
-    name: string;
-    price: number;
-    type: 'speise' | 'getraenk';
-  }>;
-}
+import PersonBegleichen from '@/components/person-begleichen';
+import PersonArtikelHinzufuegen from '@/components/person-artikel-hinzufuegen';
+import { Person } from '@/types';
 
 export default function PersonenPage() {
   const [persons, setPersons] = useState<Person[]>([
@@ -37,7 +25,7 @@ export default function PersonenPage() {
       ]
     }
   ]);
-  
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [newPersonName, setNewPersonName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -65,8 +53,8 @@ export default function PersonenPage() {
   };
 
   const clearDebt = (personId: string) => {
-    setPersons(persons.map(person => 
-      person.id === personId 
+    setPersons(persons.map(person =>
+      person.id === personId
         ? { ...person, totalDebt: 0, items: [] }
         : person
     ));
@@ -76,15 +64,15 @@ export default function PersonenPage() {
     setPersons(persons.map(person => {
       if (person.id === personId) {
         // Find the first item with matching name and type to remove
-        const itemIndex = person.items.findIndex(item => 
+        const itemIndex = person.items.findIndex(item =>
           item.name === itemName && item.type === itemType
         );
-        
+
         if (itemIndex !== -1) {
           const updatedItems = [...person.items];
           const removedItem = updatedItems.splice(itemIndex, 1)[0];
           const newTotalDebt = person.totalDebt - removedItem.price;
-          
+
           return {
             ...person,
             items: updatedItems,
@@ -94,20 +82,20 @@ export default function PersonenPage() {
       }
       return person;
     }));
-    
+
     // Update selected person for begleichen modal if it's open
     if (selectedPersonForBegleichen && selectedPersonForBegleichen.id === personId) {
       const updatedPerson = persons.find(p => p.id === personId);
       if (updatedPerson) {
-        const itemIndex = updatedPerson.items.findIndex(item => 
+        const itemIndex = updatedPerson.items.findIndex(item =>
           item.name === itemName && item.type === itemType
         );
-        
+
         if (itemIndex !== -1) {
           const updatedItems = [...updatedPerson.items];
           const removedItem = updatedItems.splice(itemIndex, 1)[0];
           const newTotalDebt = updatedPerson.totalDebt - removedItem.price;
-          
+
           setSelectedPersonForBegleichen({
             ...updatedPerson,
             items: updatedItems,
@@ -150,7 +138,7 @@ export default function PersonenPage() {
       }
       return person;
     }));
-    
+
     // Update the selected person for details modal
     if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
       const updatedPerson = persons.find(p => p.id === personId);
@@ -196,7 +184,7 @@ export default function PersonenPage() {
         if (person.id === personId) {
           const newItems = [...person.items];
           let totalPriceAdded = 0;
-          
+
           selectedItems.forEach(selectedItem => {
             for (let i = 0; i < selectedItem.quantity; i++) {
               newItems.push({
@@ -208,7 +196,7 @@ export default function PersonenPage() {
               totalPriceAdded += selectedItem.price;
             }
           });
-          
+
           return {
             ...person,
             items: newItems,
@@ -225,7 +213,7 @@ export default function PersonenPage() {
       if (updatedPerson) {
         const newItems = [...updatedPerson.items];
         let totalPriceAdded = 0;
-        
+
         selectedItems.forEach(selectedItem => {
           for (let i = 0; i < selectedItem.quantity; i++) {
             newItems.push({
@@ -237,7 +225,7 @@ export default function PersonenPage() {
             totalPriceAdded += selectedItem.price;
           }
         });
-        
+
         setSelectedPersonForDetails({
           ...updatedPerson,
           items: newItems,

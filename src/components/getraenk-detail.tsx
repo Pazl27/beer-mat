@@ -1,28 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
+import { Getraenk, GetraenkDetailsProps } from '@/types';
 
-interface Getraenk {
-  id: string;
-  name: string;
-  price: number;
-  category: string;
-  info?: string;
-}
-
-interface GetraenkDetailsProps {
-  getraenk: Getraenk;
-  visible: boolean;
-  onClose: () => void;
-  onUpdate: (updatedGetraenk: Getraenk) => void;
-  onDelete: (id: string) => void;
-}
-
-export default function GetraenkDetails({ 
-  getraenk, 
-  visible, 
-  onClose, 
-  onUpdate, 
-  onDelete 
+export default function GetraenkDetails({
+  getraenk,
+  visible,
+  onClose,
+  onUpdate,
+  onDelete
 }: GetraenkDetailsProps) {
   const [editedPrice, setEditedPrice] = useState(getraenk.price.toString());
   const [editedInfo, setEditedInfo] = useState(getraenk.info || '');
@@ -142,7 +127,7 @@ export default function GetraenkDetails({
               keyboardType="decimal-pad"
               className="border border-gray-300 rounded-lg px-4 py-3 text-base mb-4"
             />
-            
+
             <Text className="text-sm font-medium text-gray-700 mb-2">Weitere Info (optional):</Text>
             <TextInput
               value={editedInfo}

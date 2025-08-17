@@ -1,40 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Person, SpeiseZuPersonHinzufuegenProps } from '@/types';
 
-interface Person {
-  id: string;
-  name: string;
-  totalDebt: number;
-  items: Array<{
-    id: string;
-    name: string;
-    price: number;
-    type: 'speise' | 'getraenk';
-  }>;
-}
-
-interface Getraenk {
-  id: string;
-  name: string;
-  price: number;
-  category: string;
-  info?: string;
-}
-
-interface GetraenkZuPersonHinzufuegenProps {
-  getraenk: Getraenk;
-  visible: boolean;
-  onClose: () => void;
-  onAddToPerson: (personId: string, getraenk: Getraenk, quantity: number) => void;
-}
-
-export default function GetraenkZuPersonHinzufuegen({ 
-  getraenk, 
-  visible, 
-  onClose, 
-  onAddToPerson 
-}: GetraenkZuPersonHinzufuegenProps) {
+export default function SpeiseZuPersonHinzufuegen({
+  speise,
+  visible,
+  onClose,
+  onAddToPerson
+}: SpeiseZuPersonHinzufuegenProps) {
   // Mock-Daten für Personen (später aus echten Daten holen)
   const [persons] = useState<Person[]>([
     {
@@ -82,17 +55,15 @@ export default function GetraenkZuPersonHinzufuegen({
     person.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const getGetraenkEmoji = (getraenkName: string) => {
-    const name = getraenkName.toLowerCase();
-    if (name.includes('bier') && !name.includes('alkoholfrei')) return '🍺';
-    if (name.includes('radler')) return '🍺';
-    if (name.includes('cola')) return '🥤';
-    if (name.includes('kaffee')) return '☕';
-    if (name.includes('tee')) return '🍵';
-    if (name.includes('wasser') || name.includes('mineral')) return '💧';
-    if (name.includes('wein')) return '🍷';
-    if (name.includes('sekt') || name.includes('champagner')) return '🥂';
-    return '🥤';
+  const getSpeiseEmoji = (speiseName: string) => {
+    const name = speiseName.toLowerCase();
+    if (name.includes('hot dog')) return '🌭';
+    if (name.includes('bratwurst') || name.includes('wurst')) return '🌭';
+    if (name.includes('steak') || name.includes('fleisch')) return '🥩';
+    if (name.includes('kuchen') || name.includes('torte')) return '🍰';
+    if (name.includes('pommes')) return '🍟';
+    if (name.includes('salat')) return '🥗';
+    return '🍽️';
   };
 
   const updateQuantity = (personId: string, change: number) => {
@@ -112,7 +83,7 @@ export default function GetraenkZuPersonHinzufuegen({
   };
 
   const getTotalPrice = () => {
-    return getTotalItems() * getraenk.price;
+    return getTotalItems() * speise.price;
   };
 
   const handleAddToPersons = () => {
@@ -125,28 +96,28 @@ export default function GetraenkZuPersonHinzufuegen({
     const totalPrice = getTotalPrice();
 
     Alert.alert(
-      'Getränk hinzufügen',
-      `Möchten Sie ${totalItems}x "${getraenk.name}" für ${totalPrice.toFixed(2)}€ zu den ausgewählten Personen hinzufügen?`,
+      'Speise hinzufügen',
+      `Möchten Sie ${totalItems}x "${speise.name}" für ${totalPrice.toFixed(2)}€ zu den ausgewählten Personen hinzufügen?`,
       [
         { text: 'Abbrechen', style: 'cancel' },
         {
           text: 'Hinzufügen',
           onPress: () => {
             Object.entries(selectedQuantities).forEach(([personId, quantity]) => {
-              onAddToPerson(personId, getraenk, quantity);
+              onAddToPerson(personId, speise, quantity);
             });
-            
+
             setSelectedQuantities({});
             onClose();
-            
+
             const personNames = Object.keys(selectedQuantities)
               .map(id => persons.find(p => p.id === id)?.name)
               .filter(Boolean)
               .join(', ');
-            
+
             Alert.alert(
-              'Hinzugefügt', 
-              `${totalItems}x "${getraenk.name}" wurde zu ${personNames} hinzugefügt.`
+              'Hinzugefügt',
+              `${totalItems}x "${speise.name}" wurde zu ${personNames} hinzugefügt.`
             );
           }
         }
@@ -178,13 +149,13 @@ export default function GetraenkZuPersonHinzufuegen({
         </View>
 
         <ScrollView className="flex-1 px-4 py-6">
-          {/* Getränk Header */}
+          {/* Speise Header */}
           <View className="bg-white rounded-lg p-4 mb-6 shadow-sm border border-gray-200">
             <Text className="text-xl font-bold text-gray-800 text-center mb-2">
-              {getGetraenkEmoji(getraenk.name)} {getraenk.name}
+              {getSpeiseEmoji(speise.name)} {speise.name}
             </Text>
             <Text className="text-lg font-semibold text-green-600 text-center">
-              {getraenk.price.toFixed(2)}€
+              {speise.price.toFixed(2)}€
             </Text>
           </View>
 
@@ -228,11 +199,11 @@ export default function GetraenkZuPersonHinzufuegen({
                     >
                       <Text className="text-red-700 font-bold text-lg">−</Text>
                     </TouchableOpacity>
-                    
+
                     <Text className="text-lg font-bold text-gray-800 w-8 text-center">
                       {selectedQuantities[person.id] || 0}
                     </Text>
-                    
+
                     <TouchableOpacity
                       onPress={() => updateQuantity(person.id, 1)}
                       className="bg-green-100 w-8 h-8 rounded-full justify-center items-center"
@@ -264,7 +235,7 @@ export default function GetraenkZuPersonHinzufuegen({
                 📋 Zusammenfassung
               </Text>
               <Text className="text-base text-blue-700 text-center mb-2">
-                {getTotalItems()}x {getraenk.name}
+                {getTotalItems()}x {speise.name}
               </Text>
               <Text className="text-xl font-bold text-blue-600 text-center">
                 Gesamtpreis: {getTotalPrice().toFixed(2)}€
@@ -281,18 +252,18 @@ export default function GetraenkZuPersonHinzufuegen({
           <TouchableOpacity
             onPress={handleAddToPersons}
             className={`p-4 rounded-lg items-center ${
-              getTotalItems() > 0 
-                ? 'bg-green-500' 
+              getTotalItems() > 0
+                ? 'bg-green-500'
                 : 'bg-gray-300'
             }`}
             disabled={getTotalItems() === 0}
           >
             <Text className={`text-lg font-semibold ${
-              getTotalItems() > 0 
-                ? 'text-white' 
+              getTotalItems() > 0
+                ? 'text-white'
                 : 'text-gray-500'
             }`}>
-              {getTotalItems() > 0 
+              {getTotalItems() > 0
                 ? `Hinzufügen (${getTotalPrice().toFixed(2)}€)`
                 : 'Keine Auswahl'
               }

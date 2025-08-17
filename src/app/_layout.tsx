@@ -6,7 +6,7 @@ import { drizzle } from "drizzle-orm/expo-sqlite";
 import { SQLiteProvider, openDatabaseSync } from "expo-sqlite";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
 import migrations from "../../drizzle/migrations";
-import { addDummyData } from "./db/addDummyData";
+import { addDummyData } from "@/db/addDummyData";
 
 export const DATABASE_NAME = "beer-mat";
 

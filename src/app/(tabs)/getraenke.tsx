@@ -1,15 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
-import GetraenkDetails from '../getraenk-detail';
-import GetraenkZuPersonHinzufuegen from '../getraenk-zu-person-hinzufuegen';
-
-interface Getraenk {
-  id: string;
-  name: string;
-  price: number;
-  category: string;
-  info?: string;
-}
+import GetraenkDetails from '@/components/getraenk-detail';
+import GetraenkZuPersonHinzufuegen from '@/components/getraenk-zu-person-hinzufuegen';
+import { Getraenk } from '@/types';
 
 export default function GetraenkePage() {
   const [getraenke, setGetraenke] = useState<Getraenk[]>([
@@ -118,7 +111,7 @@ export default function GetraenkePage() {
             <Text className="text-lg font-semibold mb-4 text-gray-800">
               Neues Getränk hinzufügen
             </Text>
-            
+
             <Text className="text-sm font-medium text-gray-700 mb-2">Name:</Text>
             <TextInput
               value={newGetraenk.name}
@@ -201,7 +194,7 @@ export default function GetraenkePage() {
               <Text className="text-xl font-bold text-gray-800 mb-3 text-center">
                 {getCategoryIcon(category)} {category} ({items.length})
               </Text>
-              
+
               {items.map((getraenk) => (
                 <View
                   key={getraenk.id}
@@ -224,7 +217,7 @@ export default function GetraenkePage() {
                       </Text>
                     </View>
                   </View>
-                  
+
                   <View className="flex-row gap-2 mt-3">
                     <TouchableOpacity
                       className="flex-1 bg-blue-100 py-2 rounded-lg"
