@@ -6,15 +6,15 @@ import { Getraenk } from '@/types';
 
 export default function GetraenkePage() {
   const [getraenke, setGetraenke] = useState<Getraenk[]>([
-    { id: '1', name: 'Bier', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
-    { id: '2', name: 'Radler', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
-    { id: '3', name: 'Alkoholfreies Bier', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
-    { id: '4', name: 'Alkoholfreies Radler', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
-    { id: '5', name: 'Mineralwasser', price: 1.50, category: 'Softdrinks', info: 'Flasche, 0,5l' },
-    { id: '6', name: 'Cola Mix', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
-    { id: '7', name: 'Iso Sport', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
-    { id: '8', name: 'Bio Apfel-Birnen-Schorle', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
-    { id: '9', name: 'Kaffee (Tasse)', price: 1.50, category: 'Heißgetränke', info: 'mit/ohne Zucker, mit/ohne Milch' },
+    { id: 1, name: 'Bier', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
+    { id: 2, name: 'Radler', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
+    { id: 3, name: 'Alkoholfreies Bier', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
+    { id: 4, name: 'Alkoholfreies Radler', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
+    { id: 5, name: 'Mineralwasser', price: 1.50, category: 'Softdrinks', info: 'Flasche, 0,5l' },
+    { id: 6, name: 'Cola Mix', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
+    { id: 7, name: 'Iso Sport', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
+    { id: 8, name: 'Bio Apfel-Birnen-Schorle', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
+    { id: 9, name: 'Kaffee (Tasse)', price: 1.50, category: 'Heißgetränke', info: 'mit/ohne Zucker, mit/ohne Milch' },
   ]);
 
   const [showAddForm, setShowAddForm] = useState(false);
@@ -38,7 +38,7 @@ export default function GetraenkePage() {
   const addGetraenk = () => {
     if (newGetraenk.name.trim() && newGetraenk.price) {
       const getraenk: Getraenk = {
-        id: Date.now().toString(),
+        id: Date.now(),
         name: newGetraenk.name.trim(),
         price: parseFloat(newGetraenk.price),
         category: newGetraenk.category,
@@ -50,7 +50,7 @@ export default function GetraenkePage() {
     }
   };
 
-  const deleteGetraenk = (id: string) => {
+  const deleteGetraenk = (id: number) => {
     setGetraenke(getraenke.filter(g => g.id !== id));
   };
 
@@ -58,7 +58,7 @@ export default function GetraenkePage() {
     setGetraenke(getraenke.map(g => g.id === updatedGetraenk.id ? updatedGetraenk : g));
   };
 
-  const handleAddGetraenkToPerson = (personId: string, getraenk: Getraenk, quantity: number) => {
+  const handleAddGetraenkToPerson = (personId: number, getraenk: Getraenk, quantity: number) => {
     // TODO: Hier würde die echte Logik zum Hinzufügen zur Datenbank kommen
     // Success-Feedback wird bereits in der Modal-Komponente angezeigt
   };

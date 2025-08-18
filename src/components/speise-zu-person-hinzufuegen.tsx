@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
-import { Person, SpeiseZuPersonHinzufuegenProps } from '@/types';
+import { Person, ItemType, SpeiseZuPersonHinzufuegenProps } from '@/types';
 
 export default function SpeiseZuPersonHinzufuegen({
   speise,
@@ -11,38 +11,38 @@ export default function SpeiseZuPersonHinzufuegen({
   // Mock-Daten für Personen (später aus echten Daten holen)
   const [persons] = useState<Person[]>([
     {
-      id: '1',
+      id: 1,
       name: 'Max Mustermann',
       totalDebt: 5.50,
       items: [
-        { id: '1', name: 'Bier (Flasche, 0,5l)', price: 2.50, type: 'getraenk' },
-        { id: '2', name: 'Steak', price: 3.50, type: 'speise' }
+        { id: 1, name: 'Bier (Flasche, 0,5l)', price: 2.50, type: ItemType.Drink },
+        { id: 2, name: 'Steak', price: 3.50, type: ItemType.Food }
       ]
     },
     {
-      id: '2',
+      id: 2,
       name: 'Anna Schmidt',
       totalDebt: 3.50,
       items: [
-        { id: '3', name: 'Cola Mix (Flasche, 0,5l)', price: 2.00, type: 'getraenk' },
-        { id: '4', name: 'Kaffee (Tasse)', price: 1.50, type: 'getraenk' }
+        { id: 3, name: 'Cola Mix (Flasche, 0,5l)', price: 2.00, type: ItemType.Drink },
+        { id: 4, name: 'Kaffee (Tasse)', price: 1.50, type: ItemType.Drink }
       ]
     },
     {
-      id: '3',
+      id: 3,
       name: 'Tom Weber',
       totalDebt: 0,
       items: []
     },
     {
-      id: '4',
+      id: 4,
       name: 'Lisa Müller',
       totalDebt: 7.20,
       items: [
-        { id: '5', name: 'Hot Dog', price: 2.00, type: 'speise' },
-        { id: '6', name: 'Pommes', price: 1.50, type: 'speise' },
-        { id: '7', name: 'Cola Mix (Flasche, 0,5l)', price: 2.00, type: 'getraenk' },
-        { id: '8', name: 'Kaffee (Tasse)', price: 1.70, type: 'getraenk' }
+        { id: 5, name: 'Hot Dog', price: 2.00, type: ItemType.Food },
+        { id: 6, name: 'Pommes', price: 1.50, type: ItemType.Food },
+        { id: 7, name: 'Cola Mix (Flasche, 0,5l)', price: 2.00, type: ItemType.Drink },
+        { id: 8, name: 'Kaffee (Tasse)', price: 1.70, type: ItemType.Drink }
       ]
     }
   ]);
@@ -66,7 +66,7 @@ export default function SpeiseZuPersonHinzufuegen({
     return '🍽️';
   };
 
-  const updateQuantity = (personId: string, change: number) => {
+  const updateQuantity = (personId: number, change: number) => {
     setSelectedQuantities(prev => {
       const current = prev[personId] || 0;
       const newQuantity = Math.max(0, current + change);
@@ -104,14 +104,14 @@ export default function SpeiseZuPersonHinzufuegen({
           text: 'Hinzufügen',
           onPress: () => {
             Object.entries(selectedQuantities).forEach(([personId, quantity]) => {
-              onAddToPerson(personId, speise, quantity);
+              onAddToPerson(Number(personId), speise, quantity);
             });
 
             setSelectedQuantities({});
             onClose();
 
             const personNames = Object.keys(selectedQuantities)
-              .map(id => persons.find(p => p.id === id)?.name)
+              .map(id => persons.find(p => p.id == Number(id))?.name)
               .filter(Boolean)
               .join(', ');
 

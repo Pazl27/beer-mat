@@ -1,6 +1,11 @@
 export type Item = {
-  id: string;
+  id?: number;
   name: string;
   price: number;
-  type: 'speise' | 'getraenk';
+  type: ItemType;
 };
+
+export enum ItemType {
+  Drink = 'drink',
+  Food = 'food',
+}

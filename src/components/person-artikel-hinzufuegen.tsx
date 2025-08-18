@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal } from 'react-native';
-import { Getraenk, Speise, PersonArtikelHinzufuegenProps } from '@/types';
+import { Getraenk, Speise, PersonArtikelHinzufuegenProps, ItemType } from '@/types';
 
 export default function PersonArtikelHinzufuegen({
   person,
@@ -10,23 +10,23 @@ export default function PersonArtikelHinzufuegen({
 }: PersonArtikelHinzufuegenProps) {
   // Mock-Daten für Getränke und Speisen (später aus echten Listen holen)
   const getraenke: Getraenk[] = [
-    { id: '1', name: 'Bier', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
-    { id: '2', name: 'Radler', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
-    { id: '3', name: 'Alkoholfreies Bier', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
-    { id: '4', name: 'Alkoholfreies Radler', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
-    { id: '5', name: 'Mineralwasser', price: 1.50, category: 'Softdrinks', info: 'Flasche, 0,5l' },
-    { id: '6', name: 'Cola Mix', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
-    { id: '7', name: 'Iso Sport', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
-    { id: '8', name: 'Bio Apfel-Birnen-Schorle', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
-    { id: '9', name: 'Kaffee (Tasse)', price: 1.50, category: 'Heißgetränke', info: 'mit/ohne Zucker, mit/ohne Milch' },
+    { id: 1, name: 'Bier', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
+    { id: 2, name: 'Radler', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
+    { id: 3, name: 'Alkoholfreies Bier', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
+    { id: 4, name: 'Alkoholfreies Radler', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
+    { id: 5, name: 'Mineralwasser', price: 1.50, category: 'Softdrinks', info: 'Flasche, 0,5l' },
+    { id: 6, name: 'Cola Mix', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
+    { id: 7, name: 'Iso Sport', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
+    { id: 8, name: 'Bio Apfel-Birnen-Schorle', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
+    { id: 9, name: 'Kaffee (Tasse)', price: 1.50, category: 'Heißgetränke', info: 'mit/ohne Zucker, mit/ohne Milch' },
   ];
 
   const speisen: Speise[] = [
-    { id: '1', name: 'Hot Dog', price: 2.00, category: 'Hauptgericht' },
-    { id: '2', name: 'Bratwurst', price: 2.00, category: 'Hauptgericht' },
-    { id: '3', name: 'Paar Bratwürste', price: 3.00, category: 'Hauptgericht' },
-    { id: '4', name: 'Steak', price: 3.50, category: 'Hauptgericht' },
-    { id: '5', name: 'Kuchen', price: 1.00, category: 'Nachspeise' },
+    { id: 1, name: 'Hot Dog', price: 2.00, category: 'Hauptgericht' },
+    { id: 2, name: 'Bratwurst', price: 2.00, category: 'Hauptgericht' },
+    { id: 3, name: 'Paar Bratwürste', price: 3.00, category: 'Hauptgericht' },
+    { id: 4, name: 'Steak', price: 3.50, category: 'Hauptgericht' },
+    { id: 5, name: 'Kuchen', price: 1.00, category: 'Nachspeise' },
   ];
 
   const [getraenkeExpanded, setGetraenkeExpanded] = useState(false);
@@ -55,7 +55,7 @@ export default function PersonArtikelHinzufuegen({
     }
   };
 
-  const updateQuantity = (itemId: string, change: number) => {
+  const updateQuantity = (itemId: number, change: number) => {
     setSelectedQuantities(prev => {
       const current = prev[itemId] || 0;
       const newQuantity = Math.max(0, current + change);
@@ -74,8 +74,8 @@ export default function PersonArtikelHinzufuegen({
   const getTotalPrice = () => {
     let total = 0;
     Object.entries(selectedQuantities).forEach(([itemId, quantity]) => {
-      const getraenk = getraenke.find(g => g.id === itemId);
-      const speise = speisen.find(s => s.id === itemId);
+      const getraenk = getraenke.find(g => g.id === Number(itemId));
+      const speise = speisen.find(s => s.id === Number(itemId));
       const price = getraenk?.price || speise?.price || 0;
       total += price * quantity;
     });
@@ -83,24 +83,24 @@ export default function PersonArtikelHinzufuegen({
   };
 
   const handleAddItems = () => {
-    const itemsToAdd: Array<{name: string, price: number, type: 'speise' | 'getraenk', quantity: number}> = [];
+    const itemsToAdd: Array<{name: string, price: number, type: ItemType, quantity: number}> = [];
 
     Object.entries(selectedQuantities).forEach(([itemId, quantity]) => {
-      const getraenk = getraenke.find(g => g.id === itemId);
-      const speise = speisen.find(s => s.id === itemId);
+      const getraenk = getraenke.find(g => g.id === Number(itemId));
+      const speise = speisen.find(s => s.id === Number(itemId));
 
       if (getraenk) {
         itemsToAdd.push({
           name: getraenk.name,
           price: getraenk.price,
-          type: 'getraenk',
+          type: ItemType.Drink,
           quantity
         });
       } else if (speise) {
         itemsToAdd.push({
           name: speise.name,
           price: speise.price,
-          type: 'speise',
+          type: ItemType.Food,
           quantity
         });
       }

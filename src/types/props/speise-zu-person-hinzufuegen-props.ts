@@ -4,5 +4,5 @@ export interface SpeiseZuPersonHinzufuegenProps {
   speise: Speise;
   visible: boolean;
   onClose: () => void;
-  onAddToPerson: (personId: string, speise: Speise, quantity: number) => void;
+  onAddToPerson: (personId: number, speise: Speise, quantity: number) => void;
 }

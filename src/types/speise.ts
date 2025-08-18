@@ -1,5 +1,5 @@
 export type Speise = {
-  id: string;
+  id: number;
   name: string;
   price: number;
   category: string;

@@ -1,6 +1,8 @@
+import { ItemType } from './item';
+
 export type GroupedItem = {
   name: string;
-  type: 'speise' | 'getraenk';
+  type: ItemType;
   count: number;
   totalPrice: number;
   unitPrice: number;

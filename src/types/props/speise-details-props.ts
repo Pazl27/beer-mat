@@ -5,5 +5,5 @@ export interface SpeiseDetailsProps {
   visible: boolean;
   onClose: () => void;
   onUpdate: (updatedSpeise: Speise) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: number) => void;
 }
