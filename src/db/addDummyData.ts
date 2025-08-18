@@ -1,6 +1,7 @@
-import { users, items, userItems, ItemType } from "./schema";
 import { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite";
 import AsyncStorage from "expo-sqlite/kv-store";
+import { createUser, createItem, addItemToUser } from "./dbFunctions";
+import { ItemType } from "@/types";
 
 export const addDummyData = async (db: ExpoSQLiteDatabase) => {
   try {
@@ -9,15 +10,14 @@ export const addDummyData = async (db: ExpoSQLiteDatabase) => {
 
     console.log("Adding dummy data...");
 
-    await db.insert(users).values([
-      { name: "John Doe" },
-      { name: "Jane Smith" },
-    ]);
+    const user1 = await createUser(db,  "Max Mustermann" );
+    const user2 = await createUser(db,  "Erika Mustermann" );
 
-    await db.insert(items).values([
-      { name: "Beer", type: ItemType.Drink, price: 500 },
-      { name: "Burger", type: ItemType.Food, price: 1200 },
-    ]);
+    const item1 = await createItem(db, { name: "Bier", type: ItemType.Drink, price: 350 });
+    const item2 = await createItem(db, { name: "Wasser", type: ItemType.Drink, price: 200 });
+
+    await addItemToUser(db, user1, item1, 2);
+    await addItemToUser(db, user1, item2, 1);
 
     AsyncStorage.setItemSync('dbInitialized', 'true');
 
