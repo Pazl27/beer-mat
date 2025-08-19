@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { Speise, SpeiseDetailsProps } from '@/types';
+import { FoodCategory } from '@/types/category';
 
 export default function SpeiseDetails({
   speise,
@@ -13,16 +14,14 @@ export default function SpeiseDetails({
   const [editedInfo, setEditedInfo] = useState(speise.info || '');
   const [editedCategory, setEditedCategory] = useState(speise.category);
 
-  const categories = ['Vorspeise', 'Hauptgericht', 'Beilage', 'Salat', 'Nachspeise', 'Süßes'];
-
-  const getCategoryIcon = (category: string) => {
+  const getCategoryIcon = (category: FoodCategory) => {
     switch (category) {
-      case 'Vorspeise': return '🥗';
-      case 'Hauptgericht': return '🍖';
-      case 'Beilage': return '🍟';
-      case 'Salat': return '🥙';
-      case 'Nachspeise': return '🍰';
-      case 'Süßes': return '🍭';
+      case FoodCategory.Vorspeise: return '🥗';
+      case FoodCategory.Hauptgericht: return '🍖';
+      case FoodCategory.Beilage: return '🍟';
+      case FoodCategory.Salat: return '🥙';
+      case FoodCategory.Nachspeise: return '🍰';
+      case FoodCategory.Suesses: return '🍭';
       default: return '🍽️';
     }
   };
@@ -140,7 +139,7 @@ export default function SpeiseDetails({
 
             <Text className="text-sm font-medium text-gray-700 mb-2">Kategorie:</Text>
             <View className="flex-row flex-wrap gap-2 mb-4">
-              {categories.map((category) => (
+              {Object.values(FoodCategory).map((category) => (
                 <TouchableOpacity
                   key={category}
                   onPress={() => setEditedCategory(category)}

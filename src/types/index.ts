@@ -3,6 +3,7 @@ export * from './speise';
 export * from './item';
 export * from './grouped-item';
 export * from './person';
+export * from './history';
 
 export * from './props/getraenk-zu-person-hinzufuegen-props';
 export * from './props/getraenk-details-props';

@@ -1,7 +1,8 @@
 import { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite";
-import { Person, Item, ItemType,} from "@/types"
-import { users, items, userItems } from "./schema";
+import { Person, Item, ItemType, History} from "@/types"
+import { users, items, userItems, history } from "./schema";
 import { eq } from "drizzle-orm";
+import { DrinkCategory, FoodCategory } from "@/types/category";
 
 export const createUser = async (db: ExpoSQLiteDatabase, name: string): Promise<Person | undefined> => {
   try {
@@ -23,15 +24,37 @@ export const createUser = async (db: ExpoSQLiteDatabase, name: string): Promise<
   }
 }
 
-export const createItem = async (db: ExpoSQLiteDatabase, item: { name: string; type: ItemType; price: number }): Promise<Item | undefined> => {
+function parseCategory(category: string | undefined): DrinkCategory | FoodCategory | undefined {
+  if (!category) return undefined;
+  if (Object.values(DrinkCategory).includes(category as DrinkCategory)) {
+    return category as DrinkCategory;
+  }
+  if (Object.values(FoodCategory).includes(category as FoodCategory)) {
+    return category as FoodCategory;
+  }
+  return undefined;
+}
+
+export const createItem = async (
+  db: ExpoSQLiteDatabase,
+  item: { name: string; type: ItemType; price: number; info?: string; category?: DrinkCategory | FoodCategory }
+): Promise<Item | undefined> => {
   try {
-    const insertedItem = await db.insert(items).values(item).returning();
+    // Save the enum as a string in the DB
+    const insertedItem = await db.insert(items).values({
+      ...item,
+      category: item.category ?? null,
+    }).returning();
+
+    const dbItem = insertedItem[0];
 
     const newItem: Item = {
-      id: insertedItem[0].id,
-      name: insertedItem[0].name,
-      type: insertedItem[0].type,
-      price: insertedItem[0].price,
+      id: dbItem.id,
+      name: dbItem.name,
+      type: dbItem.type,
+      price: dbItem.price,
+      info: dbItem.info,
+      category: parseCategory(dbItem.category),
     };
 
     return newItem;
@@ -43,11 +66,18 @@ export const createItem = async (db: ExpoSQLiteDatabase, item: { name: string; t
 
 export const addItemToUser = async (db: ExpoSQLiteDatabase, user: Person, item: Item, quantity: number): Promise<void> => {
   try {
-    await db.insert(userItems).values({
-      userId: user.id,
-      itemId: item.id,
-      quantity: quantity,
-    });
+    // Insert one row per quantity
+    const inserts = [];
+    for (let i = 0; i < quantity; i++) {
+      inserts.push(
+        db.insert(userItems).values({
+          userId: user.id,
+          itemId: item.id,
+          pricePerItem: item.price,
+        })
+      );
+    }
+    await Promise.all(inserts);
 
     const additionalDebt = item.price * quantity;
 
@@ -70,24 +100,19 @@ const getItemsForUser = async (db: ExpoSQLiteDatabase, userId: number): Promise<
       name: items.name,
       price: items.price,
       type: items.type,
-      quantity: userItems.quantity,
+      userItemId: userItems.id,
     })
     .from(userItems)
     .innerJoin(items, eq(userItems.itemId, items.id))
     .where(eq(userItems.userId, userId));
 
-  // Flatten out quantity (repeat item per quantity)
-  const itemsList: Item[] = [];
-  result.forEach(row => {
-    for (let i = 0; i < (row.quantity ?? 1); i++) {
-      itemsList.push({
-        id: row.id,
-        name: row.name,
-        price: row.price,
-        type: row.type as ItemType,
-      });
-    }
-  });
+  // Each row is a single item instance
+  const itemsList: Item[] = result.map(row => ({
+    id: row.userItemId,
+    name: row.name,
+    price: row.price,
+    type: row.type as ItemType,
+  }));
   return itemsList;
 };
 
@@ -139,30 +164,38 @@ export const deleteItem = async (db: ExpoSQLiteDatabase, itemId: number): Promis
 // Clear all debt and items for a user
 export const clearUserDebt = async (db: ExpoSQLiteDatabase, userId: number): Promise<void> => {
   try {
+    const totalDebt = await db.select({ totalDebt: users.totalDebt }).from(users).where(eq(users.id, userId));
+
     // Delete all user items
     await db.delete(userItems).where(eq(userItems.userId, userId));
-    
+
     // Reset totalDebt to 0
     await db.update(users)
       .set({ totalDebt: 0 })
       .where(eq(users.id, userId));
+
+    await addToHistory(db, userId, null, totalDebt[0]?.totalDebt ?? 0); // Add to history with 0 paid amount
   } catch (e) {
     console.error("Error clearing user debt:", e);
   }
 };
 
 // Remove one item from user by name and type (for paying individual items) - for clear single items from debt
-export const payUserItem = async (db: ExpoSQLiteDatabase, userId: number, itemName: string, itemType: ItemType): Promise<void> => {
+export const payUserItem = async (
+  db: ExpoSQLiteDatabase,
+  userId: number,
+  itemName: string,
+  itemType: ItemType
+): Promise<void> => {
   try {
-    // Find the first matching item for this user
+    // Find the first matching user_item with item details
     const userItemsWithDetails = await db
       .select({
         userItemId: userItems.id,
         itemId: userItems.itemId,
-        quantity: userItems.quantity,
+        pricePerItem: userItems.pricePerItem,
         itemName: items.name,
         itemType: items.type,
-        itemPrice: items.price,
       })
       .from(userItems)
       .innerJoin(items, eq(userItems.itemId, items.id))
@@ -177,26 +210,49 @@ export const payUserItem = async (db: ExpoSQLiteDatabase, userId: number, itemNa
       return;
     }
 
-    // If quantity is 1, delete the entire userItem record
-    if (matchingUserItem.quantity <= 1) {
-      await db.delete(userItems).where(eq(userItems.id, matchingUserItem.userItemId));
-    } else {
-      // Otherwise, decrease quantity by 1
-      await db.update(userItems)
-        .set({ quantity: matchingUserItem.quantity - 1 })
-        .where(eq(userItems.id, matchingUserItem.userItemId));
-    }
-
-    // Update user's totalDebt (subtract the price of one item)
+    // Subtract the correct pricePerItem from user's totalDebt
     const userRow = await db.select().from(users).where(eq(users.id, userId));
     const currentDebt = userRow[0]?.totalDebt ?? 0;
-    const newDebt = Math.max(0, currentDebt - matchingUserItem.itemPrice);
+    const newDebt = Math.max(0, currentDebt - matchingUserItem.pricePerItem);
 
     await db.update(users)
       .set({ totalDebt: newDebt })
       .where(eq(users.id, userId));
 
+    await addToHistory(db, userId, matchingUserItem.itemId, matchingUserItem.pricePerItem);
+
+    // Delete the user_items row (since each row is one item instance)
+    await db.delete(userItems).where(eq(userItems.id, matchingUserItem.userItemId));
+
   } catch (e) {
     console.error("Error paying user item:", e);
+  }
+};
+
+const addToHistory = async (db: ExpoSQLiteDatabase, userId: number, itemId: number, paid: number): Promise<void> => {
+  try {
+    await db.insert(history).values({
+      userId,
+      itemId,
+      paid
+    });
+  } catch (e) {
+    console.error("Error adding to history:", e);
+  }
+};
+
+export const getHistoryForUser = async (db: ExpoSQLiteDatabase, userId: number): Promise<History[]> => {
+  try {
+    const result = await db.select().from(history).where(eq(history.userId, userId));
+
+    return result.map(row => ({
+      id: row.id,
+      userId: row.userId,
+      itemId: row.itemId,
+      paid: row.paid,
+      timestamp: String(row.timestamp),
+    }));
+  } catch(e) {
+    console.error("Error fetching history for user:", e);
   }
 };
