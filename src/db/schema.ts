@@ -20,8 +20,20 @@ export const userItems = sqliteTable('user_items', {
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   itemId: integer('item_id').notNull().references(() => items.id, { onDelete: 'cascade' }),
   quantity: integer('quantity').notNull().default(1),
+  pricePerItem: integer('price_per_item').notNull(), // price per item in cents
+  // info: text('info'),
+  // category:
 });
+
+export const history = sqliteTable('history', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  itemId: integer('item_id').references(() => items.id, { onDelete: 'cascade' }),
+  timestamp: integer('timestamp').notNull().default(Date.now()),
+  paid: integer('paid').notNull(), // price in cents
+})
 
 export type User = typeof users.$inferInsert;
 export type Item = typeof items.$inferInsert;
 export type UserItem = typeof userItems.$inferInsert;
+export type History = typeof history.$inferInsert;

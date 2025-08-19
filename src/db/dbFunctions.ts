@@ -1,6 +1,6 @@
 import { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite";
-import { Person, Item, ItemType,} from "@/types"
-import { users, items, userItems } from "./schema";
+import { Person, Item, ItemType, History} from "@/types"
+import { users, items, userItems, history } from "./schema";
 import { eq } from "drizzle-orm";
 
 export const createUser = async (db: ExpoSQLiteDatabase, name: string): Promise<Person | undefined> => {
@@ -47,6 +47,7 @@ export const addItemToUser = async (db: ExpoSQLiteDatabase, user: Person, item: 
       userId: user.id,
       itemId: item.id,
       quantity: quantity,
+      pricePerItem: item.price,
     });
 
     const additionalDebt = item.price * quantity;
@@ -139,30 +140,39 @@ export const deleteItem = async (db: ExpoSQLiteDatabase, itemId: number): Promis
 // Clear all debt and items for a user
 export const clearUserDebt = async (db: ExpoSQLiteDatabase, userId: number): Promise<void> => {
   try {
+    const totalDebt = await db.select({ totalDebt: users.totalDebt }).from(users).where(eq(users.id, userId));
+
     // Delete all user items
     await db.delete(userItems).where(eq(userItems.userId, userId));
-    
+
     // Reset totalDebt to 0
     await db.update(users)
       .set({ totalDebt: 0 })
       .where(eq(users.id, userId));
+
+    await addToHistory(db, userId, null, totalDebt[0]?.totalDebt ?? 0); // Add to history with 0 paid amount
   } catch (e) {
     console.error("Error clearing user debt:", e);
   }
 };
 
 // Remove one item from user by name and type (for paying individual items) - for clear single items from debt
-export const payUserItem = async (db: ExpoSQLiteDatabase, userId: number, itemName: string, itemType: ItemType): Promise<void> => {
+export const payUserItem = async (
+  db: ExpoSQLiteDatabase,
+  userId: number,
+  itemName: string,
+  itemType: ItemType
+): Promise<void> => {
   try {
-    // Find the first matching item for this user
+    // Find the first matching user_item with item details
     const userItemsWithDetails = await db
       .select({
         userItemId: userItems.id,
         itemId: userItems.itemId,
         quantity: userItems.quantity,
+        pricePerItem: userItems.pricePerItem,
         itemName: items.name,
         itemType: items.type,
-        itemPrice: items.price,
       })
       .from(userItems)
       .innerJoin(items, eq(userItems.itemId, items.id))
@@ -177,26 +187,55 @@ export const payUserItem = async (db: ExpoSQLiteDatabase, userId: number, itemNa
       return;
     }
 
-    // If quantity is 1, delete the entire userItem record
-    if (matchingUserItem.quantity <= 1) {
-      await db.delete(userItems).where(eq(userItems.id, matchingUserItem.userItemId));
-    } else {
-      // Otherwise, decrease quantity by 1
-      await db.update(userItems)
-        .set({ quantity: matchingUserItem.quantity - 1 })
-        .where(eq(userItems.id, matchingUserItem.userItemId));
-    }
-
-    // Update user's totalDebt (subtract the price of one item)
+    // Subtract the correct pricePerItem from user's totalDebt
     const userRow = await db.select().from(users).where(eq(users.id, userId));
     const currentDebt = userRow[0]?.totalDebt ?? 0;
-    const newDebt = Math.max(0, currentDebt - matchingUserItem.itemPrice);
+    const newDebt = Math.max(0, currentDebt - matchingUserItem.pricePerItem);
 
     await db.update(users)
       .set({ totalDebt: newDebt })
       .where(eq(users.id, userId));
 
+    await addToHistory(db, userId, matchingUserItem.itemId, matchingUserItem.pricePerItem);
+
+    // Update or delete user_items
+    if (matchingUserItem.quantity <= 1) {
+      await db.delete(userItems).where(eq(userItems.id, matchingUserItem.userItemId));
+    } else {
+      await db.update(userItems)
+        .set({ quantity: matchingUserItem.quantity - 1 })
+        .where(eq(userItems.id, matchingUserItem.userItemId));
+    }
+
   } catch (e) {
     console.error("Error paying user item:", e);
+  }
+};
+
+const addToHistory = async (db: ExpoSQLiteDatabase, userId: number, itemId: number, paid: number): Promise<void> => {
+  try {
+    await db.insert(history).values({
+      userId,
+      itemId,
+      paid
+    });
+  } catch (e) {
+    console.error("Error adding to history:", e);
+  }
+};
+
+export const getHistoryForUser = async (db: ExpoSQLiteDatabase, userId: number): Promise<History[]> => {
+  try {
+    const result = await db.select().from(history).where(eq(history.userId, userId));
+
+    return result.map(row => ({
+      id: row.id,
+      userId: row.userId,
+      itemId: row.itemId,
+      paid: row.paid,
+      timestamp: String(row.timestamp),
+    }));
+  } catch(e) {
+    console.error("Error fetching history for user:", e);
   }
 };
