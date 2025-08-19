@@ -5,7 +5,7 @@ import { drizzle } from 'drizzle-orm/expo-sqlite';
 import PersonBegleichen from '@/components/person-begleichen';
 import PersonArtikelHinzufuegen from '@/components/person-artikel-hinzufuegen';
 import { ItemType, Person } from '@/types';
-import { getAllUsers, createUser, deleteUser } from '@/db/dbFunctions';
+import { getAllUsers, createUser, deleteUser, clearUserDebt, payUserItem } from '@/db/dbFunctions';
 
 export default function PersonenPage() {
   const [persons, setPersons] = useState<Person[]>([]);
@@ -65,64 +65,41 @@ export default function PersonenPage() {
   };
 
   const clearDebt = async (personId: number) => {
-    setPersons(persons.map(person =>
-      person.id === personId
-        ? { ...person, totalDebt: 0, items: [] }
-        : person
-    ));
-    // TODO: Implement database operation for clearing debt
-    // For now, reload to ensure consistency
-    await loadPersons();
+    try {
+      await clearUserDebt(drizzleDb, personId);
+      await loadPersons(); // Reload from database
+    } catch (error) {
+      console.error("Error clearing debt:", error);
+      Alert.alert("Fehler", "Schulden konnten nicht beglichen werden");
+    }
   };
 
   const payItem = async (personId: number, itemName: string, itemType: ItemType) => {
-    setPersons(persons.map(person => {
-      if (person.id == personId) {
-        // Find the first item with matching name and type to remove
-        const itemIndex = person.items.findIndex(item =>
-          item.name === itemName && item.type === itemType
-        );
-
-        if (itemIndex !== -1) {
-          const updatedItems = [...person.items];
-          const removedItem = updatedItems.splice(itemIndex, 1)[0];
-          const newTotalDebt = person.totalDebt - removedItem.price;
-
-          return {
-            ...person,
-            items: updatedItems,
-            totalDebt: Math.max(0, newTotalDebt)
-          };
-        }
-      }
-      return person;
-    }));
-
-    // Update selected person for begleichen modal if it's open
-    if (selectedPersonForBegleichen && selectedPersonForBegleichen.id === personId) {
-      const updatedPerson = persons.find(p => p.id === personId);
-      if (updatedPerson) {
-        const itemIndex = updatedPerson.items.findIndex(item =>
-          item.name === itemName && item.type === itemType
-        );
-
-        if (itemIndex !== -1) {
-          const updatedItems = [...updatedPerson.items];
-          const removedItem = updatedItems.splice(itemIndex, 1)[0];
-          const newTotalDebt = updatedPerson.totalDebt - removedItem.price;
-
-          setSelectedPersonForBegleichen({
+    try {
+      await payUserItem(drizzleDb, personId, itemName, itemType);
+      await loadPersons(); // Reload from database
+      
+      // Update selected person for begleichen modal if it's open
+      if (selectedPersonForBegleichen && selectedPersonForBegleichen.id === personId) {
+        const updatedPersons = await getAllUsers(drizzleDb);
+        const updatedPerson = updatedPersons.find(p => p.id === personId);
+        if (updatedPerson) {
+          // Convert price from cents to euros for display
+          const personWithEuros = {
             ...updatedPerson,
-            items: updatedItems,
-            totalDebt: Math.max(0, newTotalDebt)
-          });
+            totalDebt: updatedPerson.totalDebt / 100,
+            items: updatedPerson.items.map(item => ({
+              ...item,
+              price: item.price / 100
+            }))
+          };
+          setSelectedPersonForBegleichen(personWithEuros);
         }
       }
+    } catch (error) {
+      console.error("Error paying item:", error);
+      Alert.alert("Fehler", "Artikel konnte nicht beglichen werden");
     }
-    
-    // TODO: Implement database operation for paying items
-    // For now, reload to ensure consistency
-    await loadPersons();
   };
 
   const deletePerson = (personId: number, personName: string) => {
@@ -148,39 +125,6 @@ export default function PersonenPage() {
         }
       ]
     );
-  };
-
-  const removeItemFromPerson = async (personId: number, itemId: number) => {
-    setPersons(persons.map(person => {
-      if (person.id === personId) {
-        const updatedItems = person.items.filter(item => item.id !== itemId);
-        const newTotalDebt = updatedItems.reduce((sum, item) => sum + item.price, 0);
-        return {
-          ...person,
-          items: updatedItems,
-          totalDebt: newTotalDebt
-        };
-      }
-      return person;
-    }));
-
-    // Update the selected person for details modal
-    if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
-      const updatedPerson = persons.find(p => p.id === personId);
-      if (updatedPerson) {
-        const updatedItems = updatedPerson.items.filter(item => item.id !== itemId);
-        const newTotalDebt = updatedItems.reduce((sum, item) => sum + item.price, 0);
-        setSelectedPersonForDetails({
-          ...updatedPerson,
-          items: updatedItems,
-          totalDebt: newTotalDebt
-        });
-      }
-    }
-    
-    // TODO: Implement database operation for removing items
-    // For now, reload to ensure consistency
-    await loadPersons();
   };
 
   // Group items by name and type for summary in details modal
