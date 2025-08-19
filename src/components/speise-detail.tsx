@@ -71,13 +71,6 @@ export default function SpeiseDetails({
     );
   };
 
-  const resetChanges = () => {
-    setEditedName(speise.name);
-    setEditedPrice(speise.price.toString());
-    setEditedInfo(speise.info || '');
-    setEditedCategory(speise.category);
-  };
-
   return (
     <Modal
       visible={visible}
