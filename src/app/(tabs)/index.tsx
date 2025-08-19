@@ -1,30 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
+import { useSQLiteContext } from 'expo-sqlite';
+import { drizzle } from 'drizzle-orm/expo-sqlite';
 import PersonBegleichen from '@/components/person-begleichen';
 import PersonArtikelHinzufuegen from '@/components/person-artikel-hinzufuegen';
 import { ItemType, Person } from '@/types';
+import { getAllUsers, createUser, deleteUser } from '@/db/dbFunctions';
 
 export default function PersonenPage() {
-  const [persons, setPersons] = useState<Person[]>([
-    {
-      id: 1,
-      name: 'Max Mustermann',
-      totalDebt: 5.50,
-      items: [
-        { id: 1, name: 'Bier (Flasche, 0,5l)', price: 2.50, type: ItemType.Drink },
-        { id: 2, name: 'Steak', price: 3.50, type: ItemType.Food }
-      ]
-    },
-    {
-      id: 2,
-      name: 'Anna Schmidt',
-      totalDebt: 3.50,
-      items: [
-        { id: 3, name: 'Cola Mix (Flasche, 0,5l)', price: 2.00, type: ItemType.Drink },
-        { id: 4, name: 'Kaffee (Tasse)', price: 1.50, type: ItemType.Drink }
-      ]
+  const [persons, setPersons] = useState<Person[]>([]);
+  const db = useSQLiteContext();
+  const drizzleDb = drizzle(db);
+
+  // Load persons from database on component mount
+  useEffect(() => {
+    loadPersons();
+  }, []);
+
+  const loadPersons = async () => {
+    try {
+      const users = await getAllUsers(drizzleDb);
+      // Convert price from cents to euros for display
+      const personsWithEurosPrices = users.map(user => ({
+        ...user,
+        totalDebt: user.totalDebt / 100,
+        items: user.items.map(item => ({
+          ...item,
+          price: item.price / 100
+        }))
+      }));
+      setPersons(personsWithEurosPrices);
+    } catch (error) {
+      console.error("Error loading persons:", error);
+      Alert.alert("Fehler", "Personen konnten nicht geladen werden");
     }
-  ]);
+  };
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [newPersonName, setNewPersonName] = useState('');
@@ -38,29 +48,34 @@ export default function PersonenPage() {
     person.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const addPerson = () => {
+  const addPerson = async () => {
     if (newPersonName.trim()) {
-      const newPerson: Person = {
-        id: Date.now(),
-        name: newPersonName.trim(),
-        totalDebt: 0,
-        items: []
-      };
-      setPersons([...persons, newPerson]);
-      setNewPersonName('');
-      setShowAddForm(false);
+      try {
+        const newPerson = await createUser(drizzleDb, newPersonName.trim());
+        if (newPerson) {
+          await loadPersons(); // Reload from database
+          setNewPersonName('');
+          setShowAddForm(false);
+        }
+      } catch (error) {
+        console.error("Error adding person:", error);
+        Alert.alert("Fehler", "Person konnte nicht hinzugefügt werden");
+      }
     }
   };
 
-  const clearDebt = (personId: number) => {
+  const clearDebt = async (personId: number) => {
     setPersons(persons.map(person =>
       person.id === personId
         ? { ...person, totalDebt: 0, items: [] }
         : person
     ));
+    // TODO: Implement database operation for clearing debt
+    // For now, reload to ensure consistency
+    await loadPersons();
   };
 
-  const payItem = (personId: number, itemName: string, itemType: ItemType) => {
+  const payItem = async (personId: number, itemName: string, itemType: ItemType) => {
     setPersons(persons.map(person => {
       if (person.id == personId) {
         // Find the first item with matching name and type to remove
@@ -104,6 +119,10 @@ export default function PersonenPage() {
         }
       }
     }
+    
+    // TODO: Implement database operation for paying items
+    // For now, reload to ensure consistency
+    await loadPersons();
   };
 
   const deletePerson = (personId: number, personName: string) => {
@@ -115,17 +134,23 @@ export default function PersonenPage() {
         {
           text: 'Löschen',
           style: 'destructive',
-          onPress: () => {
-            setPersons(persons.filter(p => p.id !== personId));
-            setSelectedPersonForDetails(null);
-            Alert.alert('Info', `${personName} wurde gelöscht`);
+          onPress: async () => {
+            try {
+              await deleteUser(drizzleDb, personId);
+              await loadPersons(); // Reload from database
+              setSelectedPersonForDetails(null);
+              Alert.alert('Info', `${personName} wurde gelöscht`);
+            } catch (error) {
+              console.error("Error deleting person:", error);
+              Alert.alert("Fehler", "Person konnte nicht gelöscht werden");
+            }
           }
         }
       ]
     );
   };
 
-  const removeItemFromPerson = (personId: number, itemId: number) => {
+  const removeItemFromPerson = async (personId: number, itemId: number) => {
     setPersons(persons.map(person => {
       if (person.id === personId) {
         const updatedItems = person.items.filter(item => item.id !== itemId);
@@ -152,6 +177,10 @@ export default function PersonenPage() {
         });
       }
     }
+    
+    // TODO: Implement database operation for removing items
+    // For now, reload to ensure consistency
+    await loadPersons();
   };
 
   // Group items by name and type for summary in details modal
@@ -178,7 +207,7 @@ export default function PersonenPage() {
     };
   };
 
-  const handleAddItemsToPerson = (personId: number, selectedItems: Array<{name: string, price: number, type: ItemType, quantity: number}>) => {
+  const handleAddItemsToPerson = async (personId: number, selectedItems: Array<{name: string, price: number, type: ItemType, quantity: number}>) => {
     setPersons(prevPersons => {
       return prevPersons.map(person => {
         if (person.id === personId) {
@@ -233,6 +262,10 @@ export default function PersonenPage() {
         });
       }
     }
+    
+    // TODO: Implement database operation for adding items
+    // For now, reload to ensure consistency
+    await loadPersons();
   };
 
   return (
