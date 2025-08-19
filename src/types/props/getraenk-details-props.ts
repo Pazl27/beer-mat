@@ -5,5 +5,5 @@ export interface GetraenkDetailsProps {
   visible: boolean;
   onClose: () => void;
   onUpdate: (updatedGetraenk: Getraenk) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: number) => void;
 }

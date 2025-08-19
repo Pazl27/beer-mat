@@ -2,26 +2,26 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import PersonBegleichen from '@/components/person-begleichen';
 import PersonArtikelHinzufuegen from '@/components/person-artikel-hinzufuegen';
-import { Person } from '@/types';
+import { ItemType, Person } from '@/types';
 
 export default function PersonenPage() {
   const [persons, setPersons] = useState<Person[]>([
     {
-      id: '1',
+      id: 1,
       name: 'Max Mustermann',
       totalDebt: 5.50,
       items: [
-        { id: '1', name: 'Bier (Flasche, 0,5l)', price: 2.50, type: 'getraenk' },
-        { id: '2', name: 'Steak', price: 3.50, type: 'speise' }
+        { id: 1, name: 'Bier (Flasche, 0,5l)', price: 2.50, type: ItemType.Drink },
+        { id: 2, name: 'Steak', price: 3.50, type: ItemType.Food }
       ]
     },
     {
-      id: '2',
+      id: 2,
       name: 'Anna Schmidt',
       totalDebt: 3.50,
       items: [
-        { id: '3', name: 'Cola Mix (Flasche, 0,5l)', price: 2.00, type: 'getraenk' },
-        { id: '4', name: 'Kaffee (Tasse)', price: 1.50, type: 'getraenk' }
+        { id: 3, name: 'Cola Mix (Flasche, 0,5l)', price: 2.00, type: ItemType.Drink },
+        { id: 4, name: 'Kaffee (Tasse)', price: 1.50, type: ItemType.Drink }
       ]
     }
   ]);
@@ -41,7 +41,7 @@ export default function PersonenPage() {
   const addPerson = () => {
     if (newPersonName.trim()) {
       const newPerson: Person = {
-        id: Date.now().toString(),
+        id: Date.now(),
         name: newPersonName.trim(),
         totalDebt: 0,
         items: []
@@ -52,7 +52,7 @@ export default function PersonenPage() {
     }
   };
 
-  const clearDebt = (personId: string) => {
+  const clearDebt = (personId: number) => {
     setPersons(persons.map(person =>
       person.id === personId
         ? { ...person, totalDebt: 0, items: [] }
@@ -60,9 +60,9 @@ export default function PersonenPage() {
     ));
   };
 
-  const payItem = (personId: string, itemName: string, itemType: 'speise' | 'getraenk') => {
+  const payItem = (personId: number, itemName: string, itemType: ItemType) => {
     setPersons(persons.map(person => {
-      if (person.id === personId) {
+      if (person.id == personId) {
         // Find the first item with matching name and type to remove
         const itemIndex = person.items.findIndex(item =>
           item.name === itemName && item.type === itemType
@@ -106,7 +106,7 @@ export default function PersonenPage() {
     }
   };
 
-  const deletePerson = (personId: string, personName: string) => {
+  const deletePerson = (personId: number, personName: string) => {
     Alert.alert(
       'Person löschen',
       `Möchten Sie ${personName} wirklich vollständig löschen? Diese Aktion kann nicht rückgängig gemacht werden.`,
@@ -125,7 +125,7 @@ export default function PersonenPage() {
     );
   };
 
-  const removeItemFromPerson = (personId: string, itemId: string) => {
+  const removeItemFromPerson = (personId: number, itemId: number) => {
     setPersons(persons.map(person => {
       if (person.id === personId) {
         const updatedItems = person.items.filter(item => item.id !== itemId);
@@ -170,15 +170,15 @@ export default function PersonenPage() {
       acc[key].count += 1;
       acc[key].totalPrice += item.price;
       return acc;
-    }, {} as Record<string, { name: string; type: 'speise' | 'getraenk'; count: number; totalPrice: number; unitPrice: number }>);
+    }, {} as Record<string, { name: string; type: ItemType; count: number; totalPrice: number; unitPrice: number }>);
 
     return {
-      getraenke: Object.values(grouped).filter(item => item.type === 'getraenk'),
-      speisen: Object.values(grouped).filter(item => item.type === 'speise')
+      getraenke: Object.values(grouped).filter(item => item.type === ItemType.Drink),
+      speisen: Object.values(grouped).filter(item => item.type === ItemType.Food)
     };
   };
 
-  const handleAddItemsToPerson = (personId: string, selectedItems: Array<{name: string, price: number, type: 'speise' | 'getraenk', quantity: number}>) => {
+  const handleAddItemsToPerson = (personId: number, selectedItems: Array<{name: string, price: number, type: ItemType, quantity: number}>) => {
     setPersons(prevPersons => {
       return prevPersons.map(person => {
         if (person.id === personId) {
@@ -188,7 +188,7 @@ export default function PersonenPage() {
           selectedItems.forEach(selectedItem => {
             for (let i = 0; i < selectedItem.quantity; i++) {
               newItems.push({
-                id: Date.now().toString() + Math.random(),
+                id: Date.now() + Math.random(),
                 name: selectedItem.name,
                 price: selectedItem.price,
                 type: selectedItem.type
@@ -217,7 +217,7 @@ export default function PersonenPage() {
         selectedItems.forEach(selectedItem => {
           for (let i = 0; i < selectedItem.quantity; i++) {
             newItems.push({
-              id: Date.now().toString() + Math.random(),
+              id: Date.now() + Math.random(),
               name: selectedItem.name,
               price: selectedItem.price,
               type: selectedItem.type
@@ -330,7 +330,7 @@ export default function PersonenPage() {
                 {person.items.slice(-2).map((item) => (
                   <View key={item.id} className="flex-row justify-between py-1">
                     <Text className="text-sm text-gray-700">
-                      {item.name} {item.type === 'speise' ? '🍽️' : '🍺'}
+                      {item.name} {item.type === ItemType.Food ? '🍽️' : '🍺'}
                     </Text>
                     <Text className="text-sm font-medium text-gray-800">
                       {item.price.toFixed(2)}€

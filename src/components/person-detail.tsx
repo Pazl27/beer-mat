@@ -1,29 +1,29 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Person } from '@/types';
+import { Person, ItemType } from '@/types';
 
 export default function PersonDetailPage() {
   const { personId } = useLocalSearchParams();
 
   // Mock data - in real app this would come from a store/database
   const [person] = useState<Person>({
-    id: '1',
+    id: 1,
     name: 'Max Mustermann',
     totalDebt: 22.50,
     items: [
-      { id: '1', name: 'Bier', price: 2.50, type: 'getraenk' },
-      { id: '2', name: 'Bier', price: 2.50, type: 'getraenk' },
-      { id: '3', name: 'Bier', price: 2.50, type: 'getraenk' },
-      { id: '4', name: 'Bier', price: 2.50, type: 'getraenk' },
-      { id: '5', name: 'Bier', price: 2.50, type: 'getraenk' },
-      { id: '6', name: 'Cola Mix', price: 2.00, type: 'getraenk' },
-      { id: '7', name: 'Cola Mix', price: 2.00, type: 'getraenk' },
-      { id: '8', name: 'Hot Dog', price: 2.00, type: 'speise' },
-      { id: '9', name: 'Hot Dog', price: 2.00, type: 'speise' },
-      { id: '10', name: 'Hot Dog', price: 2.00, type: 'speise' },
-      { id: '11', name: 'Bratwurst', price: 2.00, type: 'speise' },
-      { id: '12', name: 'Bratwurst', price: 2.00, type: 'speise' },
+      { id: 1, name: 'Bier', price: 2.50, type: ItemType.Drink },
+      { id: 2, name: 'Bier', price: 2.50, type: ItemType.Drink },
+      { id: 3, name: 'Bier', price: 2.50, type: ItemType.Drink },
+      { id: 4, name: 'Bier', price: 2.50, type: ItemType.Drink },
+      { id: 5, name: 'Bier', price: 2.50, type: ItemType.Drink },
+      { id: 6, name: 'Cola Mix', price: 2.00, type: ItemType.Drink },
+      { id: 7, name: 'Cola Mix', price: 2.00, type: ItemType.Drink },
+      { id: 8, name: 'Hot Dog', price: 2.00, type: ItemType.Food },
+      { id: 9, name: 'Hot Dog', price: 2.00, type: ItemType.Food },
+      { id: 10, name: 'Hot Dog', price: 2.00, type: ItemType.Food },
+      { id: 11, name: 'Bratwurst', price: 2.00, type: ItemType.Food },
+      { id: 12, name: 'Bratwurst', price: 2.00, type: ItemType.Food },
     ]
   });
 
@@ -42,10 +42,10 @@ export default function PersonDetailPage() {
     acc[key].count += 1;
     acc[key].totalPrice += item.price;
     return acc;
-  }, {} as Record<string, { name: string; type: 'speise' | 'getraenk'; count: number; totalPrice: number; unitPrice: number }>);
+  }, {} as Record<string, { name: string; type: ItemType; count: number; totalPrice: number; unitPrice: number }>);
 
-  const getraenkeItems = Object.values(groupedItems).filter(item => item.type === 'getraenk');
-  const speisenItems = Object.values(groupedItems).filter(item => item.type === 'speise');
+  const getraenkeItems = Object.values(groupedItems).filter(item => item.type === ItemType.Drink);
+  const speisenItems = Object.values(groupedItems).filter(item => item.type === ItemType.Food);
 
   const deletePerson = () => {
     Alert.alert(

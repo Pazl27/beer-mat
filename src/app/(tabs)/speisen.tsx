@@ -6,11 +6,11 @@ import { Speise } from '@/types';
 
 export default function SpeisenPage() {
   const [speisen, setSpeisen] = useState<Speise[]>([
-    { id: '1', name: 'Hot Dog', price: 2.00, category: 'Hauptgericht' },
-    { id: '2', name: 'Bratwurst', price: 2.00, category: 'Hauptgericht' },
-    { id: '3', name: 'Paar Bratwürste', price: 3.00, category: 'Hauptgericht' },
-    { id: '4', name: 'Steak', price: 3.50, category: 'Hauptgericht' },
-    { id: '5', name: 'Kuchen', price: 1.00, category: 'Nachspeise' },
+    { id: 1, name: 'Hot Dog', price: 2.00, category: 'Hauptgericht' },
+    { id: 2, name: 'Bratwurst', price: 2.00, category: 'Hauptgericht' },
+    { id: 3, name: 'Paar Bratwürste', price: 3.00, category: 'Hauptgericht' },
+    { id: 4, name: 'Steak', price: 3.50, category: 'Hauptgericht' },
+    { id: 5, name: 'Kuchen', price: 1.00, category: 'Nachspeise' },
   ]);
 
   const [showAddForm, setShowAddForm] = useState(false);
@@ -46,7 +46,7 @@ export default function SpeisenPage() {
   const addSpeise = () => {
     if (newSpeise.name.trim() && newSpeise.price) {
       const speise: Speise = {
-        id: Date.now().toString(),
+        id: Date.now(),
         name: newSpeise.name.trim(),
         price: parseFloat(newSpeise.price),
         category: newSpeise.category,
@@ -58,7 +58,7 @@ export default function SpeisenPage() {
     }
   };
 
-  const deleteSpeise = (id: string) => {
+  const deleteSpeise = (id: number) => {
     setSpeisen(speisen.filter(s => s.id !== id));
   };
 
@@ -66,7 +66,7 @@ export default function SpeisenPage() {
     setSpeisen(speisen.map(s => s.id === updatedSpeise.id ? updatedSpeise : s));
   };
 
-  const handleAddSpeiseToPerson = (personId: string, speise: Speise, quantity: number) => {
+  const handleAddSpeiseToPerson = (personId: number, speise: Speise, quantity: number) => {
     // TODO: Hier würde die echte Logik zum Hinzufügen zur Datenbank kommen
     // Success-Feedback wird bereits in der Modal-Komponente angezeigt
   };

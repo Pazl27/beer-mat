@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal } from 'react-native';
-import { Person, GroupedItem, PersonBegleichenProps } from '@/types';
+import { Person, GroupedItem, ItemType, PersonBegleichenProps } from '@/types';
 
 export default function PersonBegleichen({
   person,
@@ -28,12 +28,12 @@ export default function PersonBegleichen({
     }, {} as Record<string, GroupedItem>);
 
     return {
-      getraenke: Object.values(grouped).filter(item => item.type === 'getraenk'),
-      speisen: Object.values(grouped).filter(item => item.type === 'speise')
+      getraenke: Object.values(grouped).filter(item => item.type === ItemType.Drink),
+      speisen: Object.values(grouped).filter(item => item.type === ItemType.Food)
     };
   };
 
-  const handlePayItem = (itemName: string, itemType: 'speise' | 'getraenk') => {
+  const handlePayItem = (itemName: string, itemType: ItemType) => {
     Alert.alert(
       'Artikel begleichen',
       `Möchten Sie 1x "${itemName}" begleichen?`,
