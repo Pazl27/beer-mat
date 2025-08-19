@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { drizzle } from 'drizzle-orm/expo-sqlite';
+import { useFocusEffect } from '@react-navigation/native';
 import PersonBegleichen from '@/components/person-begleichen';
 import PersonArtikelHinzufuegen from '@/components/person-artikel-hinzufuegen';
 import { ItemType, Person } from '@/types';
@@ -16,6 +17,13 @@ export default function PersonenPage() {
   useEffect(() => {
     loadPersons();
   }, []);
+
+  // Reload persons when tab comes into focus (e.g., after switching from Getränke/Speisen tabs)
+  useFocusEffect(
+    useCallback(() => {
+      loadPersons();
+    }, [])
+  );
 
   const loadPersons = async () => {
     try {
