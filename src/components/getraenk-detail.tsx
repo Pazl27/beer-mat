@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { Getraenk, GetraenkDetailsProps } from '@/types';
+import { DrinkCategory } from '@/types/category';
 
 export default function GetraenkDetails({
   getraenk,
@@ -13,15 +14,13 @@ export default function GetraenkDetails({
   const [editedInfo, setEditedInfo] = useState(getraenk.info || '');
   const [editedCategory, setEditedCategory] = useState(getraenk.category);
 
-  const categories = ['Bier', 'Wein', 'Softdrinks', 'Heißgetränke', 'Spirituosen'];
-
-  const getCategoryIcon = (category: string) => {
+  const getCategoryIcon = (category: DrinkCategory) => {
     switch (category) {
-      case 'Bier': return '🍺';
-      case 'Wein': return '🍷';
-      case 'Softdrinks': return '🥤';
-      case 'Heißgetränke': return '☕';
-      case 'Spirituosen': return '🥃';
+      case DrinkCategory.Bier: return '🍺';
+      case DrinkCategory.Wein: return '🍷';
+      case DrinkCategory.Softdrinks: return '🥤';
+      case DrinkCategory.Heissgetraenke: return '☕';
+      case DrinkCategory.Spirituosen: return '🥃';
       default: return '🥤';
     }
   };
@@ -139,7 +138,7 @@ export default function GetraenkDetails({
 
             <Text className="text-sm font-medium text-gray-700 mb-2">Kategorie:</Text>
             <View className="flex-row flex-wrap gap-2 mb-4">
-              {categories.map((category) => (
+              {Object.values(DrinkCategory).map((category) => (
                 <TouchableOpacity
                   key={category}
                   onPress={() => setEditedCategory(category)}

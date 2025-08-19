@@ -3,21 +3,22 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'reac
 import SpeiseDetails from '@/components/speise-detail';
 import SpeiseZuPersonHinzufuegen from '@/components/speise-zu-person-hinzufuegen';
 import { Speise } from '@/types';
+import { FoodCategory } from '@/types/category';
 
 export default function SpeisenPage() {
   const [speisen, setSpeisen] = useState<Speise[]>([
-    { id: 1, name: 'Hot Dog', price: 2.00, category: 'Hauptgericht' },
-    { id: 2, name: 'Bratwurst', price: 2.00, category: 'Hauptgericht' },
-    { id: 3, name: 'Paar Bratwürste', price: 3.00, category: 'Hauptgericht' },
-    { id: 4, name: 'Steak', price: 3.50, category: 'Hauptgericht' },
-    { id: 5, name: 'Kuchen', price: 1.00, category: 'Nachspeise' },
+    { id: 1, name: 'Hot Dog', price: 2.00, category: FoodCategory.Hauptgericht },
+    { id: 2, name: 'Bratwurst', price: 2.00, category: FoodCategory.Hauptgericht },
+    { id: 3, name: 'Paar Bratwürste', price: 3.00, category: FoodCategory.Hauptgericht },
+    { id: 4, name: 'Steak', price: 3.50, category: FoodCategory.Hauptgericht },
+    { id: 5, name: 'Kuchen', price: 1.00, category: FoodCategory.Nachspeise },
   ]);
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [newSpeise, setNewSpeise] = useState({
     name: '',
     price: '',
-    category: 'Hauptgericht',
+    category: FoodCategory.Hauptgericht,
     info: ''
   });
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,16 +30,14 @@ export default function SpeisenPage() {
     speise.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const categories = ['Vorspeise', 'Hauptgericht', 'Beilage', 'Salat', 'Nachspeise', 'Süßes'];
-
-  const getCategoryIcon = (category: string) => {
+  const getCategoryIcon = (category: FoodCategory) => {
     switch (category) {
-      case 'Vorspeise': return '🥗';
-      case 'Hauptgericht': return '🍖';
-      case 'Beilage': return '🍟';
-      case 'Salat': return '🥙';
-      case 'Nachspeise': return '🍰';
-      case 'Süßes': return '🍭';
+      case FoodCategory.Vorspeise: return '🥗';
+      case FoodCategory.Hauptgericht: return '🍖';
+      case FoodCategory.Beilage: return '🍟';
+      case FoodCategory.Salat: return '🥙';
+      case FoodCategory.Nachspeise: return '🍰';
+      case FoodCategory.Suesses: return '🍭';
       default: return '🍽️';
     }
   };
@@ -53,7 +52,7 @@ export default function SpeisenPage() {
         info: newSpeise.info.trim() || undefined
       };
       setSpeisen([...speisen, speise]);
-      setNewSpeise({ name: '', price: '', category: 'Hauptgericht', info: '' });
+      setNewSpeise({ name: '', price: '', category: FoodCategory.Hauptgericht, info: '' });
       setShowAddForm(false);
     }
   };
@@ -71,7 +70,7 @@ export default function SpeisenPage() {
     // Success-Feedback wird bereits in der Modal-Komponente angezeigt
   };
 
-  const groupedSpeisen = categories.reduce((acc, category) => {
+  const groupedSpeisen = Object.values(FoodCategory).reduce((acc, category) => {
     acc[category] = filteredSpeisen.filter(s => s.category === category);
     return acc;
   }, {} as Record<string, Speise[]>);
@@ -136,7 +135,7 @@ export default function SpeisenPage() {
 
             <Text className="text-sm font-medium text-gray-700 mb-2">Kategorie:</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
-              {categories.map((category) => (
+              {Object.values(FoodCategory).map((category) => (
                 <TouchableOpacity
                   key={category}
                   onPress={() => setNewSpeise({ ...newSpeise, category })}
@@ -169,7 +168,7 @@ export default function SpeisenPage() {
               <TouchableOpacity
                 onPress={() => {
                   setShowAddForm(false);
-                  setNewSpeise({ name: '', price: '', category: 'Hauptgericht', info: '' });
+                  setNewSpeise({ name: '', price: '', category: FoodCategory.Hauptgericht, info: '' });
                 }}
                 className="flex-1 bg-gray-400 py-2 rounded-lg"
               >
@@ -182,7 +181,7 @@ export default function SpeisenPage() {
         )}
 
         {/* Speisen nach Kategorien */}
-        {categories.map((category) => {
+        {Object.values(FoodCategory).map((category) => {
           const items = groupedSpeisen[category];
           if (items.length === 0) return null;
 

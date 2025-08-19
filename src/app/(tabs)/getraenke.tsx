@@ -3,25 +3,26 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'reac
 import GetraenkDetails from '@/components/getraenk-detail';
 import GetraenkZuPersonHinzufuegen from '@/components/getraenk-zu-person-hinzufuegen';
 import { Getraenk } from '@/types';
+import { DrinkCategory } from '@/types/category';
 
 export default function GetraenkePage() {
   const [getraenke, setGetraenke] = useState<Getraenk[]>([
-    { id: 1, name: 'Bier', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
-    { id: 2, name: 'Radler', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
-    { id: 3, name: 'Alkoholfreies Bier', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
-    { id: 4, name: 'Alkoholfreies Radler', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
-    { id: 5, name: 'Mineralwasser', price: 1.50, category: 'Softdrinks', info: 'Flasche, 0,5l' },
-    { id: 6, name: 'Cola Mix', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
-    { id: 7, name: 'Iso Sport', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
-    { id: 8, name: 'Bio Apfel-Birnen-Schorle', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
-    { id: 9, name: 'Kaffee (Tasse)', price: 1.50, category: 'Heißgetränke', info: 'mit/ohne Zucker, mit/ohne Milch' },
+    { id: 1, name: 'Bier', price: 2.50, category: DrinkCategory.Bier, info: 'Flasche, 0,5l' },
+    { id: 2, name: 'Radler', price: 2.50, category: DrinkCategory.Bier, info: 'Flasche, 0,5l' },
+    { id: 3, name: 'Alkoholfreies Bier', price: 2.50, category: DrinkCategory.Bier, info: 'Flasche, 0,5l' },
+    { id: 4, name: 'Alkoholfreies Radler', price: 2.50, category: DrinkCategory.Bier, info: 'Flasche, 0,5l' },
+    { id: 5, name: 'Mineralwasser', price: 1.50, category: DrinkCategory.Softdrinks, info: 'Flasche, 0,5l' },
+    { id: 6, name: 'Cola Mix', price: 2.00, category: DrinkCategory.Softdrinks, info: 'Flasche, 0,5l' },
+    { id: 7, name: 'Iso Sport', price: 2.00, category: DrinkCategory.Softdrinks, info: 'Flasche, 0,5l' },
+    { id: 8, name: 'Bio Apfel-Birnen-Schorle', price: 2.00, category: DrinkCategory.Softdrinks, info: 'Flasche, 0,5l' },
+    { id: 9, name: 'Kaffee (Tasse)', price: 1.50, category: DrinkCategory.Heissgetraenke, info: 'mit/ohne Zucker, mit/ohne Milch' },
   ]);
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [newGetraenk, setNewGetraenk] = useState({
     name: '',
     price: '',
-    category: 'Bier',
+    category: DrinkCategory.Bier,
     info: ''
   });
   const [searchQuery, setSearchQuery] = useState('');
@@ -33,8 +34,6 @@ export default function GetraenkePage() {
     getraenk.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const categories = ['Bier', 'Wein', 'Softdrinks', 'Heißgetränke', 'Spirituosen'];
-
   const addGetraenk = () => {
     if (newGetraenk.name.trim() && newGetraenk.price) {
       const getraenk: Getraenk = {
@@ -45,7 +44,7 @@ export default function GetraenkePage() {
         info: newGetraenk.info.trim() || undefined
       };
       setGetraenke([...getraenke, getraenk]);
-      setNewGetraenk({ name: '', price: '', category: 'Bier', info: '' });
+      setNewGetraenk({ name: '', price: '', category: DrinkCategory.Bier, info: '' });
       setShowAddForm(false);
     }
   };
@@ -63,18 +62,18 @@ export default function GetraenkePage() {
     // Success-Feedback wird bereits in der Modal-Komponente angezeigt
   };
 
-  const groupedGetraenke = categories.reduce((acc, category) => {
+  const groupedGetraenke = Object.values(DrinkCategory).reduce((acc, category) => {
     acc[category] = filteredGetraenke.filter(g => g.category === category);
     return acc;
   }, {} as Record<string, Getraenk[]>);
 
-  const getCategoryIcon = (category: string) => {
+  const getCategoryIcon = (category: DrinkCategory) => {
     switch (category) {
-      case 'Bier': return '🍺';
-      case 'Wein': return '🍷';
-      case 'Softdrinks': return '🥤';
-      case 'Heißgetränke': return '☕';
-      case 'Spirituosen': return '🥃';
+      case DrinkCategory.Bier: return '🍺';
+      case DrinkCategory.Wein: return '🍷';
+      case DrinkCategory.Softdrinks: return '🥤';
+      case DrinkCategory.Heissgetraenke: return '☕';
+      case DrinkCategory.Spirituosen: return '🥃';
       default: return '🥤';
     }
   };
@@ -139,7 +138,7 @@ export default function GetraenkePage() {
 
             <Text className="text-sm font-medium text-gray-700 mb-2">Kategorie:</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
-              {categories.map((category) => (
+              {Object.values(DrinkCategory).map((category) => (
                 <TouchableOpacity
                   key={category}
                   onPress={() => setNewGetraenk({ ...newGetraenk, category })}
@@ -172,7 +171,7 @@ export default function GetraenkePage() {
               <TouchableOpacity
                 onPress={() => {
                   setShowAddForm(false);
-                  setNewGetraenk({ name: '', price: '', category: 'Bier', info: '' });
+                  setNewGetraenk({ name: '', price: '', category: DrinkCategory.Bier, info: '' });
                 }}
                 className="flex-1 bg-gray-400 py-2 rounded-lg"
               >
@@ -185,7 +184,7 @@ export default function GetraenkePage() {
         )}
 
         {/* Getränke nach Kategorien */}
-        {categories.map((category) => {
+        {Object.values(DrinkCategory).map((category) => {
           const items = groupedGetraenke[category];
           if (items.length === 0) return null;
 

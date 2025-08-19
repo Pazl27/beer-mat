@@ -1,7 +1,9 @@
+import { FoodCategory } from './category';
+
 export type Speise = {
   id: number;
   name: string;
   price: number;
-  category: string;
+  category: FoodCategory;
   info?: string;
 };
