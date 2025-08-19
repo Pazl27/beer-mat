@@ -1,18 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { useSQLiteContext } from 'expo-sqlite';
+import { drizzle } from 'drizzle-orm/expo-sqlite';
+import { useFocusEffect } from '@react-navigation/native';
 import SpeiseDetails from '@/components/speise-detail';
 import SpeiseZuPersonHinzufuegen from '@/components/speise-zu-person-hinzufuegen';
 import { Speise } from '@/types';
 import { FoodCategory } from '@/types/category';
+import { getAllFoodItems, createFoodItem, updateFoodItem, deleteFoodItem } from '@/db/dbFunctions';
 
 export default function SpeisenPage() {
-  const [speisen, setSpeisen] = useState<Speise[]>([
-    { id: 1, name: 'Hot Dog', price: 2.00, category: FoodCategory.Hauptgericht },
-    { id: 2, name: 'Bratwurst', price: 2.00, category: FoodCategory.Hauptgericht },
-    { id: 3, name: 'Paar Bratwürste', price: 3.00, category: FoodCategory.Hauptgericht },
-    { id: 4, name: 'Steak', price: 3.50, category: FoodCategory.Hauptgericht },
-    { id: 5, name: 'Kuchen', price: 1.00, category: FoodCategory.Nachspeise },
-  ]);
+  const [speisen, setSpeisen] = useState<Speise[]>([]);
+  const db = useSQLiteContext();
+  const drizzleDb = drizzle(db);
+
+  // Load speisen from database on component mount
+  useEffect(() => {
+    loadSpeisen();
+  }, []);
+
+  // Reload speisen when tab comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadSpeisen();
+    }, [])
+  );
+
+  const loadSpeisen = async () => {
+    try {
+      const foodItems = await getAllFoodItems(drizzleDb);
+      // Convert price from cents to euros for display
+      const speisenWithEurosPrices = foodItems.map(item => ({
+        ...item,
+        price: item.price / 100
+      }));
+      setSpeisen(speisenWithEurosPrices);
+    } catch (error) {
+      console.error("Error loading speisen:", error);
+      Alert.alert("Fehler", "Speisen konnten nicht geladen werden");
+    }
+  };
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [newSpeise, setNewSpeise] = useState({
@@ -42,27 +69,54 @@ export default function SpeisenPage() {
     }
   };
 
-  const addSpeise = () => {
+  const addSpeise = async () => {
     if (newSpeise.name.trim() && newSpeise.price) {
-      const speise: Speise = {
-        id: Date.now(),
-        name: newSpeise.name.trim(),
-        price: parseFloat(newSpeise.price),
-        category: newSpeise.category,
-        info: newSpeise.info.trim() || undefined
-      };
-      setSpeisen([...speisen, speise]);
-      setNewSpeise({ name: '', price: '', category: FoodCategory.Hauptgericht, info: '' });
-      setShowAddForm(false);
+      try {
+        const priceInCents = Math.round(parseFloat(newSpeise.price) * 100);
+        const newFoodItem = await createFoodItem(drizzleDb, {
+          name: newSpeise.name.trim(),
+          price: priceInCents,
+          category: newSpeise.category,
+          info: newSpeise.info.trim() || undefined
+        });
+        
+        if (newFoodItem) {
+          setNewSpeise({ name: '', price: '', category: FoodCategory.Hauptgericht, info: '' });
+          setShowAddForm(false);
+          loadSpeisen(); // Reload data from database
+        } else {
+          Alert.alert("Fehler", "Speise konnte nicht hinzugefügt werden");
+        }
+      } catch (error) {
+        console.error("Error adding speise:", error);
+        Alert.alert("Fehler", "Fehler beim Hinzufügen der Speise");
+      }
     }
   };
 
-  const deleteSpeise = (id: number) => {
-    setSpeisen(speisen.filter(s => s.id !== id));
+  const deleteSpeise = async (id: number) => {
+    try {
+      await deleteFoodItem(drizzleDb, id);
+      loadSpeisen(); // Reload data from database
+    } catch (error) {
+      console.error("Error deleting speise:", error);
+      Alert.alert("Fehler", "Fehler beim Löschen der Speise");
+    }
   };
 
-  const updateSpeise = (updatedSpeise: Speise) => {
-    setSpeisen(speisen.map(s => s.id === updatedSpeise.id ? updatedSpeise : s));
+  const updateSpeise = async (updatedSpeise: Speise) => {
+    try {
+      // Convert price from euros to cents for database
+      const speiseWithCentsPrice = {
+        ...updatedSpeise,
+        price: Math.round(updatedSpeise.price * 100)
+      };
+      await updateFoodItem(drizzleDb, speiseWithCentsPrice);
+      loadSpeisen(); // Reload data from database
+    } catch (error) {
+      console.error("Error updating speise:", error);
+      Alert.alert("Fehler", "Fehler beim Aktualisieren der Speise");
+    }
   };
 
   const handleAddSpeiseToPerson = (personId: number, speise: Speise, quantity: number) => {

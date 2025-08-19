@@ -1,5 +1,5 @@
 import { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite";
-import { Person, Item, ItemType, History} from "@/types"
+import { Person, Item, ItemType, History, Speise } from "@/types"
 import { users, items, userItems, history } from "./schema";
 import { eq, desc } from "drizzle-orm";
 import { DrinkCategory, FoodCategory } from "@/types/category";
@@ -142,7 +142,77 @@ export const getAllItems = async (db: ExpoSQLiteDatabase): Promise<Item[]> => {
     name: row.name,
     price: row.price,
     type: row.type,
+    info: row.info || undefined,
+    category: parseCategory(row.category),
   }));
+};
+
+export const getAllFoodItems = async (db: ExpoSQLiteDatabase): Promise<Speise[]> => {
+  const result = await db.select().from(items).where(eq(items.type, ItemType.Food));
+
+  return result.map(row => ({
+    id: row.id,
+    name: row.name,
+    price: row.price,
+    info: row.info || undefined,
+    category: parseCategory(row.category) as FoodCategory || FoodCategory.Hauptgericht,
+  }));
+};
+
+export const createFoodItem = async (
+  db: ExpoSQLiteDatabase,
+  speise: { name: string; price: number; category: FoodCategory; info?: string }
+): Promise<Speise | undefined> => {
+  try {
+    const insertedItem = await db.insert(items).values({
+      name: speise.name,
+      type: ItemType.Food,
+      price: speise.price,
+      info: speise.info || null,
+      category: speise.category,
+    }).returning();
+
+    const dbItem = insertedItem[0];
+
+    const newSpeise: Speise = {
+      id: dbItem.id,
+      name: dbItem.name,
+      price: dbItem.price,
+      info: dbItem.info || undefined,
+      category: parseCategory(dbItem.category) as FoodCategory || FoodCategory.Hauptgericht,
+    };
+
+    return newSpeise;
+
+  } catch (e) {
+    console.error("Error creating food item:", e);
+  }
+};
+
+export const updateFoodItem = async (
+  db: ExpoSQLiteDatabase,
+  speise: Speise
+): Promise<void> => {
+  try {
+    await db.update(items)
+      .set({
+        name: speise.name,
+        price: speise.price,
+        info: speise.info || null,
+        category: speise.category,
+      })
+      .where(eq(items.id, speise.id));
+  } catch (e) {
+    console.error("Error updating food item:", e);
+  }
+};
+
+export const deleteFoodItem = async (db: ExpoSQLiteDatabase, itemId: number): Promise<void> => {
+  try {
+    await db.delete(items).where(eq(items.id, itemId));
+  } catch (e) {
+    console.error("Error deleting food item:", e);
+  }
 };
 
 export const deleteUser = async (db: ExpoSQLiteDatabase, userId: number): Promise<void> => {
