@@ -5,8 +5,8 @@ import { drizzle } from 'drizzle-orm/expo-sqlite';
 import { useFocusEffect } from '@react-navigation/native';
 import PersonBegleichen from '@/components/person-begleichen';
 import PersonArtikelHinzufuegen from '@/components/person-artikel-hinzufuegen';
-import { ItemType, Person } from '@/types';
-import { getAllUsers, createUser, deleteUser, clearUserDebt, payUserItem } from '@/db/dbFunctions';
+import { ItemType, Person, History } from '@/types';
+import { getAllUsers, createUser, deleteUser, clearUserDebt, payUserItem, getDetailedHistoryForUser } from '@/db/dbFunctions';
 
 export default function PersonenPage() {
   const [persons, setPersons] = useState<Person[]>([]);
@@ -50,6 +50,8 @@ export default function PersonenPage() {
   const [selectedPersonForDetails, setSelectedPersonForDetails] = useState<Person | null>(null);
   const [selectedPersonForBegleichen, setSelectedPersonForBegleichen] = useState<Person | null>(null);
   const [selectedPersonForArtikelHinzufuegen, setSelectedPersonForArtikelHinzufuegen] = useState<Person | null>(null);
+  const [activeDetailsTab, setActiveDetailsTab] = useState<'offen' | 'historie'>('offen');
+  const [personHistory, setPersonHistory] = useState<(History & { itemName?: string; itemType?: ItemType })[]>([]);
 
   // Filter persons based on search query
   const filteredPersons = persons.filter(person =>
@@ -76,6 +78,26 @@ export default function PersonenPage() {
     try {
       await clearUserDebt(drizzleDb, personId);
       await loadPersons(); // Reload from database
+      
+      // Update selected person for details modal if it's open and reload history
+      if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
+        const updatedPersons = await getAllUsers(drizzleDb);
+        const updatedPerson = updatedPersons.find(p => p.id === personId);
+        if (updatedPerson) {
+          // Convert price from cents to euros for display
+          const personWithEuros = {
+            ...updatedPerson,
+            totalDebt: updatedPerson.totalDebt / 100,
+            items: updatedPerson.items.map(item => ({
+              ...item,
+              price: item.price / 100
+            }))
+          };
+          setSelectedPersonForDetails(personWithEuros);
+          // Reload history
+          await loadPersonHistory(personId);
+        }
+      }
     } catch (error) {
       console.error("Error clearing debt:", error);
       Alert.alert("Fehler", "Schulden konnten nicht beglichen werden");
@@ -102,6 +124,26 @@ export default function PersonenPage() {
             }))
           };
           setSelectedPersonForBegleichen(personWithEuros);
+        }
+      }
+
+      // Update selected person for details modal if it's open and reload history
+      if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
+        const updatedPersons = await getAllUsers(drizzleDb);
+        const updatedPerson = updatedPersons.find(p => p.id === personId);
+        if (updatedPerson) {
+          // Convert price from cents to euros for display
+          const personWithEuros = {
+            ...updatedPerson,
+            totalDebt: updatedPerson.totalDebt / 100,
+            items: updatedPerson.items.map(item => ({
+              ...item,
+              price: item.price / 100
+            }))
+          };
+          setSelectedPersonForDetails(personWithEuros);
+          // Reload history
+          await loadPersonHistory(personId);
         }
       }
     } catch (error) {
@@ -220,6 +262,27 @@ export default function PersonenPage() {
     await loadPersons();
   };
 
+  const loadPersonHistory = async (personId: number) => {
+    try {
+      const history = await getDetailedHistoryForUser(drizzleDb, personId);
+      // Convert price from cents to euros for display
+      const historyWithEuros = history.map(entry => ({
+        ...entry,
+        paid: entry.paid / 100
+      }));
+      setPersonHistory(historyWithEuros);
+    } catch (error) {
+      console.error("Error loading person history:", error);
+      setPersonHistory([]);
+    }
+  };
+
+  const handlePersonDetailsSelect = async (person: Person) => {
+    setSelectedPersonForDetails(person);
+    setActiveDetailsTab('offen');
+    await loadPersonHistory(person.id);
+  };
+
   return (
     <View className="flex-1 bg-gray-50">
       <ScrollView className="flex-1 px-4 py-6">
@@ -335,7 +398,7 @@ export default function PersonenPage() {
               <TouchableOpacity
                 className="flex-1 bg-blue-100 py-2 rounded-lg"
                 onPress={() => {
-                  setSelectedPersonForDetails(person);
+                  handlePersonDetailsSelect(person);
                 }}
               >
                 <Text className="text-blue-700 text-center font-medium">
@@ -423,58 +486,128 @@ export default function PersonenPage() {
                 </View>
                 <View className="mt-4 pt-4 border-t border-gray-100">
                   <Text className="text-sm text-gray-600 text-center">
-                    Insgesamt {selectedPersonForDetails.items.length} Artikel
+                    Insgesamt {selectedPersonForDetails.items.length} Artikel offen
                   </Text>
                 </View>
               </View>
 
-              {(() => {
-                const grouped = getGroupedItems(selectedPersonForDetails);
-                return (
-                  <>
-                    {/* Getränke Summary */}
-                    {grouped.getraenke.length > 0 && (
-                      <View className="bg-white rounded-lg p-4 mb-4 shadow-sm border border-gray-200">
-                        <Text className="text-xl font-bold text-gray-800 mb-3">
-                          🍺 Getränke
-                        </Text>
-                        {grouped.getraenke.map((item, index) => (
-                          <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
-                            <Text className="text-base text-gray-700">
-                              {item.count}x {item.name}
-                            </Text>
-                            <Text className="text-base font-semibold text-green-600">
-                              {item.totalPrice.toFixed(2)}€
-                            </Text>
-                          </View>
-                        ))}
-                      </View>
-                    )}
+              {/* Tab Navigation */}
+              <View className="bg-white rounded-lg mb-4 shadow-sm border border-gray-200">
+                <View className="flex-row">
+                  <TouchableOpacity
+                    className={`flex-1 py-3 px-4 ${activeDetailsTab === 'offen' ? 'bg-blue-600' : 'bg-gray-100'} rounded-l-lg`}
+                    onPress={() => setActiveDetailsTab('offen')}
+                  >
+                    <Text className={`text-center font-semibold ${activeDetailsTab === 'offen' ? 'text-white' : 'text-gray-700'}`}>
+                      📋 Offen
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className={`flex-1 py-3 px-4 ${activeDetailsTab === 'historie' ? 'bg-blue-600' : 'bg-gray-100'} rounded-r-lg`}
+                    onPress={() => setActiveDetailsTab('historie')}
+                  >
+                    <Text className={`text-center font-semibold ${activeDetailsTab === 'historie' ? 'text-white' : 'text-gray-700'}`}>
+                      📜 Historie
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
 
-                    {/* Speisen Summary */}
-                    {grouped.speisen.length > 0 && (
-                      <View className="bg-white rounded-lg p-4 mb-4 shadow-sm border border-gray-200">
-                        <Text className="text-xl font-bold text-gray-800 mb-3">
-                          🍽️ Speisen
+              {/* Tab Content */}
+              {activeDetailsTab === 'offen' ? (
+                // Offen Tab - Current unpaid items
+                (() => {
+                  const grouped = getGroupedItems(selectedPersonForDetails);
+                  return (
+                    <>
+                      {/* Getränke Summary */}
+                      {grouped.getraenke.length > 0 && (
+                        <View className="bg-white rounded-lg p-4 mb-4 shadow-sm border border-gray-200">
+                          <Text className="text-xl font-bold text-gray-800 mb-3">
+                            🍺 Getränke
+                          </Text>
+                          {grouped.getraenke.map((item, index) => (
+                            <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                              <Text className="text-base text-gray-700">
+                                {item.count}x {item.name}
+                              </Text>
+                              <Text className="text-base font-semibold text-green-600">
+                                {item.totalPrice.toFixed(2)}€
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+
+                      {/* Speisen Summary */}
+                      {grouped.speisen.length > 0 && (
+                        <View className="bg-white rounded-lg p-4 mb-4 shadow-sm border border-gray-200">
+                          <Text className="text-xl font-bold text-gray-800 mb-3">
+                            🍽️ Speisen
+                          </Text>
+                          {grouped.speisen.map((item, index) => (
+                            <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                              <Text className="text-base text-gray-700">
+                                {item.count}x {item.name}
+                              </Text>
+                              <Text className="text-base font-semibold text-green-600">
+                                {item.totalPrice.toFixed(2)}€
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+
+                      {selectedPersonForDetails.items.length === 0 && (
+                        <View className="bg-white rounded-lg p-6 text-center shadow-sm border border-gray-200">
+                          <Text className="text-gray-500 text-lg">Keine offenen Artikel</Text>
+                        </View>
+                      )}
+                    </>
+                  );
+                })()
+              ) : (
+                // Historie Tab - Payment history
+                <View className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                  <Text className="text-xl font-bold text-gray-800 mb-3">
+                    💰 Zahlungshistorie
+                  </Text>
+                  {personHistory.length > 0 ? (
+                    personHistory.map((entry, index) => (
+                      <View key={entry.id} className="flex-row justify-between items-center py-3 border-b border-gray-100 last:border-b-0">
+                        <View className="flex-1">
+                          <Text className="text-base text-gray-700">
+                            {entry.itemName ? (
+                              `${entry.itemName} ${entry.itemType === 'drink' ? '🍺' : '🍽️'}`
+                            ) : (
+                              'Alle Schulden beglichen'
+                            )}
+                          </Text>
+                          <Text className="text-sm text-gray-500">
+                            {new Date(parseInt(entry.timestamp)).toLocaleDateString('de-DE', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </Text>
+                        </View>
+                        <Text className="text-base font-semibold text-green-600">
+                          {entry.paid.toFixed(2)}€
                         </Text>
-                        {grouped.speisen.map((item, index) => (
-                          <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
-                            <Text className="text-base text-gray-700">
-                              {item.count}x {item.name}
-                            </Text>
-                            <Text className="text-base font-semibold text-green-600">
-                              {item.totalPrice.toFixed(2)}€
-                            </Text>
-                          </View>
-                        ))}
                       </View>
-                    )}
-                  </>
-                );
-              })()}
+                    ))
+                  ) : (
+                    <Text className="text-gray-500 text-center py-4">
+                      Keine Zahlungen bisher
+                    </Text>
+                  )}
+                </View>
+              )}
 
               {/* Delete Person Button */}
-              <View className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 mb-6">
+              <View className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 mb-6 mt-6">
                 <TouchableOpacity
                   onPress={() => deletePerson(selectedPersonForDetails.id, selectedPersonForDetails.name)}
                   className="bg-red-600 py-3 rounded-lg"

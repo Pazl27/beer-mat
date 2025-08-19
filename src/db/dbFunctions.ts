@@ -1,7 +1,7 @@
 import { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite";
 import { Person, Item, ItemType, History} from "@/types"
 import { users, items, userItems, history } from "./schema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { DrinkCategory, FoodCategory } from "@/types/category";
 
 export const createUser = async (db: ExpoSQLiteDatabase, name: string): Promise<Person | undefined> => {
@@ -229,7 +229,7 @@ export const payUserItem = async (
   }
 };
 
-const addToHistory = async (db: ExpoSQLiteDatabase, userId: number, itemId: number, paid: number): Promise<void> => {
+const addToHistory = async (db: ExpoSQLiteDatabase, userId: number, itemId: number | null, paid: number): Promise<void> => {
   try {
     await db.insert(history).values({
       userId,
@@ -254,5 +254,38 @@ export const getHistoryForUser = async (db: ExpoSQLiteDatabase, userId: number):
     }));
   } catch(e) {
     console.error("Error fetching history for user:", e);
+    return [];
+  }
+};
+
+export const getDetailedHistoryForUser = async (db: ExpoSQLiteDatabase, userId: number): Promise<(History & { itemName?: string; itemType?: ItemType })[]> => {
+  try {
+    const result = await db
+      .select({
+        id: history.id,
+        userId: history.userId,
+        itemId: history.itemId,
+        paid: history.paid,
+        timestamp: history.timestamp,
+        itemName: items.name,
+        itemType: items.type,
+      })
+      .from(history)
+      .leftJoin(items, eq(history.itemId, items.id))
+      .where(eq(history.userId, userId))
+      .orderBy(desc(history.timestamp));
+
+    return result.map(row => ({
+      id: row.id,
+      userId: row.userId,
+      itemId: row.itemId,
+      paid: row.paid,
+      timestamp: String(row.timestamp),
+      itemName: row.itemName || undefined,
+      itemType: row.itemType as ItemType || undefined,
+    }));
+  } catch(e) {
+    console.error("Error fetching detailed history for user:", e);
+    return [];
   }
 };
