@@ -135,3 +135,68 @@ export const deleteItem = async (db: ExpoSQLiteDatabase, itemId: number): Promis
     console.error("Error deleting item:", e);
   }
 };
+
+// Clear all debt and items for a user
+export const clearUserDebt = async (db: ExpoSQLiteDatabase, userId: number): Promise<void> => {
+  try {
+    // Delete all user items
+    await db.delete(userItems).where(eq(userItems.userId, userId));
+    
+    // Reset totalDebt to 0
+    await db.update(users)
+      .set({ totalDebt: 0 })
+      .where(eq(users.id, userId));
+  } catch (e) {
+    console.error("Error clearing user debt:", e);
+  }
+};
+
+// Remove one item from user by name and type (for paying individual items)
+export const payUserItem = async (db: ExpoSQLiteDatabase, userId: number, itemName: string, itemType: ItemType): Promise<void> => {
+  try {
+    // Find the first matching item for this user
+    const userItemsWithDetails = await db
+      .select({
+        userItemId: userItems.id,
+        itemId: userItems.itemId,
+        quantity: userItems.quantity,
+        itemName: items.name,
+        itemType: items.type,
+        itemPrice: items.price,
+      })
+      .from(userItems)
+      .innerJoin(items, eq(userItems.itemId, items.id))
+      .where(eq(userItems.userId, userId));
+
+    const matchingUserItem = userItemsWithDetails.find(
+      item => item.itemName === itemName && item.itemType === itemType
+    );
+
+    if (!matchingUserItem) {
+      console.warn("No matching item found to pay");
+      return;
+    }
+
+    // If quantity is 1, delete the entire userItem record
+    if (matchingUserItem.quantity <= 1) {
+      await db.delete(userItems).where(eq(userItems.id, matchingUserItem.userItemId));
+    } else {
+      // Otherwise, decrease quantity by 1
+      await db.update(userItems)
+        .set({ quantity: matchingUserItem.quantity - 1 })
+        .where(eq(userItems.id, matchingUserItem.userItemId));
+    }
+
+    // Update user's totalDebt (subtract the price of one item)
+    const userRow = await db.select().from(users).where(eq(users.id, userId));
+    const currentDebt = userRow[0]?.totalDebt ?? 0;
+    const newDebt = Math.max(0, currentDebt - matchingUserItem.itemPrice);
+
+    await db.update(users)
+      .set({ totalDebt: newDebt })
+      .where(eq(users.id, userId));
+
+  } catch (e) {
+    console.error("Error paying user item:", e);
+  }
+};
