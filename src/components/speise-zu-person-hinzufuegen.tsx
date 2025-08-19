@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
+import { useSQLiteContext } from 'expo-sqlite';
+import { drizzle } from 'drizzle-orm/expo-sqlite';
 import { Person, ItemType, SpeiseZuPersonHinzufuegenProps } from '@/types';
+import { getAllUsers } from '@/db/dbFunctions';
 
 export default function SpeiseZuPersonHinzufuegen({
   speise,
@@ -8,44 +11,35 @@ export default function SpeiseZuPersonHinzufuegen({
   onClose,
   onAddToPerson
 }: SpeiseZuPersonHinzufuegenProps) {
-  // Mock-Daten für Personen (später aus echten Daten holen)
-  const [persons] = useState<Person[]>([
-    {
-      id: 1,
-      name: 'Max Mustermann',
-      totalDebt: 5.50,
-      items: [
-        { id: 1, name: 'Bier (Flasche, 0,5l)', price: 2.50, type: ItemType.Drink },
-        { id: 2, name: 'Steak', price: 3.50, type: ItemType.Food }
-      ]
-    },
-    {
-      id: 2,
-      name: 'Anna Schmidt',
-      totalDebt: 3.50,
-      items: [
-        { id: 3, name: 'Cola Mix (Flasche, 0,5l)', price: 2.00, type: ItemType.Drink },
-        { id: 4, name: 'Kaffee (Tasse)', price: 1.50, type: ItemType.Drink }
-      ]
-    },
-    {
-      id: 3,
-      name: 'Tom Weber',
-      totalDebt: 0,
-      items: []
-    },
-    {
-      id: 4,
-      name: 'Lisa Müller',
-      totalDebt: 7.20,
-      items: [
-        { id: 5, name: 'Hot Dog', price: 2.00, type: ItemType.Food },
-        { id: 6, name: 'Pommes', price: 1.50, type: ItemType.Food },
-        { id: 7, name: 'Cola Mix (Flasche, 0,5l)', price: 2.00, type: ItemType.Drink },
-        { id: 8, name: 'Kaffee (Tasse)', price: 1.70, type: ItemType.Drink }
-      ]
+  const [persons, setPersons] = useState<Person[]>([]);
+  const db = useSQLiteContext();
+  const drizzleDb = drizzle(db);
+
+  // Load persons from database
+  useEffect(() => {
+    if (visible) {
+      loadPersons();
     }
-  ]);
+  }, [visible]);
+
+  const loadPersons = async () => {
+    try {
+      const users = await getAllUsers(drizzleDb);
+      // Convert price from cents to euros for display
+      const personsWithEurosPrices = users.map(user => ({
+        ...user,
+        totalDebt: user.totalDebt / 100,
+        items: user.items.map(item => ({
+          ...item,
+          price: item.price / 100
+        }))
+      }));
+      setPersons(personsWithEurosPrices);
+    } catch (error) {
+      console.error("Error loading persons:", error);
+      Alert.alert("Fehler", "Personen konnten nicht geladen werden");
+    }
+  };
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
@@ -102,23 +96,29 @@ export default function SpeiseZuPersonHinzufuegen({
         { text: 'Abbrechen', style: 'cancel' },
         {
           text: 'Hinzufügen',
-          onPress: () => {
-            Object.entries(selectedQuantities).forEach(([personId, quantity]) => {
-              onAddToPerson(Number(personId), speise, quantity);
-            });
+          onPress: async () => {
+            try {
+              const personNames: string[] = [];
+              
+              for (const [personId, quantity] of Object.entries(selectedQuantities)) {
+                const person = persons.find(p => p.id === Number(personId));
+                if (person && quantity > 0) {
+                  await onAddToPerson(person, speise, quantity);
+                  personNames.push(person.name);
+                }
+              }
 
-            setSelectedQuantities({});
-            onClose();
+              setSelectedQuantities({});
+              onClose();
 
-            const personNames = Object.keys(selectedQuantities)
-              .map(id => persons.find(p => p.id == Number(id))?.name)
-              .filter(Boolean)
-              .join(', ');
-
-            Alert.alert(
-              'Hinzugefügt',
-              `${totalItems}x "${speise.name}" wurde zu ${personNames} hinzugefügt.`
-            );
+              Alert.alert(
+                'Hinzugefügt',
+                `${totalItems}x "${speise.name}" wurde zu ${personNames.join(', ')} hinzugefügt.`
+              );
+            } catch (error) {
+              console.error("Error in handleAddToPersons:", error);
+              Alert.alert("Fehler", "Fehler beim Hinzufügen der Speise");
+            }
           }
         }
       ]

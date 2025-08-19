@@ -7,7 +7,8 @@ import SpeiseDetails from '@/components/speise-detail';
 import SpeiseZuPersonHinzufuegen from '@/components/speise-zu-person-hinzufuegen';
 import { Speise } from '@/types';
 import { FoodCategory } from '@/types/category';
-import { getAllFoodItems, createFoodItem, updateFoodItem, deleteFoodItem } from '@/db/dbFunctions';
+import { getAllFoodItems, createFoodItem, updateFoodItem, deleteFoodItem, addItemToUser } from '@/db/dbFunctions';
+import { ItemType, Item, Person } from '@/types';
 
 export default function SpeisenPage() {
   const [speisen, setSpeisen] = useState<Speise[]>([]);
@@ -119,9 +120,24 @@ export default function SpeisenPage() {
     }
   };
 
-  const handleAddSpeiseToPerson = (personId: number, speise: Speise, quantity: number) => {
-    // TODO: Hier würde die echte Logik zum Hinzufügen zur Datenbank kommen
-    // Success-Feedback wird bereits in der Modal-Komponente angezeigt
+  const handleAddSpeiseToPerson = async (person: Person, speise: Speise, quantity: number) => {
+    try {
+      // Konvertiere Speise zu Item für DB-Funktion
+      const item: Item = {
+        id: speise.id,
+        name: speise.name,
+        price: Math.round(speise.price * 100), // Euro zu Cents für DB
+        type: ItemType.Food,
+        info: speise.info,
+        category: speise.category
+      };
+      
+      await addItemToUser(drizzleDb, person, item, quantity);
+      console.log(`${quantity}x ${speise.name} zu ${person.name} hinzugefügt`);
+    } catch (error) {
+      console.error("Error adding speise to person:", error);
+      Alert.alert("Fehler", "Speise konnte nicht hinzugefügt werden");
+    }
   };
 
   const groupedSpeisen = Object.values(FoodCategory).reduce((acc, category) => {
