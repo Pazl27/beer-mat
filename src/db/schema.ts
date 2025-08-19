@@ -27,7 +27,7 @@ export const history = sqliteTable('history', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }),
   itemId: integer('item_id').references(() => items.id, { onDelete: 'cascade' }),
-  timestamp: integer('timestamp').notNull().default(Date.now()),
+  timestamp: integer('timestamp').notNull(),
   paid: integer('paid').notNull(), // price in cents
 })
 

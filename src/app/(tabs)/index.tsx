@@ -262,11 +262,13 @@ export default function PersonenPage() {
   const loadPersonHistory = async (personId: number) => {
     try {
       const history = await getDetailedHistoryForUser(drizzleDb, personId);
-      // Convert price from cents to euros for display
-      const historyWithEuros = history.map(entry => ({
-        ...entry,
-        paid: entry.paid / 100
-      }));
+      // Convert price from cents to euros for display and ensure proper sorting
+      const historyWithEuros = history
+        .map(entry => ({
+          ...entry,
+          paid: entry.paid / 100
+        }))
+        .sort((a, b) => parseInt(b.timestamp) - parseInt(a.timestamp)); // Additional frontend sorting by timestamp descending
       setPersonHistory(historyWithEuros);
     } catch (error) {
       console.error("Error loading person history:", error);

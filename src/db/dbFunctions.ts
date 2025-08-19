@@ -304,7 +304,8 @@ const addToHistory = async (db: ExpoSQLiteDatabase, userId: number, itemId: numb
     await db.insert(history).values({
       userId,
       itemId,
-      paid
+      paid,
+      timestamp: Date.now()
     });
   } catch (e) {
     console.error("Error adding to history:", e);
