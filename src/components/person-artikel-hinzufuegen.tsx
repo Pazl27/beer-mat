@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal } from 'react-native';
-import { Getraenk, Speise, PersonArtikelHinzufuegenProps, ItemType } from '@/types';
+import { useSQLiteContext } from 'expo-sqlite';
+import { drizzle } from 'drizzle-orm/expo-sqlite';
+import { Getraenk, Speise, PersonArtikelHinzufuegenProps, ItemType, Item } from '@/types';
 import { DrinkCategory } from '@/types/category';
 import { FoodCategory } from '@/types/category';
+import { getAllItems } from '@/db/dbFunctions';
 
 export default function PersonArtikelHinzufuegen({
   person,
@@ -10,26 +13,43 @@ export default function PersonArtikelHinzufuegen({
   onClose,
   onAddItems
 }: PersonArtikelHinzufuegenProps) {
-  // Mock-Daten für Getränke und Speisen (später aus echten Listen holen)
-  const getraenke: Getraenk[] = [
-    { id: 1, name: 'Bier', price: 2.50, category: DrinkCategory.Bier, info: 'Flasche, 0,5l' },
-    { id: 2, name: 'Radler', price: 2.50, category: DrinkCategory.Bier, info: 'Flasche, 0,5l' },
-    { id: 3, name: 'Alkoholfreies Bier', price: 2.50, category: DrinkCategory.Bier, info: 'Flasche, 0,5l' },
-    { id: 4, name: 'Alkoholfreies Radler', price: 2.50, category: DrinkCategory.Bier, info: 'Flasche, 0,5l' },
-    { id: 5, name: 'Mineralwasser', price: 1.50, category: DrinkCategory.Softdrinks, info: 'Flasche, 0,5l' },
-    { id: 6, name: 'Cola Mix', price: 2.00, category: DrinkCategory.Softdrinks, info: 'Flasche, 0,5l' },
-    { id: 7, name: 'Iso Sport', price: 2.00, category: DrinkCategory.Softdrinks, info: 'Flasche, 0,5l' },
-    { id: 8, name: 'Bio Apfel-Birnen-Schorle', price: 2.00, category: DrinkCategory.Softdrinks, info: 'Flasche, 0,5l' },
-    { id: 9, name: 'Kaffee (Tasse)', price: 1.50, category: DrinkCategory.Heissgetraenke, info: 'mit/ohne Zucker, mit/ohne Milch' },
-  ];
+  const db = useSQLiteContext();
+  const drizzleDb = drizzle(db);
 
-  const speisen: Speise[] = [
-    { id: 1, name: 'Hot Dog', price: 2.00, category: FoodCategory.Hauptgericht },
-    { id: 2, name: 'Bratwurst', price: 2.00, category: FoodCategory.Hauptgericht },
-    { id: 3, name: 'Paar Bratwürste', price: 3.00, category: FoodCategory.Hauptgericht },
-    { id: 4, name: 'Steak', price: 3.50, category: FoodCategory.Hauptgericht },
-    { id: 5, name: 'Kuchen', price: 1.00, category: FoodCategory.Nachspeise },
-  ];
+  // State für alle Items aus der DB
+  const [allItems, setAllItems] = useState<Item[]>([]);
+  const [getraenke, setGetraenke] = useState<Item[]>([]);
+  const [speisen, setSpeisen] = useState<Item[]>([]);
+
+  // Load items from database
+  useEffect(() => {
+    if (visible) {
+      loadItems();
+    }
+  }, [visible]);
+
+  const loadItems = async () => {
+    try {
+      const items = await getAllItems(drizzleDb);
+      // Convert price from cents to euros for display
+      const itemsWithEuros = items.map(item => ({
+        ...item,
+        price: item.price / 100
+      }));
+
+      setAllItems(itemsWithEuros);
+
+      // Separate drinks and food  
+      const drinks = itemsWithEuros.filter(item => item.type === ItemType.Drink && item.id !== undefined);
+      const food = itemsWithEuros.filter(item => item.type === ItemType.Food && item.id !== undefined);
+
+      setGetraenke(drinks.filter(item => item.id !== undefined) as Item[]);
+      setSpeisen(food.filter(item => item.id !== undefined) as Item[]);
+    } catch (error) {
+      console.error("Error loading items:", error);
+      Alert.alert("Fehler", "Artikel konnten nicht geladen werden");
+    }
+  };
 
   const [getraenkeExpanded, setGetraenkeExpanded] = useState(false);
   const [speisenExpanded, setSpeisenExpanded] = useState(false);
@@ -76,34 +96,26 @@ export default function PersonArtikelHinzufuegen({
   const getTotalPrice = () => {
     let total = 0;
     Object.entries(selectedQuantities).forEach(([itemId, quantity]) => {
-      const getraenk = getraenke.find(g => g.id === Number(itemId));
-      const speise = speisen.find(s => s.id === Number(itemId));
-      const price = getraenk?.price || speise?.price || 0;
+      const item = allItems.find(i => i.id === Number(itemId));
+      const price = item?.price || 0;
       total += price * quantity;
     });
     return total;
   };
 
   const handleAddItems = () => {
-    const itemsToAdd: Array<{name: string, price: number, type: ItemType, quantity: number}> = [];
+    const itemsToAdd: Array<{name: string, price: number, type: ItemType, quantity: number, itemId: number}> = [];
 
     Object.entries(selectedQuantities).forEach(([itemId, quantity]) => {
-      const getraenk = getraenke.find(g => g.id === Number(itemId));
-      const speise = speisen.find(s => s.id === Number(itemId));
+      const item = allItems.find(i => i.id === Number(itemId));
 
-      if (getraenk) {
+      if (item && item.id !== undefined) {
         itemsToAdd.push({
-          name: getraenk.name,
-          price: getraenk.price,
-          type: ItemType.Drink,
-          quantity
-        });
-      } else if (speise) {
-        itemsToAdd.push({
-          name: speise.name,
-          price: speise.price,
-          type: ItemType.Food,
-          quantity
+          name: item.name,
+          price: item.price,
+          type: item.type,
+          quantity,
+          itemId: item.id
         });
       }
     });

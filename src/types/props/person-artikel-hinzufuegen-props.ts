@@ -7,6 +7,6 @@ export interface PersonArtikelHinzufuegenProps {
   onClose: () => void;
   onAddItems: (
     personId: number,
-    selectedItems: Array<{ name: string; price: number; type: ItemType; quantity: number }>
+    selectedItems: Array<{ name: string; price: number; type: ItemType; quantity: number; itemId: number }>
   ) => void;
 }

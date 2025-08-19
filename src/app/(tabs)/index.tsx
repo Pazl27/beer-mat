@@ -6,7 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import PersonBegleichen from '@/components/person-begleichen';
 import PersonArtikelHinzufuegen from '@/components/person-artikel-hinzufuegen';
 import { ItemType, Person, History } from '@/types';
-import { getAllUsers, createUser, deleteUser, clearUserDebt, payUserItem, getDetailedHistoryForUser } from '@/db/dbFunctions';
+import { getAllUsers, createUser, deleteUser, clearUserDebt, payUserItem, getDetailedHistoryForUser, addItemToUser } from '@/db/dbFunctions';
 
 export default function PersonenPage() {
   const [persons, setPersons] = useState<Person[]>([]);
@@ -201,65 +201,62 @@ export default function PersonenPage() {
     };
   };
 
-  const handleAddItemsToPerson = async (personId: number, selectedItems: Array<{name: string, price: number, type: ItemType, quantity: number}>) => {
-    setPersons(prevPersons => {
-      return prevPersons.map(person => {
-        if (person.id === personId) {
-          const newItems = [...person.items];
-          let totalPriceAdded = 0;
-
-          selectedItems.forEach(selectedItem => {
-            for (let i = 0; i < selectedItem.quantity; i++) {
-              newItems.push({
-                id: Date.now() + Math.random(),
-                name: selectedItem.name,
-                price: selectedItem.price,
-                type: selectedItem.type
-              });
-              totalPriceAdded += selectedItem.price;
-            }
-          });
-
-          return {
-            ...person,
-            items: newItems,
-            totalDebt: person.totalDebt + totalPriceAdded
-          };
-        }
-        return person;
-      });
-    });
-
-    // Update selectedPersonForDetails if it's the same person
-    if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
-      const updatedPerson = persons.find(p => p.id === personId);
-      if (updatedPerson) {
-        const newItems = [...updatedPerson.items];
-        let totalPriceAdded = 0;
-
-        selectedItems.forEach(selectedItem => {
-          for (let i = 0; i < selectedItem.quantity; i++) {
-            newItems.push({
-              id: Date.now() + Math.random(),
-              name: selectedItem.name,
-              price: selectedItem.price,
-              type: selectedItem.type
-            });
-            totalPriceAdded += selectedItem.price;
-          }
-        });
-
-        setSelectedPersonForDetails({
-          ...updatedPerson,
-          items: newItems,
-          totalDebt: updatedPerson.totalDebt + totalPriceAdded
-        });
+  const handleAddItemsToPerson = async (personId: number, selectedItems: Array<{name: string, price: number, type: ItemType, quantity: number, itemId: number}>) => {
+    try {
+      const person = persons.find(p => p.id === personId);
+      if (!person) {
+        Alert.alert("Fehler", "Person nicht gefunden");
+        return;
       }
+
+      // Add each selected item to the user in the database
+      for (const selectedItem of selectedItems) {
+        // Create an item object that matches the DB structure
+        const dbItem = {
+          id: selectedItem.itemId,
+          name: selectedItem.name,
+          price: Math.round(selectedItem.price * 100), // Convert euros to cents
+          type: selectedItem.type,
+          info: undefined,
+          category: undefined
+        };
+
+        // Create a minimal person object for the DB function
+        const personForDb = {
+          id: person.id,
+          name: person.name,
+          totalDebt: 0, // Will be updated by the DB function
+          items: [] // Will be updated by the DB function
+        };
+
+        // Add the item to the user the specified number of times
+        await addItemToUser(drizzleDb, personForDb, dbItem, selectedItem.quantity);
+      }
+
+      // Reload persons from database to get updated data
+      await loadPersons();
+
+      // Update selected person for details modal if it's open
+      if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
+        const updatedPersons = await getAllUsers(drizzleDb);
+        const updatedPerson = updatedPersons.find(p => p.id === personId);
+        if (updatedPerson) {
+          // Convert price from cents to euros for display
+          const personWithEuros = {
+            ...updatedPerson,
+            totalDebt: updatedPerson.totalDebt / 100,
+            items: updatedPerson.items.map(item => ({
+              ...item,
+              price: item.price / 100
+            }))
+          };
+          setSelectedPersonForDetails(personWithEuros);
+        }
+      }
+    } catch (error) {
+      console.error("Error adding items to person:", error);
+      Alert.alert("Fehler", "Artikel konnten nicht hinzugefügt werden");
     }
-    
-    // TODO: Implement database operation for adding items
-    // For now, reload to ensure consistency
-    await loadPersons();
   };
 
   const loadPersonHistory = async (personId: number) => {
