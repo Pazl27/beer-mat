@@ -10,6 +10,7 @@ export default function SpeiseDetails({
   onUpdate,
   onDelete
 }: SpeiseDetailsProps) {
+  const [editedName, setEditedName] = useState(speise.name);
   const [editedPrice, setEditedPrice] = useState(speise.price.toString());
   const [editedInfo, setEditedInfo] = useState(speise.info || '');
   const [editedCategory, setEditedCategory] = useState(speise.category);
@@ -33,8 +34,14 @@ export default function SpeiseDetails({
       return;
     }
 
+    if (!editedName.trim()) {
+      Alert.alert('Fehler', 'Bitte geben Sie einen Namen für die Speise ein.');
+      return;
+    }
+
     const updatedSpeise: Speise = {
       ...speise,
+      name: editedName.trim(),
       price,
       category: editedCategory,
       info: editedInfo.trim() || undefined
@@ -65,6 +72,7 @@ export default function SpeiseDetails({
   };
 
   const resetChanges = () => {
+    setEditedName(speise.name);
     setEditedPrice(speise.price.toString());
     setEditedInfo(speise.info || '');
     setEditedCategory(speise.category);
@@ -101,7 +109,7 @@ export default function SpeiseDetails({
                 {getCategoryIcon(speise.category)}
               </Text>
               <Text className="text-2xl font-bold text-gray-800 text-center mb-1">
-                {speise.name}
+                {editedName}
               </Text>
               <View className="bg-green-100 px-3 py-1 rounded-full">
                 <Text className="text-sm font-medium text-green-700">
@@ -111,11 +119,20 @@ export default function SpeiseDetails({
             </View>
           </View>
 
-          {/* Preis bearbeiten */}
+          {/* Speise bearbeiten */}
           <View className="bg-white rounded-lg p-4 mb-6 shadow-sm border border-gray-200">
             <Text className="text-xl font-bold text-gray-800 mb-4">
-              💰 Preis bearbeiten
+              ✏️ Speise bearbeiten
             </Text>
+            
+            <Text className="text-sm font-medium text-gray-700 mb-2">Name:</Text>
+            <TextInput
+              value={editedName}
+              onChangeText={setEditedName}
+              placeholder="z.B. Schnitzel Wiener Art"
+              className="border border-gray-300 rounded-lg px-4 py-3 text-base mb-4"
+            />
+
             <Text className="text-sm font-medium text-gray-700 mb-2">
               Aktueller Preis: {speise.price.toFixed(2)}€
             </Text>
