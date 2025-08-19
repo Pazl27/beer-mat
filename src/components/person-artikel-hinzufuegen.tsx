@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal } from 'react-native';
 import { Getraenk, Speise, PersonArtikelHinzufuegenProps, ItemType } from '@/types';
+import { DrinkCategory } from '@/types/category';
+import { FoodCategory } from '@/types/category';
 
 export default function PersonArtikelHinzufuegen({
   person,
@@ -10,23 +12,23 @@ export default function PersonArtikelHinzufuegen({
 }: PersonArtikelHinzufuegenProps) {
   // Mock-Daten für Getränke und Speisen (später aus echten Listen holen)
   const getraenke: Getraenk[] = [
-    { id: 1, name: 'Bier', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
-    { id: 2, name: 'Radler', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
-    { id: 3, name: 'Alkoholfreies Bier', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
-    { id: 4, name: 'Alkoholfreies Radler', price: 2.50, category: 'Bier', info: 'Flasche, 0,5l' },
-    { id: 5, name: 'Mineralwasser', price: 1.50, category: 'Softdrinks', info: 'Flasche, 0,5l' },
-    { id: 6, name: 'Cola Mix', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
-    { id: 7, name: 'Iso Sport', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
-    { id: 8, name: 'Bio Apfel-Birnen-Schorle', price: 2.00, category: 'Softdrinks', info: 'Flasche, 0,5l' },
-    { id: 9, name: 'Kaffee (Tasse)', price: 1.50, category: 'Heißgetränke', info: 'mit/ohne Zucker, mit/ohne Milch' },
+    { id: 1, name: 'Bier', price: 2.50, category: DrinkCategory.Bier, info: 'Flasche, 0,5l' },
+    { id: 2, name: 'Radler', price: 2.50, category: DrinkCategory.Bier, info: 'Flasche, 0,5l' },
+    { id: 3, name: 'Alkoholfreies Bier', price: 2.50, category: DrinkCategory.Bier, info: 'Flasche, 0,5l' },
+    { id: 4, name: 'Alkoholfreies Radler', price: 2.50, category: DrinkCategory.Bier, info: 'Flasche, 0,5l' },
+    { id: 5, name: 'Mineralwasser', price: 1.50, category: DrinkCategory.Softdrinks, info: 'Flasche, 0,5l' },
+    { id: 6, name: 'Cola Mix', price: 2.00, category: DrinkCategory.Softdrinks, info: 'Flasche, 0,5l' },
+    { id: 7, name: 'Iso Sport', price: 2.00, category: DrinkCategory.Softdrinks, info: 'Flasche, 0,5l' },
+    { id: 8, name: 'Bio Apfel-Birnen-Schorle', price: 2.00, category: DrinkCategory.Softdrinks, info: 'Flasche, 0,5l' },
+    { id: 9, name: 'Kaffee (Tasse)', price: 1.50, category: DrinkCategory.Heissgetraenke, info: 'mit/ohne Zucker, mit/ohne Milch' },
   ];
 
   const speisen: Speise[] = [
-    { id: 1, name: 'Hot Dog', price: 2.00, category: 'Hauptgericht' },
-    { id: 2, name: 'Bratwurst', price: 2.00, category: 'Hauptgericht' },
-    { id: 3, name: 'Paar Bratwürste', price: 3.00, category: 'Hauptgericht' },
-    { id: 4, name: 'Steak', price: 3.50, category: 'Hauptgericht' },
-    { id: 5, name: 'Kuchen', price: 1.00, category: 'Nachspeise' },
+    { id: 1, name: 'Hot Dog', price: 2.00, category: FoodCategory.Hauptgericht },
+    { id: 2, name: 'Bratwurst', price: 2.00, category: FoodCategory.Hauptgericht },
+    { id: 3, name: 'Paar Bratwürste', price: 3.00, category: FoodCategory.Hauptgericht },
+    { id: 4, name: 'Steak', price: 3.50, category: FoodCategory.Hauptgericht },
+    { id: 5, name: 'Kuchen', price: 1.00, category: FoodCategory.Nachspeise },
   ];
 
   const [getraenkeExpanded, setGetraenkeExpanded] = useState(false);
