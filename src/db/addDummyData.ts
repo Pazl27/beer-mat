@@ -13,8 +13,8 @@ export const addDummyData = async (db: ExpoSQLiteDatabase) => {
     const user1 = await createUser(db,  "Max Mustermann" );
     const user2 = await createUser(db,  "Erika Mustermann" );
 
-    const item1 = await createItem(db, { name: "Bier", type: ItemType.Drink, price: 350 });
-    const item2 = await createItem(db, { name: "Wasser", type: ItemType.Drink, price: 200 });
+    const item1 = await createItem(db, { name: "Bier", type: ItemType.Drink, price: 250 });
+    const item2 = await createItem(db, { name: "Wasser", type: ItemType.Drink, price: 150 });
 
     await addItemToUser(db, user1, item1, 2);
     await addItemToUser(db, user1, item2, 1);

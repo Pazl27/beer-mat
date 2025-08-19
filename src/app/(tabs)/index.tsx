@@ -1,30 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
+import { useSQLiteContext } from 'expo-sqlite';
+import { drizzle } from 'drizzle-orm/expo-sqlite';
+import { useFocusEffect } from '@react-navigation/native';
 import PersonBegleichen from '@/components/person-begleichen';
 import PersonArtikelHinzufuegen from '@/components/person-artikel-hinzufuegen';
 import { ItemType, Person } from '@/types';
+import { getAllUsers, createUser, deleteUser, clearUserDebt, payUserItem } from '@/db/dbFunctions';
 
 export default function PersonenPage() {
-  const [persons, setPersons] = useState<Person[]>([
-    {
-      id: 1,
-      name: 'Max Mustermann',
-      totalDebt: 5.50,
-      items: [
-        { id: 1, name: 'Bier (Flasche, 0,5l)', price: 2.50, type: ItemType.Drink },
-        { id: 2, name: 'Steak', price: 3.50, type: ItemType.Food }
-      ]
-    },
-    {
-      id: 2,
-      name: 'Anna Schmidt',
-      totalDebt: 3.50,
-      items: [
-        { id: 3, name: 'Cola Mix (Flasche, 0,5l)', price: 2.00, type: ItemType.Drink },
-        { id: 4, name: 'Kaffee (Tasse)', price: 1.50, type: ItemType.Drink }
-      ]
+  const [persons, setPersons] = useState<Person[]>([]);
+  const db = useSQLiteContext();
+  const drizzleDb = drizzle(db);
+
+  // Load persons from database on component mount
+  useEffect(() => {
+    loadPersons();
+  }, []);
+
+  // Reload persons when tab comes into focus (e.g., after switching from Getränke/Speisen tabs)
+  useFocusEffect(
+    useCallback(() => {
+      loadPersons();
+    }, [])
+  );
+
+  const loadPersons = async () => {
+    try {
+      const users = await getAllUsers(drizzleDb);
+      // Convert price from cents to euros for display
+      const personsWithEurosPrices = users.map(user => ({
+        ...user,
+        totalDebt: user.totalDebt / 100,
+        items: user.items.map(item => ({
+          ...item,
+          price: item.price / 100
+        }))
+      }));
+      setPersons(personsWithEurosPrices);
+    } catch (error) {
+      console.error("Error loading persons:", error);
+      Alert.alert("Fehler", "Personen konnten nicht geladen werden");
     }
-  ]);
+  };
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [newPersonName, setNewPersonName] = useState('');
@@ -38,71 +56,57 @@ export default function PersonenPage() {
     person.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const addPerson = () => {
+  const addPerson = async () => {
     if (newPersonName.trim()) {
-      const newPerson: Person = {
-        id: Date.now(),
-        name: newPersonName.trim(),
-        totalDebt: 0,
-        items: []
-      };
-      setPersons([...persons, newPerson]);
-      setNewPersonName('');
-      setShowAddForm(false);
+      try {
+        const newPerson = await createUser(drizzleDb, newPersonName.trim());
+        if (newPerson) {
+          await loadPersons(); // Reload from database
+          setNewPersonName('');
+          setShowAddForm(false);
+        }
+      } catch (error) {
+        console.error("Error adding person:", error);
+        Alert.alert("Fehler", "Person konnte nicht hinzugefügt werden");
+      }
     }
   };
 
-  const clearDebt = (personId: number) => {
-    setPersons(persons.map(person =>
-      person.id === personId
-        ? { ...person, totalDebt: 0, items: [] }
-        : person
-    ));
+  const clearDebt = async (personId: number) => {
+    try {
+      await clearUserDebt(drizzleDb, personId);
+      await loadPersons(); // Reload from database
+    } catch (error) {
+      console.error("Error clearing debt:", error);
+      Alert.alert("Fehler", "Schulden konnten nicht beglichen werden");
+    }
   };
 
-  const payItem = (personId: number, itemName: string, itemType: ItemType) => {
-    setPersons(persons.map(person => {
-      if (person.id == personId) {
-        // Find the first item with matching name and type to remove
-        const itemIndex = person.items.findIndex(item =>
-          item.name === itemName && item.type === itemType
-        );
-
-        if (itemIndex !== -1) {
-          const updatedItems = [...person.items];
-          const removedItem = updatedItems.splice(itemIndex, 1)[0];
-          const newTotalDebt = person.totalDebt - removedItem.price;
-
-          return {
-            ...person,
-            items: updatedItems,
-            totalDebt: Math.max(0, newTotalDebt)
-          };
-        }
-      }
-      return person;
-    }));
-
-    // Update selected person for begleichen modal if it's open
-    if (selectedPersonForBegleichen && selectedPersonForBegleichen.id === personId) {
-      const updatedPerson = persons.find(p => p.id === personId);
-      if (updatedPerson) {
-        const itemIndex = updatedPerson.items.findIndex(item =>
-          item.name === itemName && item.type === itemType
-        );
-
-        if (itemIndex !== -1) {
-          const updatedItems = [...updatedPerson.items];
-          const removedItem = updatedItems.splice(itemIndex, 1)[0];
-          const newTotalDebt = updatedPerson.totalDebt - removedItem.price;
-
-          setSelectedPersonForBegleichen({
+  const payItem = async (personId: number, itemName: string, itemType: ItemType) => {
+    try {
+      await payUserItem(drizzleDb, personId, itemName, itemType);
+      await loadPersons(); // Reload from database
+      
+      // Update selected person for begleichen modal if it's open
+      if (selectedPersonForBegleichen && selectedPersonForBegleichen.id === personId) {
+        const updatedPersons = await getAllUsers(drizzleDb);
+        const updatedPerson = updatedPersons.find(p => p.id === personId);
+        if (updatedPerson) {
+          // Convert price from cents to euros for display
+          const personWithEuros = {
             ...updatedPerson,
-            items: updatedItems,
-            totalDebt: Math.max(0, newTotalDebt)
-          });
+            totalDebt: updatedPerson.totalDebt / 100,
+            items: updatedPerson.items.map(item => ({
+              ...item,
+              price: item.price / 100
+            }))
+          };
+          setSelectedPersonForBegleichen(personWithEuros);
         }
       }
+    } catch (error) {
+      console.error("Error paying item:", error);
+      Alert.alert("Fehler", "Artikel konnte nicht beglichen werden");
     }
   };
 
@@ -115,43 +119,20 @@ export default function PersonenPage() {
         {
           text: 'Löschen',
           style: 'destructive',
-          onPress: () => {
-            setPersons(persons.filter(p => p.id !== personId));
-            setSelectedPersonForDetails(null);
-            Alert.alert('Info', `${personName} wurde gelöscht`);
+          onPress: async () => {
+            try {
+              await deleteUser(drizzleDb, personId);
+              await loadPersons(); // Reload from database
+              setSelectedPersonForDetails(null);
+              Alert.alert('Info', `${personName} wurde gelöscht`);
+            } catch (error) {
+              console.error("Error deleting person:", error);
+              Alert.alert("Fehler", "Person konnte nicht gelöscht werden");
+            }
           }
         }
       ]
     );
-  };
-
-  const removeItemFromPerson = (personId: number, itemId: number) => {
-    setPersons(persons.map(person => {
-      if (person.id === personId) {
-        const updatedItems = person.items.filter(item => item.id !== itemId);
-        const newTotalDebt = updatedItems.reduce((sum, item) => sum + item.price, 0);
-        return {
-          ...person,
-          items: updatedItems,
-          totalDebt: newTotalDebt
-        };
-      }
-      return person;
-    }));
-
-    // Update the selected person for details modal
-    if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
-      const updatedPerson = persons.find(p => p.id === personId);
-      if (updatedPerson) {
-        const updatedItems = updatedPerson.items.filter(item => item.id !== itemId);
-        const newTotalDebt = updatedItems.reduce((sum, item) => sum + item.price, 0);
-        setSelectedPersonForDetails({
-          ...updatedPerson,
-          items: updatedItems,
-          totalDebt: newTotalDebt
-        });
-      }
-    }
   };
 
   // Group items by name and type for summary in details modal
@@ -178,7 +159,7 @@ export default function PersonenPage() {
     };
   };
 
-  const handleAddItemsToPerson = (personId: number, selectedItems: Array<{name: string, price: number, type: ItemType, quantity: number}>) => {
+  const handleAddItemsToPerson = async (personId: number, selectedItems: Array<{name: string, price: number, type: ItemType, quantity: number}>) => {
     setPersons(prevPersons => {
       return prevPersons.map(person => {
         if (person.id === personId) {
@@ -233,6 +214,10 @@ export default function PersonenPage() {
         });
       }
     }
+    
+    // TODO: Implement database operation for adding items
+    // For now, reload to ensure consistency
+    await loadPersons();
   };
 
   return (
