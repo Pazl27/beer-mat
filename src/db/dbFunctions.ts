@@ -151,7 +151,7 @@ export const clearUserDebt = async (db: ExpoSQLiteDatabase, userId: number): Pro
   }
 };
 
-// Remove one item from user by name and type (for paying individual items)
+// Remove one item from user by name and type (for paying individual items) - for clear single items from debt
 export const payUserItem = async (db: ExpoSQLiteDatabase, userId: number, itemName: string, itemType: ItemType): Promise<void> => {
   try {
     // Find the first matching item for this user
