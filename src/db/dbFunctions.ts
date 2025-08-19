@@ -2,6 +2,7 @@ import { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite";
 import { Person, Item, ItemType, History} from "@/types"
 import { users, items, userItems, history } from "./schema";
 import { eq } from "drizzle-orm";
+import { DrinkCategory, FoodCategory } from "@/types/category";
 
 export const createUser = async (db: ExpoSQLiteDatabase, name: string): Promise<Person | undefined> => {
   try {
@@ -23,15 +24,37 @@ export const createUser = async (db: ExpoSQLiteDatabase, name: string): Promise<
   }
 }
 
-export const createItem = async (db: ExpoSQLiteDatabase, item: { name: string; type: ItemType; price: number }): Promise<Item | undefined> => {
+function parseCategory(category: string | undefined): DrinkCategory | FoodCategory | undefined {
+  if (!category) return undefined;
+  if (Object.values(DrinkCategory).includes(category as DrinkCategory)) {
+    return category as DrinkCategory;
+  }
+  if (Object.values(FoodCategory).includes(category as FoodCategory)) {
+    return category as FoodCategory;
+  }
+  return undefined;
+}
+
+export const createItem = async (
+  db: ExpoSQLiteDatabase,
+  item: { name: string; type: ItemType; price: number; info?: string; category?: DrinkCategory | FoodCategory }
+): Promise<Item | undefined> => {
   try {
-    const insertedItem = await db.insert(items).values(item).returning();
+    // Save the enum as a string in the DB
+    const insertedItem = await db.insert(items).values({
+      ...item,
+      category: item.category ?? null,
+    }).returning();
+
+    const dbItem = insertedItem[0];
 
     const newItem: Item = {
-      id: insertedItem[0].id,
-      name: insertedItem[0].name,
-      type: insertedItem[0].type,
-      price: insertedItem[0].price,
+      id: dbItem.id,
+      name: dbItem.name,
+      type: dbItem.type,
+      price: dbItem.price,
+      info: dbItem.info,
+      category: parseCategory(dbItem.category),
     };
 
     return newItem;
@@ -43,12 +66,18 @@ export const createItem = async (db: ExpoSQLiteDatabase, item: { name: string; t
 
 export const addItemToUser = async (db: ExpoSQLiteDatabase, user: Person, item: Item, quantity: number): Promise<void> => {
   try {
-    await db.insert(userItems).values({
-      userId: user.id,
-      itemId: item.id,
-      quantity: quantity,
-      pricePerItem: item.price,
-    });
+    // Insert one row per quantity
+    const inserts = [];
+    for (let i = 0; i < quantity; i++) {
+      inserts.push(
+        db.insert(userItems).values({
+          userId: user.id,
+          itemId: item.id,
+          pricePerItem: item.price,
+        })
+      );
+    }
+    await Promise.all(inserts);
 
     const additionalDebt = item.price * quantity;
 
@@ -71,24 +100,19 @@ const getItemsForUser = async (db: ExpoSQLiteDatabase, userId: number): Promise<
       name: items.name,
       price: items.price,
       type: items.type,
-      quantity: userItems.quantity,
+      userItemId: userItems.id,
     })
     .from(userItems)
     .innerJoin(items, eq(userItems.itemId, items.id))
     .where(eq(userItems.userId, userId));
 
-  // Flatten out quantity (repeat item per quantity)
-  const itemsList: Item[] = [];
-  result.forEach(row => {
-    for (let i = 0; i < (row.quantity ?? 1); i++) {
-      itemsList.push({
-        id: row.id,
-        name: row.name,
-        price: row.price,
-        type: row.type as ItemType,
-      });
-    }
-  });
+  // Each row is a single item instance
+  const itemsList: Item[] = result.map(row => ({
+    id: row.userItemId,
+    name: row.name,
+    price: row.price,
+    type: row.type as ItemType,
+  }));
   return itemsList;
 };
 
@@ -169,7 +193,6 @@ export const payUserItem = async (
       .select({
         userItemId: userItems.id,
         itemId: userItems.itemId,
-        quantity: userItems.quantity,
         pricePerItem: userItems.pricePerItem,
         itemName: items.name,
         itemType: items.type,
@@ -198,14 +221,8 @@ export const payUserItem = async (
 
     await addToHistory(db, userId, matchingUserItem.itemId, matchingUserItem.pricePerItem);
 
-    // Update or delete user_items
-    if (matchingUserItem.quantity <= 1) {
-      await db.delete(userItems).where(eq(userItems.id, matchingUserItem.userItemId));
-    } else {
-      await db.update(userItems)
-        .set({ quantity: matchingUserItem.quantity - 1 })
-        .where(eq(userItems.id, matchingUserItem.userItemId));
-    }
+    // Delete the user_items row (since each row is one item instance)
+    await db.delete(userItems).where(eq(userItems.id, matchingUserItem.userItemId));
 
   } catch (e) {
     console.error("Error paying user item:", e);

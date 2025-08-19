@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "add15c00-6e9c-4d57-85b6-0a0ca67e315b",
+  "id": "01a9ad28-d857-4a44-acc4-fe096c235389",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "history": {
@@ -34,7 +34,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": 1755605731705
+          "default": 1755609859897
         },
         "paid": {
           "name": "paid",
@@ -107,6 +107,20 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        },
+        "info": {
+          "name": "info",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {},
@@ -138,14 +152,6 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "quantity": {
-          "name": "quantity",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 1
         },
         "price_per_item": {
           "name": "price_per_item",
