@@ -90,12 +90,12 @@ export default function GetraenkePage() {
           <View className="flex-row gap-2">
             <TouchableOpacity
               onPress={() => setIsTrainingsstrichActive(!isTrainingsstrichActive)}
-              className={`w-14 h-8 rounded-full justify-center relative ${
+              className={`w-14 h-9 rounded-full justify-center relative ${
                 isTrainingsstrichActive ? 'bg-green-500' : 'bg-red-500'
               }`}
             >
               <View
-                className={`w-6 h-6 bg-white rounded-full absolute items-center justify-center ${
+                className={`w-7 h-7 bg-white rounded-full absolute items-center justify-center ${
                   isTrainingsstrichActive ? 'right-1' : 'left-1'
                 }`}
                 style={{
