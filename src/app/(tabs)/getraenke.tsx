@@ -28,6 +28,7 @@ export default function GetraenkePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGetraenk, setSelectedGetraenk] = useState<Getraenk | null>(null);
   const [selectedGetraenkForPerson, setSelectedGetraenkForPerson] = useState<Getraenk | null>(null);
+  const [isTrainingsstrichActive, setIsTrainingsstrichActive] = useState(false);
 
   // Filter getraenke based on search query
   const filteredGetraenke = getraenke.filter(getraenk =>
@@ -86,12 +87,35 @@ export default function GetraenkePage() {
           <Text className="text-2xl font-bold text-gray-800">
             Getränkekarte ({getraenke.length})
           </Text>
-          <TouchableOpacity
-            onPress={() => setShowAddForm(true)}
-            className="bg-blue-600 px-4 py-2 rounded-lg"
-          >
-            <Text className="text-white font-semibold">+ Getränk</Text>
-          </TouchableOpacity>
+          <View className="items-end">
+            <TouchableOpacity
+              onPress={() => setShowAddForm(true)}
+              className="bg-blue-600 px-4 py-2 rounded-lg mb-2"
+            >
+              <Text className="text-white font-semibold">+ Getränk</Text>
+            </TouchableOpacity>
+            
+            <View className="items-center">
+              <Text className="text-sm font-medium text-gray-700 mb-1">
+                Trainingsstrich
+              </Text>
+              <TouchableOpacity
+                onPress={() => setIsTrainingsstrichActive(!isTrainingsstrichActive)}
+                className={`w-14 h-7 rounded-full justify-center relative ${
+                  isTrainingsstrichActive ? 'bg-green-500' : 'bg-red-500'
+                }`}
+              >
+                <View
+                  className={`w-5 h-5 bg-white rounded-full absolute ${
+                    isTrainingsstrichActive ? 'right-1' : 'left-1'
+                  }`}
+                  style={{
+                    top: 4, // Vertikale Zentrierung
+                  }}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
 
         {/* Search Bar */}
