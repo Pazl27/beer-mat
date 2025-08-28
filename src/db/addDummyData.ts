@@ -1,6 +1,6 @@
 import { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite";
 import AsyncStorage from "expo-sqlite/kv-store";
-import { createUser, createItem, addItemToUser } from "./dbFunctions";
+import { createUser, createItem, addItemToUser, deleteItem } from "./dbFunctions";
 import { ItemType } from "@/types";
 
 export const addDummyData = async (db: ExpoSQLiteDatabase) => {
@@ -18,6 +18,8 @@ export const addDummyData = async (db: ExpoSQLiteDatabase) => {
 
     await addItemToUser(db, user1, item1, 2);
     await addItemToUser(db, user1, item2, 1);
+
+    await deleteItem(db,item1.id);
 
     AsyncStorage.setItemSync('dbInitialized', 'true');
 

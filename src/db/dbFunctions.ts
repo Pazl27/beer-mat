@@ -41,20 +41,35 @@ export const createItem = async (db: ExpoSQLiteDatabase, item: { name: string; t
   }
 };
 
-export const addItemToUser = async (db: ExpoSQLiteDatabase, user: Person, item: Item, quantity: number): Promise<void> => {
+export const addItemToUser = async (
+  db: ExpoSQLiteDatabase,
+  user: Person,
+  item: Item,
+  quantity: number
+): Promise<void> => {
   try {
-    await db.insert(userItems).values({
-      userId: user.id,
-      itemId: item.id,
-      quantity: quantity,
-    });
+    // Insert one row per item (not just one row with quantity)
+    for (let i = 0; i < quantity; i++) {
+      await db.insert(userItems).values({
+        userId: user.id,
+        itemId: item.id,
+        itemName: item.name,
+        itemPrice: item.price,
+        itemType: item.type,
+      });
+    }
 
     const additionalDebt = item.price * quantity;
 
-    const userRow = await db.select().from(users).where(eq(users.id, user.id));
+    const userRow = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id));
+
     const currentDebt = userRow[0]?.totalDebt ?? 0;
 
-    await db.update(users)
+    await db
+      .update(users)
       .set({ totalDebt: currentDebt + additionalDebt })
       .where(eq(users.id, user.id));
   } catch (e) {
@@ -62,33 +77,18 @@ export const addItemToUser = async (db: ExpoSQLiteDatabase, user: Person, item: 
   }
 };
 
-// Helper to get items for a user
-const getItemsForUser = async (db: ExpoSQLiteDatabase, userId: number): Promise<Item[]> => {
-  const result = await db
-    .select({
-      id: items.id,
-      name: items.name,
-      price: items.price,
-      type: items.type,
-      quantity: userItems.quantity,
-    })
+export const getItemsForUser = async (db: ExpoSQLiteDatabase, userId: number): Promise<Item[]> => {
+  const rows = await db
+    .select()
     .from(userItems)
-    .innerJoin(items, eq(userItems.itemId, items.id))
     .where(eq(userItems.userId, userId));
 
-  // Flatten out quantity (repeat item per quantity)
-  const itemsList: Item[] = [];
-  result.forEach(row => {
-    for (let i = 0; i < (row.quantity ?? 1); i++) {
-      itemsList.push({
-        id: row.id,
-        name: row.name,
-        price: row.price,
-        type: row.type as ItemType,
-      });
-    }
-  });
-  return itemsList;
+  return rows.map((row) => ({
+    id: row.itemId ?? undefined,
+    name: row.itemName,
+    price: row.itemPrice,
+    type: row.itemType as ItemType,
+  }));
 };
 
 // Main function to get all users with items and totalDebt
@@ -141,7 +141,7 @@ export const clearUserDebt = async (db: ExpoSQLiteDatabase, userId: number): Pro
   try {
     // Delete all user items
     await db.delete(userItems).where(eq(userItems.userId, userId));
-    
+
     // Reset totalDebt to 0
     await db.update(users)
       .set({ totalDebt: 0 })
@@ -153,23 +153,15 @@ export const clearUserDebt = async (db: ExpoSQLiteDatabase, userId: number): Pro
 
 // Remove one item from user by name and type (for paying individual items) - for clear single items from debt
 export const payUserItem = async (db: ExpoSQLiteDatabase, userId: number, itemName: string, itemType: ItemType): Promise<void> => {
-  try {
-    // Find the first matching item for this user
+try {
+    // Find the first matching snapshot item for this user
     const userItemsWithDetails = await db
-      .select({
-        userItemId: userItems.id,
-        itemId: userItems.itemId,
-        quantity: userItems.quantity,
-        itemName: items.name,
-        itemType: items.type,
-        itemPrice: items.price,
-      })
+      .select()
       .from(userItems)
-      .innerJoin(items, eq(userItems.itemId, items.id))
       .where(eq(userItems.userId, userId));
 
     const matchingUserItem = userItemsWithDetails.find(
-      item => item.itemName === itemName && item.itemType === itemType
+      (item) => item.itemName === itemName && item.itemType === itemType
     );
 
     if (!matchingUserItem) {
@@ -177,25 +169,23 @@ export const payUserItem = async (db: ExpoSQLiteDatabase, userId: number, itemNa
       return;
     }
 
-    // If quantity is 1, delete the entire userItem record
-    if (matchingUserItem.quantity <= 1) {
-      await db.delete(userItems).where(eq(userItems.id, matchingUserItem.userItemId));
-    } else {
-      // Otherwise, decrease quantity by 1
-      await db.update(userItems)
-        .set({ quantity: matchingUserItem.quantity - 1 })
-        .where(eq(userItems.id, matchingUserItem.userItemId));
-    }
+    await db
+      .delete(userItems)
+      .where(eq(userItems.id, matchingUserItem.id));
 
-    // Update user's totalDebt (subtract the price of one item)
-    const userRow = await db.select().from(users).where(eq(users.id, userId));
+    // Update user's totalDebt (subtract snapshot price)
+    const userRow = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId));
+
     const currentDebt = userRow[0]?.totalDebt ?? 0;
     const newDebt = Math.max(0, currentDebt - matchingUserItem.itemPrice);
 
-    await db.update(users)
+    await db
+      .update(users)
       .set({ totalDebt: newDebt })
       .where(eq(users.id, userId));
-
   } catch (e) {
     console.error("Error paying user item:", e);
   }
