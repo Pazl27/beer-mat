@@ -76,6 +76,7 @@ export const addItemToUser = async (
       await db.insert(userItems).values({
         userId: user.id,
         itemId: item.id,
+        pricePerItem: item.price,
         itemName: item.name,
         itemPrice: item.price,
         itemType: item.type,
