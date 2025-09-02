@@ -267,10 +267,6 @@ try {
       return;
     }
 
-    await db
-      .delete(userItems)
-      .where(eq(userItems.id, matchingUserItem.id));
-
     // Update user's totalDebt (subtract snapshot price)
     const userRow = await db
       .select()
@@ -288,7 +284,7 @@ try {
     await addToHistory(db, userId, matchingUserItem.itemId, matchingUserItem.pricePerItem);
 
     // Delete the user_items row (since each row is one item instance)
-    await db.delete(userItems).where(eq(userItems.id, matchingUserItem.itemId));
+    await db.delete(userItems).where(eq(userItems.id, matchingUserItem.id));
 
   } catch (e) {
     console.error("Error paying user item:", e);
