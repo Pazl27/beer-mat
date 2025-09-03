@@ -5,7 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import PersonBegleichen from '@/components/person-begleichen';
 import PersonArtikelHinzufuegen from '@/components/person-artikel-hinzufuegen';
 import { ItemType, Person, History } from '@/types';
-import { getAllUsers, createUser, deleteUser, clearUserDebt, payUserItem, getDetailedHistoryForUser, addItemToUser } from '@/db/dbFunctions';
+import { getAllUsers, createUser, deleteUser, clearUserDebt, payUserItem, getDetailedHistoryForUser, addItemToUser, clearUserHistory } from '@/db/dbFunctions';
 
 export default function PersonenPage() {
   const [persons, setPersons] = useState<Person[]>([]);
@@ -168,6 +168,33 @@ export default function PersonenPage() {
             } catch (error) {
               console.error("Error deleting person:", error);
               Alert.alert("Fehler", "Person konnte nicht gelöscht werden");
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const clearHistory = (personId: number, personName: string) => {
+    Alert.alert(
+      'Historie löschen',
+      `Möchten Sie die komplette Zahlungshistorie von ${personName} wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`,
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        {
+          text: 'Löschen',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await clearUserHistory(db, personId);
+              // Reload history
+              if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
+                await loadPersonHistory(personId);
+              }
+              Alert.alert('Info', `Historie von ${personName} wurde gelöscht`);
+            } catch (error) {
+              console.error("Error clearing history:", error);
+              Alert.alert("Fehler", "Historie konnte nicht gelöscht werden");
             }
           }
         }
@@ -614,8 +641,21 @@ export default function PersonenPage() {
                 </View>
               )}
 
+              {/* Clear History Button */}
+              <View className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 mb-4 mt-6">
+                <TouchableOpacity
+                  onPress={() => clearHistory(selectedPersonForDetails.id, selectedPersonForDetails.name)}
+                  className="bg-orange-600 py-3 rounded-lg"
+                  disabled={personHistory.length === 0}
+                >
+                  <Text className={`text-center font-semibold ${personHistory.length === 0 ? 'text-gray-400' : 'text-white'}`}>
+                    🗂️ {personHistory.length === 0 ? 'Keine Historie vorhanden' : 'Historie löschen'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
               {/* Delete Person Button */}
-              <View className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 mb-6 mt-6">
+              <View className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 mb-6">
                 <TouchableOpacity
                   onPress={() => deletePerson(selectedPersonForDetails.id, selectedPersonForDetails.name)}
                   className="bg-red-600 py-3 rounded-lg"

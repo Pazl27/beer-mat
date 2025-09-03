@@ -350,3 +350,11 @@ export const getDetailedHistoryForUser = async (db: SQLiteDatabase, userId: numb
     return [];
   }
 };
+
+export const clearUserHistory = async (db: SQLiteDatabase, userId: number): Promise<void> => {
+  try {
+    await db.runAsync('DELETE FROM history WHERE user_id = ?', [userId]);
+  } catch (e) {
+    console.error("Error clearing user history:", e);
+  }
+};
