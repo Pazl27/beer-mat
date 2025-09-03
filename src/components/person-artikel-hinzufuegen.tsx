@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
-import { drizzle } from 'drizzle-orm/expo-sqlite';
-import { Getraenk, Speise, PersonArtikelHinzufuegenProps, ItemType, Item } from '@/types';
-import { DrinkCategory } from '@/types/category';
-import { FoodCategory } from '@/types/category';
+import { PersonArtikelHinzufuegenProps, ItemType, Item } from '@/types';
 import { getAllItems } from '@/db/dbFunctions';
 
 export default function PersonArtikelHinzufuegen({
@@ -14,7 +11,6 @@ export default function PersonArtikelHinzufuegen({
   onAddItems
 }: PersonArtikelHinzufuegenProps) {
   const db = useSQLiteContext();
-  const drizzleDb = drizzle(db);
 
   // State für alle Items aus der DB
   const [allItems, setAllItems] = useState<Item[]>([]);
@@ -30,7 +26,7 @@ export default function PersonArtikelHinzufuegen({
 
   const loadItems = async () => {
     try {
-      const items = await getAllItems(drizzleDb);
+      const items = await getAllItems(db);
       // Convert price from cents to euros for display
       const itemsWithEuros = items.map(item => ({
         ...item,
@@ -39,7 +35,7 @@ export default function PersonArtikelHinzufuegen({
 
       setAllItems(itemsWithEuros);
 
-      // Separate drinks and food  
+      // Separate drinks and food
       const drinks = itemsWithEuros.filter(item => item.type === ItemType.Drink && item.id !== undefined);
       const food = itemsWithEuros.filter(item => item.type === ItemType.Food && item.id !== undefined);
 
@@ -212,17 +208,17 @@ export default function PersonArtikelHinzufuegen({
                     </View>
                     <View className="flex-row items-center gap-3">
                       <TouchableOpacity
-                        onPress={() => updateQuantity(item.id, -1)}
+                        onPress={() => item.id && updateQuantity(item.id, -1)}
                         className="bg-red-100 w-8 h-8 rounded-full justify-center items-center"
-                        disabled={(selectedQuantities[item.id] || 0) === 0}
+                        disabled={(selectedQuantities[item.id || 0] || 0) === 0}
                       >
                         <Text className="text-red-700 font-bold text-lg">−</Text>
                       </TouchableOpacity>
                       <Text className="text-lg font-bold text-gray-800 w-8 text-center">
-                        {selectedQuantities[item.id] || 0}
+                        {selectedQuantities[item.id || 0] || 0}
                       </Text>
                       <TouchableOpacity
-                        onPress={() => updateQuantity(item.id, 1)}
+                        onPress={() => item.id && updateQuantity(item.id, 1)}
                         className="bg-green-100 w-8 h-8 rounded-full justify-center items-center"
                       >
                         <Text className="text-green-700 font-bold text-lg">+</Text>
@@ -269,17 +265,17 @@ export default function PersonArtikelHinzufuegen({
                     </View>
                     <View className="flex-row items-center gap-3">
                       <TouchableOpacity
-                        onPress={() => updateQuantity(item.id, -1)}
+                        onPress={() => item.id && updateQuantity(item.id, -1)}
                         className="bg-red-100 w-8 h-8 rounded-full justify-center items-center"
-                        disabled={(selectedQuantities[item.id] || 0) === 0}
+                        disabled={(selectedQuantities[item.id || 0] || 0) === 0}
                       >
                         <Text className="text-red-700 font-bold text-lg">−</Text>
                       </TouchableOpacity>
                       <Text className="text-lg font-bold text-gray-800 w-8 text-center">
-                        {selectedQuantities[item.id] || 0}
+                        {selectedQuantities[item.id || 0] || 0}
                       </Text>
                       <TouchableOpacity
-                        onPress={() => updateQuantity(item.id, 1)}
+                        onPress={() => item.id && updateQuantity(item.id, 1)}
                         className="bg-green-100 w-8 h-8 rounded-full justify-center items-center"
                       >
                         <Text className="text-green-700 font-bold text-lg">+</Text>

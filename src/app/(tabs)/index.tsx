@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
-import { drizzle } from 'drizzle-orm/expo-sqlite';
 import { useFocusEffect } from '@react-navigation/native';
 import PersonBegleichen from '@/components/person-begleichen';
 import PersonArtikelHinzufuegen from '@/components/person-artikel-hinzufuegen';
@@ -11,7 +10,6 @@ import { getAllUsers, createUser, deleteUser, clearUserDebt, payUserItem, getDet
 export default function PersonenPage() {
   const [persons, setPersons] = useState<Person[]>([]);
   const db = useSQLiteContext();
-  const drizzleDb = drizzle(db);
 
   // Load persons from database on component mount
   useEffect(() => {
@@ -27,7 +25,7 @@ export default function PersonenPage() {
 
   const loadPersons = async () => {
     try {
-      const users = await getAllUsers(drizzleDb);
+      const users = await getAllUsers(db);
       // Convert price from cents to euros for display
       const personsWithEurosPrices = users.map(user => ({
         ...user,
@@ -61,7 +59,7 @@ export default function PersonenPage() {
   const addPerson = async () => {
     if (newPersonName.trim()) {
       try {
-        const newPerson = await createUser(drizzleDb, newPersonName.trim());
+        const newPerson = await createUser(db, newPersonName.trim());
         if (newPerson) {
           await loadPersons(); // Reload from database
           setNewPersonName('');
@@ -76,12 +74,12 @@ export default function PersonenPage() {
 
   const clearDebt = async (personId: number) => {
     try {
-      await clearUserDebt(drizzleDb, personId);
+      await clearUserDebt(db, personId);
       await loadPersons(); // Reload from database
-      
+
       // Update selected person for details modal if it's open and reload history
       if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
-        const updatedPersons = await getAllUsers(drizzleDb);
+        const updatedPersons = await getAllUsers(db);
         const updatedPerson = updatedPersons.find(p => p.id === personId);
         if (updatedPerson) {
           // Convert price from cents to euros for display
@@ -106,12 +104,12 @@ export default function PersonenPage() {
 
   const payItem = async (personId: number, itemName: string, itemType: ItemType) => {
     try {
-      await payUserItem(drizzleDb, personId, itemName, itemType);
+      await payUserItem(db, personId, itemName, itemType);
       await loadPersons(); // Reload from database
-      
+
       // Update selected person for begleichen modal if it's open
       if (selectedPersonForBegleichen && selectedPersonForBegleichen.id === personId) {
-        const updatedPersons = await getAllUsers(drizzleDb);
+        const updatedPersons = await getAllUsers(db);
         const updatedPerson = updatedPersons.find(p => p.id === personId);
         if (updatedPerson) {
           // Convert price from cents to euros for display
@@ -129,7 +127,7 @@ export default function PersonenPage() {
 
       // Update selected person for details modal if it's open and reload history
       if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
-        const updatedPersons = await getAllUsers(drizzleDb);
+        const updatedPersons = await getAllUsers(db);
         const updatedPerson = updatedPersons.find(p => p.id === personId);
         if (updatedPerson) {
           // Convert price from cents to euros for display
@@ -163,7 +161,7 @@ export default function PersonenPage() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await deleteUser(drizzleDb, personId);
+              await deleteUser(db, personId);
               await loadPersons(); // Reload from database
               setSelectedPersonForDetails(null);
               Alert.alert('Info', `${personName} wurde gelöscht`);
@@ -230,7 +228,7 @@ export default function PersonenPage() {
         };
 
         // Add the item to the user the specified number of times
-        await addItemToUser(drizzleDb, personForDb, dbItem, selectedItem.quantity);
+        await addItemToUser(db, personForDb, dbItem, selectedItem.quantity);
       }
 
       // Reload persons from database to get updated data
@@ -238,7 +236,7 @@ export default function PersonenPage() {
 
       // Update selected person for details modal if it's open
       if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
-        const updatedPersons = await getAllUsers(drizzleDb);
+        const updatedPersons = await getAllUsers(db);
         const updatedPerson = updatedPersons.find(p => p.id === personId);
         if (updatedPerson) {
           // Convert price from cents to euros for display
@@ -261,7 +259,7 @@ export default function PersonenPage() {
 
   const loadPersonHistory = async (personId: number) => {
     try {
-      const history = await getDetailedHistoryForUser(drizzleDb, personId);
+      const history = await getDetailedHistoryForUser(db, personId);
       // Convert price from cents to euros for display and ensure proper sorting
       const historyWithEuros = history
         .map(entry => ({

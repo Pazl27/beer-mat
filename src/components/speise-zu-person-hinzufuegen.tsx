@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
-import { drizzle } from 'drizzle-orm/expo-sqlite';
-import { Person, ItemType, SpeiseZuPersonHinzufuegenProps } from '@/types';
+import { Person, SpeiseZuPersonHinzufuegenProps } from '@/types';
 import { getAllUsers } from '@/db/dbFunctions';
 
 export default function SpeiseZuPersonHinzufuegen({
@@ -13,7 +12,6 @@ export default function SpeiseZuPersonHinzufuegen({
 }: SpeiseZuPersonHinzufuegenProps) {
   const [persons, setPersons] = useState<Person[]>([]);
   const db = useSQLiteContext();
-  const drizzleDb = drizzle(db);
 
   // Load persons from database
   useEffect(() => {
@@ -24,7 +22,7 @@ export default function SpeiseZuPersonHinzufuegen({
 
   const loadPersons = async () => {
     try {
-      const users = await getAllUsers(drizzleDb);
+      const users = await getAllUsers(db);
       // Convert price from cents to euros for display
       const personsWithEurosPrices = users.map(user => ({
         ...user,
@@ -99,7 +97,7 @@ export default function SpeiseZuPersonHinzufuegen({
           onPress: async () => {
             try {
               const personNames: string[] = [];
-              
+
               for (const [personId, quantity] of Object.entries(selectedQuantities)) {
                 const person = persons.find(p => p.id === Number(personId));
                 if (person && quantity > 0) {

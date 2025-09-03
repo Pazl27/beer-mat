@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
-import { drizzle } from 'drizzle-orm/expo-sqlite';
 import { useFocusEffect } from '@react-navigation/native';
 import SpeiseDetails from '@/components/speise-detail';
 import SpeiseZuPersonHinzufuegen from '@/components/speise-zu-person-hinzufuegen';
@@ -13,7 +12,6 @@ import { ItemType, Item, Person } from '@/types';
 export default function SpeisenPage() {
   const [speisen, setSpeisen] = useState<Speise[]>([]);
   const db = useSQLiteContext();
-  const drizzleDb = drizzle(db);
 
   // Load speisen from database on component mount
   useEffect(() => {
@@ -29,7 +27,7 @@ export default function SpeisenPage() {
 
   const loadSpeisen = async () => {
     try {
-      const foodItems = await getAllFoodItems(drizzleDb);
+      const foodItems = await getAllFoodItems(db);
       // Convert price from cents to euros for display
       const speisenWithEurosPrices = foodItems.map(item => ({
         ...item,
@@ -74,13 +72,13 @@ export default function SpeisenPage() {
     if (newSpeise.name.trim() && newSpeise.price) {
       try {
         const priceInCents = Math.round(parseFloat(newSpeise.price) * 100);
-        const newFoodItem = await createFoodItem(drizzleDb, {
+        const newFoodItem = await createFoodItem(db, {
           name: newSpeise.name.trim(),
           price: priceInCents,
           category: newSpeise.category,
           info: newSpeise.info.trim() || undefined
         });
-        
+
         if (newFoodItem) {
           setNewSpeise({ name: '', price: '', category: FoodCategory.Hauptgericht, info: '' });
           setShowAddForm(false);
@@ -97,7 +95,7 @@ export default function SpeisenPage() {
 
   const deleteSpeise = async (id: number) => {
     try {
-      await deleteFoodItem(drizzleDb, id);
+      await deleteFoodItem(db, id);
       loadSpeisen(); // Reload data from database
     } catch (error) {
       console.error("Error deleting speise:", error);
@@ -112,7 +110,7 @@ export default function SpeisenPage() {
         ...updatedSpeise,
         price: Math.round(updatedSpeise.price * 100)
       };
-      await updateFoodItem(drizzleDb, speiseWithCentsPrice);
+      await updateFoodItem(db, speiseWithCentsPrice);
       loadSpeisen(); // Reload data from database
     } catch (error) {
       console.error("Error updating speise:", error);
@@ -131,8 +129,8 @@ export default function SpeisenPage() {
         info: speise.info,
         category: speise.category
       };
-      
-      await addItemToUser(drizzleDb, person, item, quantity);
+
+      await addItemToUser(db, person, item, quantity);
       console.log(`${quantity}x ${speise.name} zu ${person.name} hinzugefügt`);
     } catch (error) {
       console.error("Error adding speise to person:", error);

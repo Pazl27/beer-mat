@@ -1,27 +1,66 @@
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import "../global.css";
 import { Slot } from "expo-router";
 import { ActivityIndicator } from "react-native";
-import { drizzle } from "drizzle-orm/expo-sqlite";
 import { SQLiteProvider, openDatabaseSync } from "expo-sqlite";
-import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
-import migrations from "../../drizzle/migrations";
 import { addDummyData } from "@/db/addDummyData";
+import { initializeDatabase } from "@/db/migrations";
 
 export const DATABASE_NAME = "beer-mat";
 
+// Global flag to track database initialization
+let databaseInitialized = false;
+let initializationPromise: Promise<void> | null = null;
+
+export const waitForDatabaseInitialization = async (): Promise<void> => {
+  if (databaseInitialized) return;
+  if (initializationPromise) return initializationPromise;
+  // If no initialization is in progress, assume it will happen soon
+  return new Promise((resolve) => {
+    const checkInitialization = () => {
+      if (databaseInitialized) {
+        resolve();
+      } else {
+        setTimeout(checkInitialization, 50);
+      }
+    };
+    checkInitialization();
+  });
+};
+
 export default function Layout() {
-  const expoDb = openDatabaseSync(DATABASE_NAME);
-  const db = drizzle(expoDb);
-  const { success, error } = useMigrations(db, migrations);
+  const [dbReady, setDbReady] = useState(false);
 
   useEffect(() => {
-    console.log("Migrations success:", success);
-    console.log("Migrations error:", error);
-    if (success) {
-      addDummyData(db);
-    }
-  }, [success, error]);
+    const setupDatabase = async () => {
+      if (databaseInitialized) {
+        setDbReady(true);
+        return;
+      }
+
+      try {
+        initializationPromise = (async () => {
+          const db = openDatabaseSync(DATABASE_NAME);
+          await initializeDatabase(db);
+          console.log("Database initialized successfully");
+          await addDummyData(db);
+          databaseInitialized = true;
+        })();
+
+        await initializationPromise;
+        setDbReady(true);
+      } catch (error) {
+        console.error("Database setup error:", error);
+        setDbReady(true); // Still allow app to load even if setup fails
+      }
+    };
+
+    setupDatabase();
+  }, []);
+
+  if (!dbReady) {
+    return <ActivityIndicator size="large" style={{ flex: 1, justifyContent: 'center' }} />;
+  }
 
   return (
     <Suspense fallback={<ActivityIndicator size="large" />}>
