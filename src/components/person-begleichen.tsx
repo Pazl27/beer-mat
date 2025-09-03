@@ -52,6 +52,16 @@ export default function PersonBegleichen({
   };
 
   const handlePayAll = () => {
+    // Check if person has any debt
+    if (person.totalDebt <= 0) {
+      Alert.alert(
+        'Keine Schulden',
+        `${person.name} hat keine offenen Schulden zu begleichen.`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     Alert.alert(
       'Alle Schulden begleichen',
       `Möchten Sie alle Schulden von ${person.name} wirklich begleichen? Gesamtbetrag: ${person.totalDebt.toFixed(2)}€`,
@@ -187,10 +197,11 @@ export default function PersonBegleichen({
           <View className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 mb-6">
             <TouchableOpacity
               onPress={handlePayAll}
-              className="bg-green-600 py-3 rounded-lg"
+              className={`py-3 rounded-lg ${person.totalDebt > 0 ? 'bg-green-600' : 'bg-gray-400'}`}
+              disabled={person.totalDebt <= 0}
             >
               <Text className="text-white text-center font-semibold">
-                💰 Alle Schulden begleichen
+                💰 {person.totalDebt > 0 ? 'Alle Schulden begleichen' : 'Keine Schulden vorhanden'}
               </Text>
             </TouchableOpacity>
           </View>
