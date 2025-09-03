@@ -32,6 +32,9 @@ export interface HistoryRow {
   item_id: number | null;
   timestamp: number;
   paid: number;
+  item_name: string | null;
+  item_type: ItemType | null;
+  item_price: number | null;
 }
 
 // Types for inserts (without id and with optional fields)

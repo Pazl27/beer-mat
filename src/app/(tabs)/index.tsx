@@ -102,9 +102,9 @@ export default function PersonenPage() {
     }
   };
 
-  const payItem = async (personId: number, itemName: string, itemType: ItemType) => {
+  const payItem = async (personId: number, itemName: string, itemType: ItemType, itemPrice: number) => {
     try {
-      await payUserItem(db, personId, itemName, itemType);
+      await payUserItem(db, personId, itemName, itemType, itemPrice);
       await loadPersons(); // Reload from database
 
       // Update selected person for begleichen modal if it's open
@@ -175,10 +175,11 @@ export default function PersonenPage() {
     );
   };
 
-  // Group items by name and type for summary in details modal
+  // Group items by name, type AND price for summary in details modal
   const getGroupedItems = (person: Person) => {
     const grouped = person.items.reduce((acc, item) => {
-      const key = `${item.type}-${item.name}`;
+      // Include price in the key to separate items with different prices
+      const key = `${item.type}-${item.name}-${item.price}`;
       if (!acc[key]) {
         acc[key] = {
           name: item.name,
@@ -525,9 +526,14 @@ export default function PersonenPage() {
                           </Text>
                           {grouped.getraenke.map((item, index) => (
                             <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
-                              <Text className="text-base text-gray-700">
-                                {item.count}x {item.name}
-                              </Text>
+                              <View className="flex-1">
+                                <Text className="text-base text-gray-700">
+                                  {item.count}x {item.name}
+                                </Text>
+                                <Text className="text-sm text-gray-500">
+                                  à {item.unitPrice.toFixed(2)}€
+                                </Text>
+                              </View>
                               <Text className="text-base font-semibold text-green-600">
                                 {item.totalPrice.toFixed(2)}€
                               </Text>
@@ -544,9 +550,14 @@ export default function PersonenPage() {
                           </Text>
                           {grouped.speisen.map((item, index) => (
                             <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
-                              <Text className="text-base text-gray-700">
-                                {item.count}x {item.name}
-                              </Text>
+                              <View className="flex-1">
+                                <Text className="text-base text-gray-700">
+                                  {item.count}x {item.name}
+                                </Text>
+                                <Text className="text-sm text-gray-500">
+                                  à {item.unitPrice.toFixed(2)}€
+                                </Text>
+                              </View>
                               <Text className="text-base font-semibold text-green-600">
                                 {item.totalPrice.toFixed(2)}€
                               </Text>

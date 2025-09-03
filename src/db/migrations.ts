@@ -7,7 +7,11 @@ export const initializeDatabase = async (db: SQLiteDatabase): Promise<void> => {
     const tableInfo = await db.getAllAsync(`PRAGMA table_info(user_items)`);
     const hasItemName = tableInfo.some((col: any) => col.name === 'item_name');
 
-    if (!hasItemName && tableInfo.length > 0) {
+    // Check if history table needs migration
+    const historyInfo = await db.getAllAsync(`PRAGMA table_info(history)`);
+    const historyHasItemName = historyInfo.some((col: any) => col.name === 'item_name');
+
+    if ((!hasItemName && tableInfo.length > 0) || (!historyHasItemName && historyInfo.length > 0)) {
       console.log("Migrating from old schema...");
       // Drop old tables to recreate with new schema
       await db.execAsync(`DROP TABLE IF EXISTS user_items`);
@@ -63,6 +67,9 @@ export const initializeDatabase = async (db: SQLiteDatabase): Promise<void> => {
         item_id INTEGER,
         timestamp INTEGER NOT NULL,
         paid INTEGER NOT NULL,
+        item_name TEXT,
+        item_type TEXT CHECK (item_type IN ('drink', 'food', NULL)),
+        item_price INTEGER,
         FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
         FOREIGN KEY (item_id) REFERENCES items (id) ON DELETE CASCADE
       );

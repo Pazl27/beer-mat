@@ -9,10 +9,11 @@ export default function PersonBegleichen({
   onPayItem,
   onPayAll
 }: PersonBegleichenProps) {
-  // Group items by name and type for summary
+  // Group items by name, type AND price for summary
   const getGroupedItems = (person: Person) => {
     const grouped = person.items.reduce((acc, item) => {
-      const key = `${item.type}-${item.name}`;
+      // Include price in the key to separate items with different prices
+      const key = `${item.type}-${item.name}-${item.price}`;
       if (!acc[key]) {
         acc[key] = {
           name: item.name,
@@ -33,17 +34,17 @@ export default function PersonBegleichen({
     };
   };
 
-  const handlePayItem = (itemName: string, itemType: ItemType) => {
+  const handlePayItem = (itemName: string, itemType: ItemType, unitPrice: number) => {
     Alert.alert(
       'Artikel begleichen',
-      `Möchten Sie 1x "${itemName}" begleichen?`,
+      `Möchten Sie 1x "${itemName}" (${unitPrice.toFixed(2)}€) begleichen?`,
       [
         { text: 'Abbrechen', style: 'cancel' },
         {
           text: 'Begleichen',
           onPress: () => {
-            onPayItem(person.id, itemName, itemType);
-            Alert.alert('Beglichen', `1x "${itemName}" wurde beglichen.`);
+            onPayItem(person.id, itemName, itemType, unitPrice);
+            Alert.alert('Beglichen', `1x "${itemName}" (${unitPrice.toFixed(2)}€) wurde beglichen.`);
           }
         }
       ]
@@ -120,15 +121,20 @@ export default function PersonBegleichen({
               </Text>
               {grouped.getraenke.map((item, index) => (
                 <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
-                  <Text className="text-base text-gray-700 flex-1">
-                    {item.count}x {item.name}
-                  </Text>
+                  <View className="flex-1">
+                    <Text className="text-base text-gray-700">
+                      {item.count}x {item.name}
+                    </Text>
+                    <Text className="text-sm text-gray-500">
+                      à {item.unitPrice.toFixed(2)}€
+                    </Text>
+                  </View>
                   <View className="flex-row items-center gap-3">
                     <Text className="text-base font-semibold text-green-600">
                       {item.totalPrice.toFixed(2)}€
                     </Text>
                     <TouchableOpacity
-                      onPress={() => handlePayItem(item.name, item.type)}
+                      onPress={() => handlePayItem(item.name, item.type, item.unitPrice)}
                       className="bg-green-100 px-3 py-1 rounded-lg"
                       disabled={item.count === 0}
                     >
@@ -150,15 +156,20 @@ export default function PersonBegleichen({
               </Text>
               {grouped.speisen.map((item, index) => (
                 <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
-                  <Text className="text-base text-gray-700 flex-1">
-                    {item.count}x {item.name}
-                  </Text>
+                  <View className="flex-1">
+                    <Text className="text-base text-gray-700">
+                      {item.count}x {item.name}
+                    </Text>
+                    <Text className="text-sm text-gray-500">
+                      à {item.unitPrice.toFixed(2)}€
+                    </Text>
+                  </View>
                   <View className="flex-row items-center gap-3">
                     <Text className="text-base font-semibold text-green-600">
                       {item.totalPrice.toFixed(2)}€
                     </Text>
                     <TouchableOpacity
-                      onPress={() => handlePayItem(item.name, item.type)}
+                      onPress={() => handlePayItem(item.name, item.type, item.unitPrice)}
                       className="bg-green-100 px-3 py-1 rounded-lg"
                       disabled={item.count === 0}
                     >
