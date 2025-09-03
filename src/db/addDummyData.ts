@@ -55,7 +55,7 @@ export const addDummyData = async (db: SQLiteDatabase) => {
     await addItemToUser(db, user1, item2, 1);
     await addItemToUser(db, user1, item2, 3);
 
-    await payUserItem(db, user1.id, item1.name, item1.type);
+    await payUserItem(db, user1.id, item1.name, item1.type, item1.price / 100); // Convert cents to euros
     await clearUserDebt(db, user1.id);
 
     const history = await getHistoryForUser(db, user1.id);
