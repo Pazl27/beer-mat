@@ -1,8 +1,9 @@
 import { Getraenk } from '../getraenk';
+import { Person } from '../person';
 
 export interface GetraenkZuPersonHinzufuegenProps {
   getraenk: Getraenk;
   visible: boolean;
   onClose: () => void;
-  onAddToPerson: (personId: number, getraenk: Getraenk, quantity: number) => void;
+  onAddToPerson: (person: Person, getraenk: Getraenk, quantity: number) => void;
 }

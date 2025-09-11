@@ -1,22 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { useSQLiteContext } from 'expo-sqlite';
+import { useFocusEffect } from '@react-navigation/native';
 import GetraenkDetails from '@/components/getraenk-detail';
 import GetraenkZuPersonHinzufuegen from '@/components/getraenk-zu-person-hinzufuegen';
 import { Getraenk } from '@/types';
 import { DrinkCategory } from '@/types/category';
+import { getAllDrinkItems, createDrinkItem, updateDrinkItem, deleteDrinkItem, addItemToUser } from '@/db/dbFunctions';
+import { ItemType, Item, Person } from '@/types';
 
 export default function GetraenkePage() {
-  const [getraenke, setGetraenke] = useState<Getraenk[]>([
-    { id: 1, name: 'Bier', price: 2.50, category: DrinkCategory.Bier, info: 'Flasche, 0,5l' },
-    { id: 2, name: 'Radler', price: 2.50, category: DrinkCategory.Bier, info: 'Flasche, 0,5l' },
-    { id: 3, name: 'Alkoholfreies Bier', price: 2.50, category: DrinkCategory.Bier, info: 'Flasche, 0,5l' },
-    { id: 4, name: 'Alkoholfreies Radler', price: 2.50, category: DrinkCategory.Bier, info: 'Flasche, 0,5l' },
-    { id: 5, name: 'Mineralwasser', price: 1.50, category: DrinkCategory.Softdrinks, info: 'Flasche, 0,5l' },
-    { id: 6, name: 'Cola Mix', price: 2.00, category: DrinkCategory.Softdrinks, info: 'Flasche, 0,5l' },
-    { id: 7, name: 'Iso Sport', price: 2.00, category: DrinkCategory.Softdrinks, info: 'Flasche, 0,5l' },
-    { id: 8, name: 'Bio Apfel-Birnen-Schorle', price: 2.00, category: DrinkCategory.Softdrinks, info: 'Flasche, 0,5l' },
-    { id: 9, name: 'Kaffee (Tasse)', price: 1.50, category: DrinkCategory.Heissgetraenke, info: 'mit/ohne Zucker, mit/ohne Milch' },
-  ]);
+  const [getraenke, setGetraenke] = useState<Getraenk[]>([]);
+  const db = useSQLiteContext();
+
+  // Load getraenke from database on component mount
+  useEffect(() => {
+    loadGetraenke();
+  }, []);
+
+  // Reload getraenke when tab comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadGetraenke();
+    }, [])
+  );
+
+  const loadGetraenke = async () => {
+    try {
+      const drinkItems = await getAllDrinkItems(db);
+      // Convert price from cents to euros for display
+      const getraenkeWithEurosPrices = drinkItems.map(item => ({
+        ...item,
+        price: item.price / 100
+      }));
+      setGetraenke(getraenkeWithEurosPrices);
+    } catch (error) {
+      console.error("Error loading getraenke:", error);
+      Alert.alert("Fehler", "Getränke konnten nicht geladen werden");
+    }
+  };
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [newGetraenk, setNewGetraenk] = useState({
@@ -35,39 +57,6 @@ export default function GetraenkePage() {
     getraenk.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const addGetraenk = () => {
-    if (newGetraenk.name.trim() && newGetraenk.price) {
-      const getraenk: Getraenk = {
-        id: Date.now(),
-        name: newGetraenk.name.trim(),
-        price: parseFloat(newGetraenk.price),
-        category: newGetraenk.category,
-        info: newGetraenk.info.trim() || undefined
-      };
-      setGetraenke([...getraenke, getraenk]);
-      setNewGetraenk({ name: '', price: '', category: DrinkCategory.Bier, info: '' });
-      setShowAddForm(false);
-    }
-  };
-
-  const deleteGetraenk = (id: number) => {
-    setGetraenke(getraenke.filter(g => g.id !== id));
-  };
-
-  const updateGetraenk = (updatedGetraenk: Getraenk) => {
-    setGetraenke(getraenke.map(g => g.id === updatedGetraenk.id ? updatedGetraenk : g));
-  };
-
-  const handleAddGetraenkToPerson = (personId: number, getraenk: Getraenk, quantity: number) => {
-    // TODO: Hier würde die echte Logik zum Hinzufügen zur Datenbank kommen
-    // Success-Feedback wird bereits in der Modal-Komponente angezeigt
-  };
-
-  const groupedGetraenke = Object.values(DrinkCategory).reduce((acc, category) => {
-    acc[category] = filteredGetraenke.filter(g => g.category === category);
-    return acc;
-  }, {} as Record<string, Getraenk[]>);
-
   const getCategoryIcon = (category: DrinkCategory) => {
     switch (category) {
       case DrinkCategory.Bier: return '🍺';
@@ -78,6 +67,81 @@ export default function GetraenkePage() {
       default: return '🥤';
     }
   };
+
+  const addGetraenk = async () => {
+    if (newGetraenk.name.trim() && newGetraenk.price) {
+      try {
+        const priceInCents = Math.round(parseFloat(newGetraenk.price) * 100);
+        const newDrinkItem = await createDrinkItem(db, {
+          name: newGetraenk.name.trim(),
+          price: priceInCents,
+          category: newGetraenk.category,
+          info: newGetraenk.info.trim() || undefined
+        });
+
+        if (newDrinkItem) {
+          setNewGetraenk({ name: '', price: '', category: DrinkCategory.Bier, info: '' });
+          setShowAddForm(false);
+          loadGetraenke(); // Reload data from database
+        } else {
+          Alert.alert("Fehler", "Getränk konnte nicht hinzugefügt werden");
+        }
+      } catch (error) {
+        console.error("Error adding getraenk:", error);
+        Alert.alert("Fehler", "Fehler beim Hinzufügen des Getränks");
+      }
+    }
+  };
+
+  const deleteGetraenk = async (id: number) => {
+    try {
+      await deleteDrinkItem(db, id);
+      loadGetraenke(); // Reload data from database
+    } catch (error) {
+      console.error("Error deleting getraenk:", error);
+      Alert.alert("Fehler", "Fehler beim Löschen des Getränks");
+    }
+  };
+
+  const updateGetraenk = async (updatedGetraenk: Getraenk) => {
+    try {
+      // Convert price from euros to cents for database
+      const getraenkWithCentsPrice = {
+        ...updatedGetraenk,
+        price: Math.round(updatedGetraenk.price * 100)
+      };
+      await updateDrinkItem(db, getraenkWithCentsPrice);
+      loadGetraenke(); // Reload data from database
+    } catch (error) {
+      console.error("Error updating getraenk:", error);
+      Alert.alert("Fehler", "Fehler beim Aktualisieren des Getränks");
+    }
+  };
+
+  const handleAddGetraenkToPerson = async (person: Person, getraenk: Getraenk, quantity: number) => {
+    try {
+      // Konvertiere Getraenk zu Item für DB-Funktion
+      const item: Item = {
+        id: getraenk.id,
+        name: getraenk.name,
+        price: Math.round(getraenk.price * 100), // Euro zu Cents für DB
+        type: ItemType.Drink,
+        info: getraenk.info,
+        category: getraenk.category
+      };
+
+      await addItemToUser(db, person, item, quantity);
+      console.log(`${quantity}x ${getraenk.name} zu ${person.name} hinzugefügt`);
+    } catch (error) {
+      console.error("Error adding getraenk to person:", error);
+      Alert.alert("Fehler", "Getränk konnte nicht hinzugefügt werden");
+    }
+  };
+
+  const groupedGetraenke = Object.values(DrinkCategory).reduce((acc, category) => {
+    acc[category] = filteredGetraenke.filter(g => g.category === category);
+    return acc;
+  }, {} as Record<string, Getraenk[]>);
 
   return (
     <View className="flex-1 bg-gray-50">

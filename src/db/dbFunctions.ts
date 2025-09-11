@@ -1,5 +1,5 @@
 import { SQLiteDatabase } from "expo-sqlite";
-import { Person, Item, ItemType, History, Speise } from "@/types"
+import { Person, Item, ItemType, History, Speise, Getraenk } from "@/types"
 import { DrinkCategory, FoodCategory } from "@/types/category";
 
 export const createUser = async (db: SQLiteDatabase, name: string): Promise<Person | undefined> => {
@@ -173,6 +173,24 @@ export const getAllFoodItems = async (db: SQLiteDatabase): Promise<Speise[]> => 
   }));
 };
 
+export const getAllDrinkItems = async (db: SQLiteDatabase): Promise<Getraenk[]> => {
+  const result = await db.getAllAsync<{
+    id: number;
+    name: string;
+    price: number;
+    info: string | null;
+    category: string | null;
+  }>('SELECT id, name, price, info, category FROM items WHERE type = ?', ['drink']);
+
+  return result.map(row => ({
+    id: row.id,
+    name: row.name,
+    price: row.price,
+    info: row.info || undefined,
+    category: parseCategory(row.category) as DrinkCategory || DrinkCategory.Bier,
+  }));
+};
+
 export const createFoodItem = async (
   db: SQLiteDatabase,
   speise: { name: string; price: number; category: FoodCategory; info?: string }
@@ -198,6 +216,31 @@ export const createFoodItem = async (
   }
 };
 
+export const createDrinkItem = async (
+  db: SQLiteDatabase,
+  getraenk: { name: string; price: number; category: DrinkCategory; info?: string }
+): Promise<Getraenk | undefined> => {
+  try {
+    const result = await db.runAsync(
+      'INSERT INTO items (name, type, price, info, category) VALUES (?, ?, ?, ?, ?)',
+      [getraenk.name, 'drink', getraenk.price, getraenk.info || null, getraenk.category]
+    );
+
+    const newGetraenk: Getraenk = {
+      id: result.lastInsertRowId,
+      name: getraenk.name,
+      price: getraenk.price,
+      info: getraenk.info,
+      category: getraenk.category,
+    };
+
+    return newGetraenk;
+
+  } catch (e) {
+    console.error("Error creating drink item:", e);
+  }
+};
+
 export const updateFoodItem = async (
   db: SQLiteDatabase,
   speise: Speise
@@ -212,11 +255,33 @@ export const updateFoodItem = async (
   }
 };
 
+export const updateDrinkItem = async (
+  db: SQLiteDatabase,
+  getraenk: Getraenk
+): Promise<void> => {
+  try {
+    await db.runAsync(
+      'UPDATE items SET name = ?, price = ?, info = ?, category = ? WHERE id = ?',
+      [getraenk.name, getraenk.price, getraenk.info || null, getraenk.category, getraenk.id]
+    );
+  } catch (e) {
+    console.error("Error updating drink item:", e);
+  }
+};
+
 export const deleteFoodItem = async (db: SQLiteDatabase, itemId: number): Promise<void> => {
   try {
     await db.runAsync('DELETE FROM items WHERE id = ?', [itemId]);
   } catch (e) {
     console.error("Error deleting food item:", e);
+  }
+};
+
+export const deleteDrinkItem = async (db: SQLiteDatabase, itemId: number): Promise<void> => {
+  try {
+    await db.runAsync('DELETE FROM items WHERE id = ?', [itemId]);
+  } catch (e) {
+    console.error("Error deleting drink item:", e);
   }
 };
 

@@ -10,6 +10,7 @@ export default function GetraenkDetails({
   onUpdate,
   onDelete
 }: GetraenkDetailsProps) {
+  const [editedName, setEditedName] = useState(getraenk.name);
   const [editedPrice, setEditedPrice] = useState(getraenk.price.toString());
   const [editedInfo, setEditedInfo] = useState(getraenk.info || '');
   const [editedCategory, setEditedCategory] = useState(getraenk.category);
@@ -32,8 +33,14 @@ export default function GetraenkDetails({
       return;
     }
 
+    if (!editedName.trim()) {
+      Alert.alert('Fehler', 'Bitte geben Sie einen Namen für das Getränk ein.');
+      return;
+    }
+
     const updatedGetraenk: Getraenk = {
       ...getraenk,
+      name: editedName.trim(),
       price,
       category: editedCategory,
       info: editedInfo.trim() || undefined
@@ -64,6 +71,7 @@ export default function GetraenkDetails({
   };
 
   const resetChanges = () => {
+    setEditedName(getraenk.name);
     setEditedPrice(getraenk.price.toString());
     setEditedInfo(getraenk.info || '');
     setEditedCategory(getraenk.category);
@@ -110,11 +118,20 @@ export default function GetraenkDetails({
             </View>
           </View>
 
-          {/* Preis bearbeiten */}
+          {/* Getränk bearbeiten */}
           <View className="bg-white rounded-lg p-4 mb-6 shadow-sm border border-gray-200">
             <Text className="text-xl font-bold text-gray-800 mb-4">
-              💰 Preis bearbeiten
+              ✏️ Getränk bearbeiten
             </Text>
+            
+            <Text className="text-sm font-medium text-gray-700 mb-2">Name:</Text>
+            <TextInput
+              value={editedName}
+              onChangeText={setEditedName}
+              placeholder="z.B. Pils"
+              className="border border-gray-300 rounded-lg px-4 py-3 text-base mb-4"
+            />
+
             <Text className="text-sm font-medium text-gray-700 mb-2">
               Aktueller Preis: {getraenk.price.toFixed(2)}€
             </Text>

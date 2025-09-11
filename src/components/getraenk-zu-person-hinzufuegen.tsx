@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
+import { useSQLiteContext } from 'expo-sqlite';
 import { Person, ItemType, GetraenkZuPersonHinzufuegenProps } from '@/types';
+import { getAllUsers } from '@/db/dbFunctions';
 
 export default function GetraenkZuPersonHinzufuegen({
   getraenk,
@@ -8,44 +10,34 @@ export default function GetraenkZuPersonHinzufuegen({
   onClose,
   onAddToPerson
 }: GetraenkZuPersonHinzufuegenProps) {
-  // Mock-Daten für Personen (später aus echten Daten holen)
-  const [persons] = useState<Person[]>([
-    {
-      id: 1,
-      name: 'Max Mustermann',
-      totalDebt: 5.50,
-      items: [
-        { id: 1, name: 'Bier (Flasche, 0,5l)', price: 2.50, type: ItemType.Drink },
-        { id: 2, name: 'Steak', price: 3.50, type: ItemType.Food }
-      ]
-    },
-    {
-      id: 2,
-      name: 'Anna Schmidt',
-      totalDebt: 3.50,
-      items: [
-        { id: 3, name: 'Cola Mix (Flasche, 0,5l)', price: 2.00, type: ItemType.Drink },
-        { id: 4, name: 'Kaffee (Tasse)', price: 1.50, type: ItemType.Drink }
-      ]
-    },
-    {
-      id: 3,
-      name: 'Tom Weber',
-      totalDebt: 0,
-      items: []
-    },
-    {
-      id: 4,
-      name: 'Lisa Müller',
-      totalDebt: 7.20,
-      items: [
-        { id: 5, name: 'Hot Dog', price: 2.00, type: ItemType.Food },
-        { id: 6, name: 'Pommes', price: 1.50, type: ItemType.Food },
-        { id: 7, name: 'Cola Mix (Flasche, 0,5l)', price: 2.00, type: ItemType.Drink },
-        { id: 8, name: 'Kaffee (Tasse)', price: 1.70, type: ItemType.Drink }
-      ]
+  const [persons, setPersons] = useState<Person[]>([]);
+  const db = useSQLiteContext();
+
+  // Load persons from database
+  useEffect(() => {
+    if (visible) {
+      loadPersons();
     }
-  ]);
+  }, [visible]);
+
+  const loadPersons = async () => {
+    try {
+      const users = await getAllUsers(db);
+      // Convert price from cents to euros for display
+      const personsWithEurosPrices = users.map(user => ({
+        ...user,
+        totalDebt: user.totalDebt / 100,
+        items: user.items.map(item => ({
+          ...item,
+          price: item.price / 100
+        }))
+      }));
+      setPersons(personsWithEurosPrices);
+    } catch (error) {
+      console.error("Error loading persons:", error);
+      Alert.alert("Fehler", "Personen konnten nicht geladen werden");
+    }
+  };
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
@@ -106,7 +98,10 @@ export default function GetraenkZuPersonHinzufuegen({
           text: 'Hinzufügen',
           onPress: () => {
             Object.entries(selectedQuantities).forEach(([personId, quantity]) => {
-              onAddToPerson(Number(personId), getraenk, quantity);
+              const person = persons.find(p => p.id === Number(personId));
+              if (person) {
+                onAddToPerson(person, getraenk, quantity);
+              }
             });
 
             setSelectedQuantities({});
