@@ -34,7 +34,13 @@ export default function GetraenkZuPersonHinzufuegen({
           price: item.price / 100
         }))
       }));
-      setPersons(personsWithEurosPrices);
+      
+      // Sort persons alphabetically by name
+      const sortedPersons = personsWithEurosPrices.sort((a, b) => 
+        a.name.localeCompare(b.name, 'de', { sensitivity: 'base' })
+      );
+      
+      setPersons(sortedPersons);
     } catch (error) {
       console.error("Error loading persons:", error);
       Alert.alert("Fehler", "Personen konnten nicht geladen werden");
