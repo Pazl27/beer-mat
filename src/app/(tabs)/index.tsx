@@ -500,9 +500,22 @@ export default function PersonenPage() {
             <ScrollView className="flex-1 px-4 py-6">
               {/* Person Header */}
               <View className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
-                <Text className="text-2xl font-bold text-gray-800 text-center mb-2">
-                  {selectedPersonForDetails.name}
-                </Text>
+                <View className="flex-row justify-between items-start mb-2">
+                  <View className="w-10" />
+                  <View className="flex-1 items-center">
+                    <Text className="text-2xl font-bold text-gray-800 text-center">
+                      {selectedPersonForDetails.name}
+                    </Text>
+                  </View>
+                  <View className="w-10 items-end">
+                    <TouchableOpacity
+                      onPress={() => deletePerson(selectedPersonForDetails.id, selectedPersonForDetails.name)}
+                      className="bg-red-100 p-2 rounded-lg"
+                    >
+                      <Text className="text-red-600 text-lg">🗑️</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
                 <View className="items-center">
                   <Text className="text-3xl font-bold text-red-600">
                     {selectedPersonForDetails.totalDebt.toFixed(2)}€
@@ -603,10 +616,23 @@ export default function PersonenPage() {
                 })()
               ) : (
                 // Historie Tab - Payment history
-                <View className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-                  <Text className="text-xl font-bold text-gray-800 mb-3 text-center">
-                    💰 Zahlungshistorie
-                  </Text>
+                <View className="bg-white rounded-lg p-4 mb-4 shadow-sm border border-gray-200">
+                  <View className="flex-row justify-between items-center mb-3">
+                    <View className="flex-1" />
+                    <Text className="text-xl font-bold text-gray-800">
+                      💰 Zahlungshistorie
+                    </Text>
+                    <View className="flex-1 items-end">
+                      {personHistory.length > 0 && (
+                        <TouchableOpacity
+                          onPress={() => clearHistory(selectedPersonForDetails.id, selectedPersonForDetails.name)}
+                          className="bg-red-100 p-2 rounded-lg"
+                        >
+                          <Text className="text-red-600 text-lg">🗑️</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
                   {personHistory.length > 0 ? (
                     personHistory.map((entry, index) => (
                       <View key={entry.id} className="flex-row justify-between items-center py-3 border-b border-gray-100 last:border-b-0">
@@ -640,31 +666,6 @@ export default function PersonenPage() {
                   )}
                 </View>
               )}
-
-              {/* Clear History Button */}
-              <View className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 mb-4 mt-6">
-                <TouchableOpacity
-                  onPress={() => clearHistory(selectedPersonForDetails.id, selectedPersonForDetails.name)}
-                  className={`py-3 rounded-lg ${personHistory.length === 0 ? 'bg-gray-400' : 'bg-orange-600'}`}
-                  disabled={personHistory.length === 0}
-                >
-                  <Text className="text-white text-center font-semibold">
-                    🗂️ {personHistory.length === 0 ? 'Keine Historie vorhanden' : 'Historie löschen'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Delete Person Button */}
-              <View className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 mb-6">
-                <TouchableOpacity
-                  onPress={() => deletePerson(selectedPersonForDetails.id, selectedPersonForDetails.name)}
-                  className="bg-red-600 py-3 rounded-lg"
-                >
-                  <Text className="text-white text-center font-semibold">
-                    🗑️ Person löschen
-                  </Text>
-                </TouchableOpacity>
-              </View>
             </ScrollView>
           </View>
         )}
