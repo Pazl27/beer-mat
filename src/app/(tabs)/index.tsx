@@ -645,10 +645,10 @@ export default function PersonenPage() {
               <View className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 mb-4 mt-6">
                 <TouchableOpacity
                   onPress={() => clearHistory(selectedPersonForDetails.id, selectedPersonForDetails.name)}
-                  className="bg-orange-600 py-3 rounded-lg"
+                  className={`py-3 rounded-lg ${personHistory.length === 0 ? 'bg-gray-400' : 'bg-orange-600'}`}
                   disabled={personHistory.length === 0}
                 >
-                  <Text className={`text-center font-semibold ${personHistory.length === 0 ? 'text-gray-400' : 'text-white'}`}>
+                  <Text className="text-white text-center font-semibold">
                     🗂️ {personHistory.length === 0 ? 'Keine Historie vorhanden' : 'Historie löschen'}
                   </Text>
                 </TouchableOpacity>
