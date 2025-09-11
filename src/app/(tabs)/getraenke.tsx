@@ -8,10 +8,12 @@ import { Getraenk } from '@/types';
 import { DrinkCategory } from '@/types/category';
 import { getAllDrinkItems, createDrinkItem, updateDrinkItem, deleteDrinkItem, addItemToUser } from '@/db/dbFunctions';
 import { ItemType, Item, Person } from '@/types';
+import { useTrainingsstrich } from '@/contexts/TrainingsstrichContext';
 
 export default function GetraenkePage() {
   const [getraenke, setGetraenke] = useState<Getraenk[]>([]);
   const db = useSQLiteContext();
+  const { isTrainingsstrichActive, setIsTrainingsstrichActive, getDisplayPrice, getEffectivePrice } = useTrainingsstrich();
 
   // Load getraenke from database on component mount
   useEffect(() => {
@@ -50,7 +52,6 @@ export default function GetraenkePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGetraenk, setSelectedGetraenk] = useState<Getraenk | null>(null);
   const [selectedGetraenkForPerson, setSelectedGetraenkForPerson] = useState<Getraenk | null>(null);
-  const [isTrainingsstrichActive, setIsTrainingsstrichActive] = useState(false);
 
   // Filter getraenke based on search query
   const filteredGetraenke = getraenke.filter(getraenk =>
@@ -120,18 +121,20 @@ export default function GetraenkePage() {
 
   const handleAddGetraenkToPerson = async (person: Person, getraenk: Getraenk, quantity: number) => {
     try {
-      // Konvertiere Getraenk zu Item für DB-Funktion
+      // Konvertiere Getraenk zu Item für DB-Funktion mit effektivem Preis
+      const effectivePrice = getEffectivePrice(getraenk.price);
+      
       const item: Item = {
         id: getraenk.id,
         name: getraenk.name,
-        price: Math.round(getraenk.price * 100), // Euro zu Cents für DB
+        price: effectivePrice, // ← Hier der effektive Preis (1€ oder Original)
         type: ItemType.Drink,
         info: getraenk.info,
         category: getraenk.category
       };
 
       await addItemToUser(db, person, item, quantity);
-      console.log(`${quantity}x ${getraenk.name} zu ${person.name} hinzugefügt`);
+      console.log(`${quantity}x ${getraenk.name} zu ${person.name} hinzugefügt (${effectivePrice/100}€ pro Stück)`);
     } catch (error) {
       console.error("Error adding getraenk to person:", error);
       Alert.alert("Fehler", "Getränk konnte nicht hinzugefügt werden");
@@ -297,8 +300,13 @@ export default function GetraenkePage() {
                     </View>
                     <View className="items-end">
                       <Text className="text-xl font-bold text-green-600">
-                        {getraenk.price.toFixed(2)}€
+                        {getDisplayPrice(getraenk.price).toFixed(2)}€
                       </Text>
+                      {isTrainingsstrichActive && getraenk.price !== 1.0 && (
+                        <Text className="text-sm text-gray-500 line-through">
+                          {getraenk.price.toFixed(2)}€
+                        </Text>
+                      )}
                     </View>
                   </View>
 

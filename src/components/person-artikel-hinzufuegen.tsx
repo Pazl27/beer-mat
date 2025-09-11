@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Alert, Modal } from 'react-na
 import { useSQLiteContext } from 'expo-sqlite';
 import { PersonArtikelHinzufuegenProps, ItemType, Item } from '@/types';
 import { getAllItems } from '@/db/dbFunctions';
+import { useTrainingsstrich } from '@/contexts/TrainingsstrichContext';
 
 export default function PersonArtikelHinzufuegen({
   person,
@@ -11,6 +12,7 @@ export default function PersonArtikelHinzufuegen({
   onAddItems
 }: PersonArtikelHinzufuegenProps) {
   const db = useSQLiteContext();
+  const { isTrainingsstrichActive, getDisplayPrice, getEffectivePrice } = useTrainingsstrich();
 
   // State für alle Items aus der DB
   const [allItems, setAllItems] = useState<Item[]>([]);
@@ -93,8 +95,13 @@ export default function PersonArtikelHinzufuegen({
     let total = 0;
     Object.entries(selectedQuantities).forEach(([itemId, quantity]) => {
       const item = allItems.find(i => i.id === Number(itemId));
-      const price = item?.price || 0;
-      total += price * quantity;
+      if (item) {
+        // Für Getränke den effektiven Preis verwenden, für Speisen den normalen Preis
+        const effectivePrice = item.type === ItemType.Drink 
+          ? getDisplayPrice(item.price) 
+          : item.price;
+        total += effectivePrice * quantity;
+      }
     });
     return total;
   };
@@ -106,9 +113,14 @@ export default function PersonArtikelHinzufuegen({
       const item = allItems.find(i => i.id === Number(itemId));
 
       if (item && item.id !== undefined) {
+        // Für Getränke den effektiven Preis in Cents verwenden, für Speisen den normalen Preis
+        const effectivePrice = item.type === ItemType.Drink 
+          ? getEffectivePrice(item.price) 
+          : Math.round(item.price * 100); // Speisen in Cents konvertieren
+        
         itemsToAdd.push({
           name: item.name,
-          price: item.price,
+          price: effectivePrice, // Preis in Cents für DB
           type: item.type,
           quantity,
           itemId: item.id
@@ -203,7 +215,12 @@ export default function PersonArtikelHinzufuegen({
                         </Text>
                       )}
                       <Text className="text-sm font-semibold text-green-600 mt-1">
-                        {item.price.toFixed(2)}€
+                        {getDisplayPrice(item.price).toFixed(2)}€
+                        {isTrainingsstrichActive && item.type === ItemType.Drink && item.price !== 1.0 && (
+                          <Text className="text-xs text-gray-400 line-through ml-2">
+                            {item.price.toFixed(2)}€
+                          </Text>
+                        )}
                       </Text>
                     </View>
                     <View className="flex-row items-center gap-3">

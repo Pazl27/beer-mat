@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput } fro
 import { useSQLiteContext } from 'expo-sqlite';
 import { Person, ItemType, GetraenkZuPersonHinzufuegenProps } from '@/types';
 import { getAllUsers } from '@/db/dbFunctions';
+import { useTrainingsstrich } from '@/contexts/TrainingsstrichContext';
 
 export default function GetraenkZuPersonHinzufuegen({
   getraenk,
@@ -12,6 +13,7 @@ export default function GetraenkZuPersonHinzufuegen({
 }: GetraenkZuPersonHinzufuegenProps) {
   const [persons, setPersons] = useState<Person[]>([]);
   const db = useSQLiteContext();
+  const { isTrainingsstrichActive, getDisplayPrice } = useTrainingsstrich();
 
   // Load persons from database
   useEffect(() => {
@@ -77,7 +79,7 @@ export default function GetraenkZuPersonHinzufuegen({
   };
 
   const getTotalPrice = () => {
-    return getTotalItems() * getraenk.price;
+    return getTotalItems() * getDisplayPrice(getraenk.price);
   };
 
   const handleAddToPersons = () => {
@@ -152,7 +154,12 @@ export default function GetraenkZuPersonHinzufuegen({
               {getGetraenkEmoji(getraenk.name)} {getraenk.name}
             </Text>
             <Text className="text-lg font-semibold text-green-600 text-center">
-              {getraenk.price.toFixed(2)}€
+              {getDisplayPrice(getraenk.price).toFixed(2)}€
+              {isTrainingsstrichActive && getraenk.price !== 1.0 && (
+                <Text className="text-sm text-gray-400 line-through ml-2">
+                  {getraenk.price.toFixed(2)}€
+                </Text>
+              )}
             </Text>
           </View>
 

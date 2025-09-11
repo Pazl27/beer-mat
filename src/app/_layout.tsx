@@ -5,6 +5,7 @@ import { ActivityIndicator } from "react-native";
 import { SQLiteProvider, openDatabaseSync } from "expo-sqlite";
 import { addDummyData } from "@/db/addDummyData";
 import { initializeDatabase } from "@/db/migrations";
+import { TrainingsstrichProvider } from "@/contexts/TrainingsstrichContext";
 
 export const DATABASE_NAME = "beer-mat";
 
@@ -69,7 +70,9 @@ export default function Layout() {
         options={{ enableChangeListener: true }}
         useSuspense
       >
-        <Slot />
+        <TrainingsstrichProvider>
+          <Slot />
+        </TrainingsstrichProvider>
       </SQLiteProvider>
     </Suspense>
   );
