@@ -103,17 +103,28 @@ export default function GetraenkDetails({
         <ScrollView className="flex-1 px-4 py-6">
           {/* Getränk Header */}
           <View className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
-            <View className="items-center mb-4">
-              <Text className="text-4xl mb-2">
-                {getCategoryIcon(getraenk.category)}
-              </Text>
-              <Text className="text-2xl font-bold text-gray-800 text-center mb-1">
-                {getraenk.name}
-              </Text>
-              <View className="bg-blue-100 px-3 py-1 rounded-full">
-                <Text className="text-sm font-medium text-blue-700">
-                  {editedCategory}
+            <View className="flex-row justify-between items-start mb-4">
+              <View className="w-10" />
+              <View className="flex-1 items-center">
+                <Text className="text-4xl mb-2">
+                  {getCategoryIcon(getraenk.category)}
                 </Text>
+                <Text className="text-2xl font-bold text-gray-800 text-center mb-1">
+                  {getraenk.name}
+                </Text>
+                <View className="bg-blue-100 px-3 py-1 rounded-full">
+                  <Text className="text-sm font-medium text-blue-700">
+                    {editedCategory}
+                  </Text>
+                </View>
+              </View>
+              <View className="w-10 items-end">
+                <TouchableOpacity
+                  onPress={handleDelete}
+                  className="bg-red-100 p-2 rounded-lg"
+                >
+                  <Text className="text-red-600 text-lg">🗑️</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -182,18 +193,6 @@ export default function GetraenkDetails({
             >
               <Text className="text-white text-center font-semibold">
                 ✓ Änderungen speichern
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Gefährliche Aktionen */}
-          <View className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 mb-6">
-            <TouchableOpacity
-              onPress={handleDelete}
-              className="bg-red-600 py-3 rounded-lg"
-            >
-              <Text className="text-white text-center font-semibold">
-                🗑️ Getränk löschen
               </Text>
             </TouchableOpacity>
           </View>
