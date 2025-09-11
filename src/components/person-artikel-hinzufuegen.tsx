@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, Modal } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { PersonArtikelHinzufuegenProps, ItemType, Item } from '@/types';
 import { getAllItems } from '@/db/dbFunctions';
@@ -18,6 +18,9 @@ export default function PersonArtikelHinzufuegen({
   const [allItems, setAllItems] = useState<Item[]>([]);
   const [getraenke, setGetraenke] = useState<Item[]>([]);
   const [speisen, setSpeisen] = useState<Item[]>([]);
+  
+  // State für Suchfunktion
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Load items from database
   useEffect(() => {
@@ -51,6 +54,19 @@ export default function PersonArtikelHinzufuegen({
 
   const [getraenkeExpanded, setGetraenkeExpanded] = useState(false);
   const [speisenExpanded, setSpeisenExpanded] = useState(false);
+
+  // Funktion zum Filtern der Artikel basierend auf Suchbegriff
+  const filterItems = (items: Item[]) => {
+    if (!searchQuery.trim()) return items;
+    return items.filter(item =>
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.info && item.info.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+  };
+
+  // Gefilterte Listen
+  const filteredGetraenke = filterItems(getraenke);
+  const filteredSpeisen = filterItems(speisen);
 
   // State für ausgewählte Mengen
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
@@ -177,13 +193,23 @@ export default function PersonArtikelHinzufuegen({
 
         <ScrollView className="flex-1 px-4 py-6">
           {/* Person Header */}
-          <View className="bg-white rounded-lg p-4 mb-6 shadow-sm border border-gray-200">
+          <View className="bg-white rounded-lg p-4 mb-4 shadow-sm border border-gray-200">
             <Text className="text-xl font-bold text-gray-800 text-center mb-2">
               {person.name}
             </Text>
             <Text className="text-sm text-gray-600 text-center">
               Wählen Sie Artikel zum Hinzufügen aus
             </Text>
+          </View>
+
+          {/* Search Bar */}
+          <View className="mb-4">
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Artikel suchen..."
+              className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-base shadow-sm"
+            />
           </View>
 
           {/* Getränke Section */}
@@ -194,7 +220,10 @@ export default function PersonArtikelHinzufuegen({
             >
               <View className="flex-row justify-between items-center">
                 <Text className="text-lg font-bold text-gray-800">
-                  🍺 Getränke ({getraenke.length})
+                  🍺 Getränke ({filteredGetraenke.length})
+                  {searchQuery.trim() && filteredGetraenke.length !== getraenke.length && (
+                    <Text className="text-sm text-gray-500"> • {getraenke.length} gesamt</Text>
+                  )}
                 </Text>
                 <Text className="text-gray-600 text-xl">
                   {getraenkeExpanded ? '▼' : '▶'}
@@ -204,46 +233,54 @@ export default function PersonArtikelHinzufuegen({
 
             {getraenkeExpanded && (
               <View className="p-2">
-                {getraenke.map((item) => (
-                  <View key={item.id} className="flex-row justify-between items-center py-3 px-2 border-b border-gray-50 last:border-b-0">
-                    <View className="flex-1">
-                      <Text className="text-base font-medium text-gray-800">
-                        {getItemEmoji(item.name, 'getraenk')} {item.name}
-                      </Text>
-                      {item.info && (
-                        <Text className="text-sm text-gray-600 mt-1">
-                          {item.info}
+                {filteredGetraenke.length > 0 ? (
+                  filteredGetraenke.map((item) => (
+                    <View key={item.id} className="flex-row justify-between items-center py-3 px-2 border-b border-gray-50 last:border-b-0">
+                      <View className="flex-1">
+                        <Text className="text-base font-medium text-gray-800">
+                          {getItemEmoji(item.name, 'getraenk')} {item.name}
                         </Text>
-                      )}
-                      <Text className="text-sm font-semibold text-green-600 mt-1">
-                        {getDisplayPrice(item.price).toFixed(2)}€
-                        {isTrainingsstrichActive && item.type === ItemType.Drink && item.price !== 1.0 && (
-                          <Text className="text-xs text-gray-400 line-through ml-2">
-                            {item.price.toFixed(2)}€
+                        {item.info && (
+                          <Text className="text-sm text-gray-600 mt-1">
+                            {item.info}
                           </Text>
                         )}
-                      </Text>
+                        <Text className="text-sm font-semibold text-green-600 mt-1">
+                          {getDisplayPrice(item.price).toFixed(2)}€
+                          {isTrainingsstrichActive && item.type === ItemType.Drink && item.price !== 1.0 && (
+                            <Text className="text-xs text-gray-400 line-through ml-2">
+                              {item.price.toFixed(2)}€
+                            </Text>
+                          )}
+                        </Text>
+                      </View>
+                      <View className="flex-row items-center gap-3">
+                        <TouchableOpacity
+                          onPress={() => item.id && updateQuantity(item.id, -1)}
+                          className="bg-red-100 w-8 h-8 rounded-full justify-center items-center"
+                          disabled={(selectedQuantities[item.id || 0] || 0) === 0}
+                        >
+                          <Text className="text-red-700 font-bold text-lg">−</Text>
+                        </TouchableOpacity>
+                        <Text className="text-lg font-bold text-gray-800 w-8 text-center">
+                          {selectedQuantities[item.id || 0] || 0}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => item.id && updateQuantity(item.id, 1)}
+                          className="bg-green-100 w-8 h-8 rounded-full justify-center items-center"
+                        >
+                          <Text className="text-green-700 font-bold text-lg">+</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                    <View className="flex-row items-center gap-3">
-                      <TouchableOpacity
-                        onPress={() => item.id && updateQuantity(item.id, -1)}
-                        className="bg-red-100 w-8 h-8 rounded-full justify-center items-center"
-                        disabled={(selectedQuantities[item.id || 0] || 0) === 0}
-                      >
-                        <Text className="text-red-700 font-bold text-lg">−</Text>
-                      </TouchableOpacity>
-                      <Text className="text-lg font-bold text-gray-800 w-8 text-center">
-                        {selectedQuantities[item.id || 0] || 0}
-                      </Text>
-                      <TouchableOpacity
-                        onPress={() => item.id && updateQuantity(item.id, 1)}
-                        className="bg-green-100 w-8 h-8 rounded-full justify-center items-center"
-                      >
-                        <Text className="text-green-700 font-bold text-lg">+</Text>
-                      </TouchableOpacity>
-                    </View>
+                  ))
+                ) : (
+                  <View className="p-4">
+                    <Text className="text-gray-500 text-center">
+                      Keine Getränke gefunden für "{searchQuery}"
+                    </Text>
                   </View>
-                ))}
+                )}
               </View>
             )}
           </View>
@@ -256,7 +293,10 @@ export default function PersonArtikelHinzufuegen({
             >
               <View className="flex-row justify-between items-center">
                 <Text className="text-lg font-bold text-gray-800">
-                  🍽️ Speisen ({speisen.length})
+                  🍽️ Speisen ({filteredSpeisen.length})
+                  {searchQuery.trim() && filteredSpeisen.length !== speisen.length && (
+                    <Text className="text-sm text-gray-500"> • {speisen.length} gesamt</Text>
+                  )}
                 </Text>
                 <Text className="text-gray-600 text-xl">
                   {speisenExpanded ? '▼' : '▶'}
@@ -266,41 +306,49 @@ export default function PersonArtikelHinzufuegen({
 
             {speisenExpanded && (
               <View className="p-2">
-                {speisen.map((item) => (
-                  <View key={item.id} className="flex-row justify-between items-center py-3 px-2 border-b border-gray-50 last:border-b-0">
-                    <View className="flex-1">
-                      <Text className="text-base font-medium text-gray-800">
-                        {getItemEmoji(item.name, 'speise')} {item.name}
-                      </Text>
-                      {item.info && (
-                        <Text className="text-sm text-gray-600 mt-1">
-                          {item.info}
+                {filteredSpeisen.length > 0 ? (
+                  filteredSpeisen.map((item) => (
+                    <View key={item.id} className="flex-row justify-between items-center py-3 px-2 border-b border-gray-50 last:border-b-0">
+                      <View className="flex-1">
+                        <Text className="text-base font-medium text-gray-800">
+                          {getItemEmoji(item.name, 'speise')} {item.name}
                         </Text>
-                      )}
-                      <Text className="text-sm font-semibold text-green-600 mt-1">
-                        {item.price.toFixed(2)}€
-                      </Text>
+                        {item.info && (
+                          <Text className="text-sm text-gray-600 mt-1">
+                            {item.info}
+                          </Text>
+                        )}
+                        <Text className="text-sm font-semibold text-green-600 mt-1">
+                          {item.price.toFixed(2)}€
+                        </Text>
+                      </View>
+                      <View className="flex-row items-center gap-3">
+                        <TouchableOpacity
+                          onPress={() => item.id && updateQuantity(item.id, -1)}
+                          className="bg-red-100 w-8 h-8 rounded-full justify-center items-center"
+                          disabled={(selectedQuantities[item.id || 0] || 0) === 0}
+                        >
+                          <Text className="text-red-700 font-bold text-lg">−</Text>
+                        </TouchableOpacity>
+                        <Text className="text-lg font-bold text-gray-800 w-8 text-center">
+                          {selectedQuantities[item.id || 0] || 0}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => item.id && updateQuantity(item.id, 1)}
+                          className="bg-green-100 w-8 h-8 rounded-full justify-center items-center"
+                        >
+                          <Text className="text-green-700 font-bold text-lg">+</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                    <View className="flex-row items-center gap-3">
-                      <TouchableOpacity
-                        onPress={() => item.id && updateQuantity(item.id, -1)}
-                        className="bg-red-100 w-8 h-8 rounded-full justify-center items-center"
-                        disabled={(selectedQuantities[item.id || 0] || 0) === 0}
-                      >
-                        <Text className="text-red-700 font-bold text-lg">−</Text>
-                      </TouchableOpacity>
-                      <Text className="text-lg font-bold text-gray-800 w-8 text-center">
-                        {selectedQuantities[item.id || 0] || 0}
-                      </Text>
-                      <TouchableOpacity
-                        onPress={() => item.id && updateQuantity(item.id, 1)}
-                        className="bg-green-100 w-8 h-8 rounded-full justify-center items-center"
-                      >
-                        <Text className="text-green-700 font-bold text-lg">+</Text>
-                      </TouchableOpacity>
-                    </View>
+                  ))
+                ) : (
+                  <View className="p-4">
+                    <Text className="text-gray-500 text-center">
+                      Keine Speisen gefunden für "{searchQuery}"
+                    </Text>
                   </View>
-                ))}
+                )}
               </View>
             )}
           </View>
