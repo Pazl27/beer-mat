@@ -548,7 +548,7 @@ export default function PersonenPage() {
                       {/* Getränke Summary */}
                       {grouped.getraenke.length > 0 && (
                         <View className="bg-white rounded-lg p-4 mb-4 shadow-sm border border-gray-200">
-                          <Text className="text-xl font-bold text-gray-800 mb-3">
+                          <Text className="text-xl font-bold text-gray-800 mb-3 text-center">
                             🍺 Getränke
                           </Text>
                           {grouped.getraenke.map((item, index) => (
@@ -572,7 +572,7 @@ export default function PersonenPage() {
                       {/* Speisen Summary */}
                       {grouped.speisen.length > 0 && (
                         <View className="bg-white rounded-lg p-4 mb-4 shadow-sm border border-gray-200">
-                          <Text className="text-xl font-bold text-gray-800 mb-3">
+                          <Text className="text-xl font-bold text-gray-800 mb-3 text-center">
                             🍽️ Speisen
                           </Text>
                           {grouped.speisen.map((item, index) => (
@@ -594,8 +594,8 @@ export default function PersonenPage() {
                       )}
 
                       {selectedPersonForDetails.items.length === 0 && (
-                        <View className="bg-white rounded-lg p-6 text-center shadow-sm border border-gray-200">
-                          <Text className="text-gray-500 text-lg">Keine offenen Artikel</Text>
+                        <View className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                          <Text className="text-gray-500 text-lg text-center">Keine offenen Artikel</Text>
                         </View>
                       )}
                     </>
@@ -604,7 +604,7 @@ export default function PersonenPage() {
               ) : (
                 // Historie Tab - Payment history
                 <View className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-                  <Text className="text-xl font-bold text-gray-800 mb-3">
+                  <Text className="text-xl font-bold text-gray-800 mb-3 text-center">
                     💰 Zahlungshistorie
                   </Text>
                   {personHistory.length > 0 ? (
