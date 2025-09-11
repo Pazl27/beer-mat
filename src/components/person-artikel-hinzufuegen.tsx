@@ -113,9 +113,10 @@ export default function PersonArtikelHinzufuegen({
       const item = allItems.find(i => i.id === Number(itemId));
 
       if (item && item.id !== undefined) {
-        // Für Getränke den effektiven Preis in Cents verwenden, für Speisen den normalen Preis
+        // Für Getränke den effektiven Preis verwenden, für Speisen den normalen Preis
+        // item.price ist bereits in Euros, daher für beide Typen mit 100 multiplizieren
         const effectivePrice = item.type === ItemType.Drink 
-          ? getEffectivePrice(item.price) 
+          ? Math.round(getDisplayPrice(item.price) * 100) // getDisplayPrice gibt Euros zurück, daher * 100 für Cents
           : Math.round(item.price * 100); // Speisen in Cents konvertieren
         
         itemsToAdd.push({

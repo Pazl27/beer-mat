@@ -241,7 +241,7 @@ export default function PersonenPage() {
         const dbItem = {
           id: selectedItem.itemId,
           name: selectedItem.name,
-          price: Math.round(selectedItem.price * 100), // Convert euros back to cents
+          price: selectedItem.price, // selectedItem.price ist bereits in Cents von der Komponente
           type: selectedItem.type,
           info: undefined,
           category: undefined
