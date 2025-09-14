@@ -130,6 +130,23 @@ export default function Layout() {
                 }}
               />
             ),
+            warning: (internalState) => (
+              <BaseToast
+                {...internalState}
+                style={{
+                  backgroundColor: '#F59E0B',
+                  borderLeftColor: '#F59E0B',
+                  borderLeftWidth: 0,
+                  zIndex: 999999,
+                  elevation: 999999,
+                }}
+                text1Style={{
+                  fontSize: 15,
+                  fontWeight: 'bold',
+                  color: 'white'
+                }}
+              />
+            ),
           }} />
         </TrainingsstrichProvider>
       </SQLiteProvider>

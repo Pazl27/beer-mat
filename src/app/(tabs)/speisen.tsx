@@ -8,6 +8,7 @@ import { Speise } from '@/types';
 import { FoodCategory } from '@/types/category';
 import { getAllFoodItems, createFoodItem, updateFoodItem, deleteFoodItem, addItemToUser } from '@/db/dbFunctions';
 import { ItemType, Item, Person } from '@/types';
+import { showWarningToast } from '@/utils/toast';
 
 export default function SpeisenPage() {
   const [speisen, setSpeisen] = useState<Speise[]>([]);
@@ -69,27 +70,34 @@ export default function SpeisenPage() {
   };
 
   const addSpeise = async () => {
-    if (newSpeise.name.trim() && newSpeise.price) {
-      try {
-        const priceInCents = Math.round(parseFloat(newSpeise.price) * 100);
-        const newFoodItem = await createFoodItem(db, {
-          name: newSpeise.name.trim(),
-          price: priceInCents,
-          category: newSpeise.category,
-          info: newSpeise.info.trim() || undefined
-        });
+    if (!newSpeise.name.trim()) {
+      showWarningToast('Bitte geben Sie einen Namen ein');
+      return;
+    }
+    if (!newSpeise.price || isNaN(parseFloat(newSpeise.price))) {
+      showWarningToast('Bitte geben Sie einen gültigen Preis ein');
+      return;
+    }
 
-        if (newFoodItem) {
-          setNewSpeise({ name: '', price: '', category: FoodCategory.Hauptgericht, info: '' });
-          setShowAddForm(false);
-          loadSpeisen(); // Reload data from database
-        } else {
-          Alert.alert("Fehler", "Speise konnte nicht hinzugefügt werden");
-        }
-      } catch (error) {
-        console.error("Error adding speise:", error);
-        Alert.alert("Fehler", "Fehler beim Hinzufügen der Speise");
+    try {
+      const priceInCents = Math.round(parseFloat(newSpeise.price) * 100);
+      const newFoodItem = await createFoodItem(db, {
+        name: newSpeise.name.trim(),
+        price: priceInCents,
+        category: newSpeise.category,
+        info: newSpeise.info.trim() || undefined
+      });
+
+      if (newFoodItem) {
+        setNewSpeise({ name: '', price: '', category: FoodCategory.Hauptgericht, info: '' });
+        setShowAddForm(false);
+        loadSpeisen(); // Reload data from database
+      } else {
+        Alert.alert("Fehler", "Speise konnte nicht hinzugefügt werden");
       }
+    } catch (error) {
+      console.error("Error adding speise:", error);
+      Alert.alert("Fehler", "Fehler beim Hinzufügen der Speise");
     }
   };
 

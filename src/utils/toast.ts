@@ -29,3 +29,13 @@ export const showInfoToast = (message: string) => {
     position: 'top',
   });
 };
+
+export const showWarningToast = (message: string) => {
+  Toast.show({
+    type: 'warning',
+    text1: message,
+    visibilityTime: 3000,
+    autoHide: true,
+    position: 'top',
+  });
+};

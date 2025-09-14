@@ -6,7 +6,7 @@ import PersonBegleichen from '@/components/person-begleichen';
 import PersonArtikelHinzufuegen from '@/components/person-artikel-hinzufuegen';
 import { ItemType, Person, History } from '@/types';
 import { getAllUsers, createUser, deleteUser, clearUserDebt, payUserItem, getDetailedHistoryForUser, addItemToUser, clearUserHistory } from '@/db/dbFunctions';
-import { showSuccessToast } from '@/utils/toast';
+import { showSuccessToast, showWarningToast } from '@/utils/toast';
 
 export default function PersonenPage() {
   const [persons, setPersons] = useState<Person[]>([]);
@@ -99,18 +99,21 @@ export default function PersonenPage() {
   );
 
   const addPerson = async () => {
-    if (newPersonName.trim()) {
-      try {
-        const newPerson = await createUser(db, newPersonName.trim());
-        if (newPerson) {
-          await loadPersons(); // Reload from database
-          setNewPersonName('');
-          setShowAddForm(false);
-        }
-      } catch (error) {
-        console.error("Error adding person:", error);
-        Alert.alert("Fehler", "Person konnte nicht hinzugefügt werden");
+    if (!newPersonName.trim()) {
+      showWarningToast('Bitte geben Sie einen Namen ein');
+      return;
+    }
+
+    try {
+      const newPerson = await createUser(db, newPersonName.trim());
+      if (newPerson) {
+        await loadPersons(); // Reload from database
+        setNewPersonName('');
+        setShowAddForm(false);
       }
+    } catch (error) {
+      console.error("Error adding person:", error);
+      Alert.alert("Fehler", "Person konnte nicht hinzugefügt werden");
     }
   };
 

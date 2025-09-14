@@ -9,6 +9,7 @@ import { DrinkCategory } from '@/types/category';
 import { getAllDrinkItems, createDrinkItem, updateDrinkItem, deleteDrinkItem, addItemToUser } from '@/db/dbFunctions';
 import { ItemType, Item, Person } from '@/types';
 import { useTrainingsstrich } from '@/contexts/TrainingsstrichContext';
+import { showWarningToast } from '@/utils/toast';
 
 export default function GetraenkePage() {
   const [getraenke, setGetraenke] = useState<Getraenk[]>([]);
@@ -70,27 +71,34 @@ export default function GetraenkePage() {
   };
 
   const addGetraenk = async () => {
-    if (newGetraenk.name.trim() && newGetraenk.price) {
-      try {
-        const priceInCents = Math.round(parseFloat(newGetraenk.price) * 100);
-        const newDrinkItem = await createDrinkItem(db, {
-          name: newGetraenk.name.trim(),
-          price: priceInCents,
-          category: newGetraenk.category,
-          info: newGetraenk.info.trim() || undefined
-        });
+    if (!newGetraenk.name.trim()) {
+      showWarningToast('Bitte geben Sie einen Namen ein');
+      return;
+    }
+    if (!newGetraenk.price || isNaN(parseFloat(newGetraenk.price))) {
+      showWarningToast('Bitte geben Sie einen gültigen Preis ein');
+      return;
+    }
 
-        if (newDrinkItem) {
-          setNewGetraenk({ name: '', price: '', category: DrinkCategory.Bier, info: '' });
-          setShowAddForm(false);
-          loadGetraenke(); // Reload data from database
-        } else {
-          Alert.alert("Fehler", "Getränk konnte nicht hinzugefügt werden");
-        }
-      } catch (error) {
-        console.error("Error adding getraenk:", error);
-        Alert.alert("Fehler", "Fehler beim Hinzufügen des Getränks");
+    try {
+      const priceInCents = Math.round(parseFloat(newGetraenk.price) * 100);
+      const newDrinkItem = await createDrinkItem(db, {
+        name: newGetraenk.name.trim(),
+        price: priceInCents,
+        category: newGetraenk.category,
+        info: newGetraenk.info.trim() || undefined
+      });
+
+      if (newDrinkItem) {
+        setNewGetraenk({ name: '', price: '', category: DrinkCategory.Bier, info: '' });
+        setShowAddForm(false);
+        loadGetraenke(); // Reload data from database
+      } else {
+        Alert.alert("Fehler", "Getränk konnte nicht hinzugefügt werden");
       }
+    } catch (error) {
+      console.error("Error adding getraenk:", error);
+      Alert.alert("Fehler", "Fehler beim Hinzufügen des Getränks");
     }
   };
 
