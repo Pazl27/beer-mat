@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, Modal } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, Animated } from 'react-native';
 import { Person, GroupedItem, ItemType, PersonBegleichenProps } from '@/types';
+import { showSuccessToast } from '@/utils/toast';
 
 export default function PersonBegleichen({
   person,
@@ -9,6 +10,28 @@ export default function PersonBegleichen({
   onPayItem,
   onPayAll
 }: PersonBegleichenProps) {
+  const [inModalToast, setInModalToast] = useState<{message: string, visible: boolean}>({message: '', visible: false});
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const showInModalToast = (message: string) => {
+    setInModalToast({message, visible: true});
+    
+    Animated.sequence([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.delay(2000),
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setInModalToast({message: '', visible: false});
+    });
+  };
+
   // Group items by name, type AND price for summary
   const getGroupedItems = (person: Person) => {
     const grouped = person.items.reduce((acc, item) => {
@@ -44,7 +67,7 @@ export default function PersonBegleichen({
           text: 'Begleichen',
           onPress: () => {
             onPayItem(person.id, itemName, itemType, unitPrice);
-            Alert.alert('Beglichen', `1x "${itemName}" (${unitPrice.toFixed(2)}€) wurde beglichen.`);
+            showInModalToast(`1x "${itemName}" (${unitPrice.toFixed(2)}€) wurde beglichen.`);
           }
         }
       ]
@@ -72,7 +95,10 @@ export default function PersonBegleichen({
           onPress: () => {
             onPayAll(person.id);
             onClose();
-            Alert.alert('Beglichen', `Alle Schulden von ${person.name} wurden beglichen.`);
+            // Toast nach Modal-Schließung anzeigen
+            setTimeout(() => {
+              showSuccessToast(`Alle Schulden von ${person.name} wurden beglichen.`);
+            }, 300);
           }
         }
       ]
@@ -85,7 +111,7 @@ export default function PersonBegleichen({
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="pageSheet"
+      transparent={true}
     >
       <View className="flex-1 bg-gray-50">
         {/* Modal Header */}
@@ -206,6 +232,27 @@ export default function PersonBegleichen({
             </TouchableOpacity>
           </View>
         </ScrollView>
+
+        {/* In-Modal Toast */}
+        {inModalToast.visible && (
+          <Animated.View 
+            style={{
+              position: 'absolute',
+              top: 60,
+              left: 20,
+              right: 20,
+              backgroundColor: '#10B981',
+              padding: 15,
+              borderRadius: 8,
+              opacity: fadeAnim,
+              zIndex: 1000,
+            }}
+          >
+            <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
+              {inModalToast.message}
+            </Text>
+          </Animated.View>
+        )}
       </View>
     </Modal>
   );

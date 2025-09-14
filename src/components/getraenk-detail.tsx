@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { Getraenk, GetraenkDetailsProps } from '@/types';
 import { DrinkCategory } from '@/types/category';
+import { showSuccessToast, showErrorToast } from '@/utils/toast';
 
 export default function GetraenkDetails({
   getraenk,
@@ -29,12 +30,12 @@ export default function GetraenkDetails({
   const handleSave = () => {
     const price = parseFloat(editedPrice);
     if (isNaN(price) || price <= 0) {
-      Alert.alert('Fehler', 'Bitte geben Sie einen gültigen Preis ein.');
+      showErrorToast('Bitte geben Sie einen gültigen Preis ein.');
       return;
     }
 
     if (!editedName.trim()) {
-      Alert.alert('Fehler', 'Bitte geben Sie einen Namen für das Getränk ein.');
+      showErrorToast('Bitte geben Sie einen Namen für das Getränk ein.');
       return;
     }
 
@@ -48,7 +49,10 @@ export default function GetraenkDetails({
 
     onUpdate(updatedGetraenk);
     onClose();
-    Alert.alert('Gespeichert', 'Das Getränk wurde erfolgreich aktualisiert.');
+    // Toast nach Modal-Schließung anzeigen
+    setTimeout(() => {
+      showSuccessToast('Das Getränk wurde erfolgreich aktualisiert.');
+    }, 300);
   };
 
   const handleDelete = () => {
@@ -63,7 +67,10 @@ export default function GetraenkDetails({
           onPress: () => {
             onDelete(getraenk.id);
             onClose();
-            Alert.alert('Gelöscht', `"${getraenk.name}" wurde gelöscht.`);
+            // Toast nach Modal-Schließung anzeigen
+            setTimeout(() => {
+              showSuccessToast(`"${getraenk.name}" wurde gelöscht.`);
+            }, 300);
           }
         }
       ]

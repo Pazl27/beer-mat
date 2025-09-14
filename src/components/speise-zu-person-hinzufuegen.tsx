@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput } fro
 import { useSQLiteContext } from 'expo-sqlite';
 import { Person, SpeiseZuPersonHinzufuegenProps } from '@/types';
 import { getAllUsers } from '@/db/dbFunctions';
+import { showSuccessToast, showErrorToast } from '@/utils/toast';
 
 export default function SpeiseZuPersonHinzufuegen({
   speise,
@@ -41,7 +42,7 @@ export default function SpeiseZuPersonHinzufuegen({
       setPersons(sortedPersons);
     } catch (error) {
       console.error("Error loading persons:", error);
-      Alert.alert("Fehler", "Personen konnten nicht geladen werden");
+      showErrorToast("Personen konnten nicht geladen werden");
     }
   };
 
@@ -86,7 +87,7 @@ export default function SpeiseZuPersonHinzufuegen({
 
   const handleAddToPersons = () => {
     if (Object.keys(selectedQuantities).length === 0) {
-      Alert.alert('Keine Auswahl', 'Bitte wählen Sie mindestens eine Person aus.');
+      showErrorToast('Bitte wählen Sie mindestens eine Person aus.');
       return;
     }
 
@@ -115,13 +116,15 @@ export default function SpeiseZuPersonHinzufuegen({
               setSelectedQuantities({});
               onClose();
 
-              Alert.alert(
-                'Hinzugefügt',
-                `${totalItems}x "${speise.name}" wurde zu ${personNames.join(', ')} hinzugefügt.`
-              );
+              // Toast nach Modal-Schließung anzeigen
+              setTimeout(() => {
+                showSuccessToast(
+                  `${totalItems}x "${speise.name}" wurde zu ${personNames.join(', ')} hinzugefügt.`
+                );
+              }, 300);
             } catch (error) {
               console.error("Error in handleAddToPersons:", error);
-              Alert.alert("Fehler", "Fehler beim Hinzufügen der Speise");
+              showErrorToast("Fehler beim Hinzufügen der Speise");
             }
           }
         }

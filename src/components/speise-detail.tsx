@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { Speise, SpeiseDetailsProps } from '@/types';
 import { FoodCategory } from '@/types/category';
+import { showSuccessToast, showErrorToast } from '@/utils/toast';
 
 export default function SpeiseDetails({
   speise,
@@ -30,12 +31,12 @@ export default function SpeiseDetails({
   const handleSave = () => {
     const price = parseFloat(editedPrice);
     if (isNaN(price) || price <= 0) {
-      Alert.alert('Fehler', 'Bitte geben Sie einen gültigen Preis ein.');
+      showErrorToast('Bitte geben Sie einen gültigen Preis ein.');
       return;
     }
 
     if (!editedName.trim()) {
-      Alert.alert('Fehler', 'Bitte geben Sie einen Namen für die Speise ein.');
+      showErrorToast('Bitte geben Sie einen Namen für die Speise ein.');
       return;
     }
 
@@ -49,7 +50,10 @@ export default function SpeiseDetails({
 
     onUpdate(updatedSpeise);
     onClose();
-    Alert.alert('Gespeichert', 'Die Speise wurde erfolgreich aktualisiert.');
+    // Toast nach Modal-Schließung anzeigen
+    setTimeout(() => {
+      showSuccessToast('Die Speise wurde erfolgreich aktualisiert.');
+    }, 300);
   };
 
   const handleDelete = () => {
@@ -64,7 +68,10 @@ export default function SpeiseDetails({
           onPress: () => {
             onDelete(speise.id);
             onClose();
-            Alert.alert('Gelöscht', `"${speise.name}" wurde gelöscht.`);
+            // Toast nach Modal-Schließung anzeigen
+            setTimeout(() => {
+              showSuccessToast(`"${speise.name}" wurde gelöscht.`);
+            }, 300);
           }
         }
       ]

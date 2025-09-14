@@ -4,6 +4,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { Person, ItemType, GetraenkZuPersonHinzufuegenProps } from '@/types';
 import { getAllUsers } from '@/db/dbFunctions';
 import { useTrainingsstrich } from '@/contexts/TrainingsstrichContext';
+import { showSuccessToast, showErrorToast } from '@/utils/toast';
 
 export default function GetraenkZuPersonHinzufuegen({
   getraenk,
@@ -43,7 +44,7 @@ export default function GetraenkZuPersonHinzufuegen({
       setPersons(sortedPersons);
     } catch (error) {
       console.error("Error loading persons:", error);
-      Alert.alert("Fehler", "Personen konnten nicht geladen werden");
+      showErrorToast("Personen konnten nicht geladen werden");
     }
   };
 
@@ -90,7 +91,7 @@ export default function GetraenkZuPersonHinzufuegen({
 
   const handleAddToPersons = () => {
     if (Object.keys(selectedQuantities).length === 0) {
-      Alert.alert('Keine Auswahl', 'Bitte wählen Sie mindestens eine Person aus.');
+      showErrorToast('Bitte wählen Sie mindestens eine Person aus.');
       return;
     }
 
@@ -104,26 +105,36 @@ export default function GetraenkZuPersonHinzufuegen({
         { text: 'Abbrechen', style: 'cancel' },
         {
           text: 'Hinzufügen',
-          onPress: () => {
-            Object.entries(selectedQuantities).forEach(([personId, quantity]) => {
-              const person = persons.find(p => p.id === Number(personId));
-              if (person) {
-                onAddToPerson(person, getraenk, quantity);
-              }
-            });
+          onPress: async () => {
+            try {
+              const totalItems = getTotalItems();
+              const personNames = Object.keys(selectedQuantities)
+                .map(id => persons.find(p => p.id === Number(id))?.name)
+                .filter(Boolean)
+                .join(', ');
 
-            setSelectedQuantities({});
-            onClose();
+              const promises = Object.entries(selectedQuantities).map(async ([personId, quantity]) => {
+                const person = persons.find(p => p.id === Number(personId));
+                if (person) {
+                  await onAddToPerson(person, getraenk, quantity);
+                }
+              });
 
-            const personNames = Object.keys(selectedQuantities)
-              .map(id => persons.find(p => p.id === Number(id))?.name)
-              .filter(Boolean)
-              .join(', ');
+              await Promise.all(promises);
 
-            Alert.alert(
-              'Hinzugefügt',
-              `${totalItems}x "${getraenk.name}" wurde zu ${personNames} hinzugefügt.`
-            );
+              setSelectedQuantities({});
+              onClose();
+
+              // Toast nach Modal-Schließung anzeigen
+              setTimeout(() => {
+                showSuccessToast(
+                  `${totalItems}x "${getraenk.name}" wurde zu ${personNames} hinzugefügt.`
+                );
+              }, 300);
+            } catch (error) {
+              console.error("Error adding drink to persons:", error);
+              showErrorToast('Getränk konnte nicht hinzugefügt werden');
+            }
           }
         }
       ]

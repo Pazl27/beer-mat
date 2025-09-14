@@ -4,6 +4,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { PersonArtikelHinzufuegenProps, ItemType, Item } from '@/types';
 import { getAllItems } from '@/db/dbFunctions';
 import { useTrainingsstrich } from '@/contexts/TrainingsstrichContext';
+import { showSuccessToast, showErrorToast } from '@/utils/toast';
 
 export default function PersonArtikelHinzufuegen({
   person,
@@ -48,7 +49,7 @@ export default function PersonArtikelHinzufuegen({
       setSpeisen(food.filter(item => item.id !== undefined) as Item[]);
     } catch (error) {
       console.error("Error loading items:", error);
-      Alert.alert("Fehler", "Artikel konnten nicht geladen werden");
+      showErrorToast("Artikel konnten nicht geladen werden");
     }
   };
 
@@ -146,7 +147,7 @@ export default function PersonArtikelHinzufuegen({
     });
 
     if (itemsToAdd.length === 0) {
-      Alert.alert('Keine Auswahl', 'Bitte wählen Sie mindestens einen Artikel aus.');
+      showErrorToast('Bitte wählen Sie mindestens einen Artikel aus.');
       return;
     }
 
@@ -157,11 +158,19 @@ export default function PersonArtikelHinzufuegen({
         { text: 'Abbrechen', style: 'cancel' },
         {
           text: 'Hinzufügen',
-          onPress: () => {
-            onAddItems(person.id, itemsToAdd);
-            setSelectedQuantities({});
-            onClose();
-            Alert.alert('Hinzugefügt', `${getTotalItems()} Artikel wurden zu ${person.name} hinzugefügt.`);
+          onPress: async () => {
+            try {
+              await onAddItems(person.id, itemsToAdd);
+              setSelectedQuantities({});
+              onClose();
+              // Toast nach Modal-Schließung anzeigen
+              setTimeout(() => {
+                showSuccessToast(`${getTotalItems()} Artikel wurden zu ${person.name} hinzugefügt.`);
+              }, 300);
+            } catch (error) {
+              console.error("Error adding items:", error);
+              showErrorToast('Artikel konnten nicht hinzugefügt werden');
+            }
           }
         }
       ]

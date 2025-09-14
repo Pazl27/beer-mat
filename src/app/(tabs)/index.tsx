@@ -6,6 +6,7 @@ import PersonBegleichen from '@/components/person-begleichen';
 import PersonArtikelHinzufuegen from '@/components/person-artikel-hinzufuegen';
 import { ItemType, Person, History } from '@/types';
 import { getAllUsers, createUser, deleteUser, clearUserDebt, payUserItem, getDetailedHistoryForUser, addItemToUser, clearUserHistory } from '@/db/dbFunctions';
+import { showSuccessToast } from '@/utils/toast';
 
 export default function PersonenPage() {
   const [persons, setPersons] = useState<Person[]>([]);
@@ -170,7 +171,7 @@ export default function PersonenPage() {
               await deleteUser(db, personId);
               await loadPersons(); // Reload from database
               setSelectedPersonForDetails(null);
-              Alert.alert('Info', `${personName} wurde gelöscht`);
+              showSuccessToast(`${personName} wurde gelöscht`);
             } catch (error) {
               console.error("Error deleting person:", error);
               Alert.alert("Fehler", "Person konnte nicht gelöscht werden");
@@ -197,7 +198,7 @@ export default function PersonenPage() {
               if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
                 await loadPersonHistory(personId);
               }
-              Alert.alert('Info', `Historie von ${personName} wurde gelöscht`);
+              showSuccessToast(`Historie von ${personName} wurde gelöscht`);
             } catch (error) {
               console.error("Error clearing history:", error);
               Alert.alert("Fehler", "Historie konnte nicht gelöscht werden");

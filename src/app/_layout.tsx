@@ -6,6 +6,7 @@ import { SQLiteProvider, openDatabaseSync } from "expo-sqlite";
 import { addDummyData } from "@/db/addDummyData";
 import { initializeDatabase } from "@/db/migrations";
 import { TrainingsstrichProvider } from "@/contexts/TrainingsstrichContext";
+import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
 
 export const DATABASE_NAME = "beer-mat";
 
@@ -72,6 +73,54 @@ export default function Layout() {
       >
         <TrainingsstrichProvider>
           <Slot />
+          <Toast config={{
+            success: (internalState) => (
+              <BaseToast
+                {...internalState}
+                style={{
+                  borderLeftColor: '#10B981',
+                  zIndex: 999999,
+                  elevation: 999999,
+                }}
+                contentContainerStyle={{ paddingHorizontal: 15 }}
+                text1Style={{
+                  fontSize: 15,
+                  fontWeight: '400'
+                }}
+              />
+            ),
+            error: (internalState) => (
+              <ErrorToast
+                {...internalState}
+                style={{
+                  borderLeftColor: '#EF4444',
+                  zIndex: 999999,
+                  elevation: 999999,
+                }}
+                text1Style={{
+                  fontSize: 15,
+                  fontWeight: '400'
+                }}
+                text2Style={{
+                  fontSize: 13
+                }}
+              />
+            ),
+            info: (internalState) => (
+              <BaseToast
+                {...internalState}
+                style={{
+                  borderLeftColor: '#3B82F6',
+                  zIndex: 999999,
+                  elevation: 999999,
+                }}
+                text1Style={{
+                  fontSize: 15,
+                  fontWeight: '400'
+                }}
+              />
+            ),
+          }} />
         </TrainingsstrichProvider>
       </SQLiteProvider>
     </Suspense>
