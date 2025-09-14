@@ -12,10 +12,18 @@ export default function PersonBegleichen({
 }: PersonBegleichenProps) {
   const [inModalToast, setInModalToast] = useState<{message: string, visible: boolean}>({message: '', visible: false});
   const [fadeAnim] = useState(new Animated.Value(0));
+  const [currentAnimation, setCurrentAnimation] = useState<Animated.CompositeAnimation | null>(null);
+
   const showInModalToast = (message: string) => {
+    // Stoppe vorherige Animation falls noch aktiv
+    if (currentAnimation) {
+      currentAnimation.stop();
+      setCurrentAnimation(null);
+    }
+
     setInModalToast({message, visible: true});
     
-    Animated.sequence([
+    const animation = Animated.sequence([
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 300,
@@ -27,8 +35,12 @@ export default function PersonBegleichen({
         duration: 300,
         useNativeDriver: true,
       }),
-    ]).start(() => {
+    ]);
+
+    setCurrentAnimation(animation);
+    animation.start(() => {
       setInModalToast({message: '', visible: false});
+      setCurrentAnimation(null);
     });
   };
 
