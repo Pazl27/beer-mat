@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal, Animated } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect } from '@react-navigation/native';
 import PersonBegleichen from '@/components/person-begleichen';
@@ -57,6 +57,30 @@ export default function PersonenPage() {
   const [selectedPersonForArtikelHinzufuegen, setSelectedPersonForArtikelHinzufuegen] = useState<Person | null>(null);
   const [activeDetailsTab, setActiveDetailsTab] = useState<'offen' | 'historie'>('offen');
   const [personHistory, setPersonHistory] = useState<(History & { itemName?: string; itemType?: ItemType })[]>([]);
+
+  // In-Modal Toast State für Details Modal
+  const [inModalToast, setInModalToast] = useState<{message: string, visible: boolean}>({message: '', visible: false});
+  const [fadeAnim] = useState(new Animated.Value(0));
+
+  const showInModalToast = (message: string) => {
+    setInModalToast({message, visible: true});
+    
+    Animated.sequence([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.delay(2000),
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setInModalToast({message: '', visible: false});
+    });
+  };
 
   // Filter persons based on search query
   const filteredPersons = persons.filter(person =>
@@ -198,7 +222,7 @@ export default function PersonenPage() {
               if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
                 await loadPersonHistory(personId);
               }
-              showSuccessToast(`Historie von ${personName} wurde gelöscht`);
+              showInModalToast(`Historie von ${personName} wurde gelöscht`);
             } catch (error) {
               console.error("Error clearing history:", error);
               Alert.alert("Fehler", "Historie konnte nicht gelöscht werden");
@@ -484,7 +508,7 @@ export default function PersonenPage() {
       <Modal
         visible={selectedPersonForDetails !== null}
         animationType="slide"
-        presentationStyle="pageSheet"
+        transparent={true}
       >
         {selectedPersonForDetails && (
           <View className="flex-1 bg-gray-50">
@@ -674,6 +698,27 @@ export default function PersonenPage() {
                 </View>
               )}
             </ScrollView>
+
+            {/* In-Modal Toast */}
+            {inModalToast.visible && (
+              <Animated.View 
+                style={{
+                  position: 'absolute',
+                  top: 60,
+                  left: 20,
+                  right: 20,
+                  backgroundColor: '#10B981',
+                  padding: 15,
+                  borderRadius: 8,
+                  opacity: fadeAnim,
+                  zIndex: 1000,
+                }}
+              >
+                <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
+                  {inModalToast.message}
+                </Text>
+              </Animated.View>
+            )}
           </View>
         )}
       </Modal>
