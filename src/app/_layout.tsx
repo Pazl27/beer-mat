@@ -78,14 +78,17 @@ export default function Layout() {
               <BaseToast
                 {...internalState}
                 style={{
+                  backgroundColor: '#10B981',
                   borderLeftColor: '#10B981',
+                  borderLeftWidth: 0,
                   zIndex: 999999,
                   elevation: 999999,
                 }}
                 contentContainerStyle={{ paddingHorizontal: 15 }}
                 text1Style={{
                   fontSize: 15,
-                  fontWeight: '400'
+                  fontWeight: 'bold',
+                  color: 'white'
                 }}
               />
             ),
@@ -93,16 +96,20 @@ export default function Layout() {
               <ErrorToast
                 {...internalState}
                 style={{
+                  backgroundColor: '#EF4444',
                   borderLeftColor: '#EF4444',
+                  borderLeftWidth: 0,
                   zIndex: 999999,
                   elevation: 999999,
                 }}
                 text1Style={{
                   fontSize: 15,
-                  fontWeight: '400'
+                  fontWeight: 'bold',
+                  color: 'white'
                 }}
                 text2Style={{
-                  fontSize: 13
+                  fontSize: 13,
+                  color: 'white'
                 }}
               />
             ),
@@ -110,13 +117,16 @@ export default function Layout() {
               <BaseToast
                 {...internalState}
                 style={{
+                  backgroundColor: '#3B82F6',
                   borderLeftColor: '#3B82F6',
+                  borderLeftWidth: 0,
                   zIndex: 999999,
                   elevation: 999999,
                 }}
                 text1Style={{
                   fontSize: 15,
-                  fontWeight: '400'
+                  fontWeight: 'bold',
+                  color: 'white'
                 }}
               />
             ),
