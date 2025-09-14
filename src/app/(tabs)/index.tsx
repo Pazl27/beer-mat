@@ -4,7 +4,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect } from '@react-navigation/native';
 import PersonBegleichen from '@/components/person-begleichen';
 import PersonArtikelHinzufuegen from '@/components/person-artikel-hinzufuegen';
-import { ItemType, Person, History } from '@/types';
+import { ItemType, Person, History, PaymentDetail } from '@/types';
 import { getAllUsers, createUser, deleteUser, clearUserDebt, payUserItem, getDetailedHistoryForUser, addItemToUser, clearUserHistory } from '@/db/dbFunctions';
 import { showSuccessToast, showWarningToast } from '@/utils/toast';
 
@@ -57,6 +57,7 @@ export default function PersonenPage() {
   const [selectedPersonForArtikelHinzufuegen, setSelectedPersonForArtikelHinzufuegen] = useState<Person | null>(null);
   const [activeDetailsTab, setActiveDetailsTab] = useState<'offen' | 'historie'>('offen');
   const [personHistory, setPersonHistory] = useState<(History & { itemName?: string; itemType?: ItemType })[]>([]);
+  const [expandedHistoryItems, setExpandedHistoryItems] = useState<Set<number>>(new Set());
 
   // In-Modal Toast State für Details Modal
   const [inModalToast, setInModalToast] = useState<{message: string, visible: boolean}>({message: '', visible: false});
@@ -97,6 +98,30 @@ export default function PersonenPage() {
   const filteredPersons = persons.filter(person =>
     person.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Helper function to toggle expanded history items
+  const toggleHistoryItemExpansion = (historyId: number) => {
+    setExpandedHistoryItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(historyId)) {
+        newSet.delete(historyId);
+      } else {
+        newSet.add(historyId);
+      }
+      return newSet;
+    });
+  };
+
+  // Helper function to parse and display payment details
+  const getPaymentDetails = (detailsJson?: string): PaymentDetail[] => {
+    if (!detailsJson) return [];
+    try {
+      return JSON.parse(detailsJson);
+    } catch (error) {
+      console.error('Error parsing payment details:', error);
+      return [];
+    }
+  };
 
   const addPerson = async () => {
     if (!newPersonName.trim()) {
@@ -679,31 +704,70 @@ export default function PersonenPage() {
                     </View>
                   </View>
                   {personHistory.length > 0 ? (
-                    personHistory.map((entry, index) => (
-                      <View key={entry.id} className="flex-row justify-between items-center py-3 border-b border-gray-100 last:border-b-0">
-                        <View className="flex-1">
-                          <Text className="text-base text-gray-700">
-                            {entry.itemName ? (
-                              `${entry.itemName} ${entry.itemType === 'drink' ? '🍺' : '🍽️'}`
-                            ) : (
-                              'Alle Schulden beglichen'
-                            )}
-                          </Text>
-                          <Text className="text-sm text-gray-500">
-                            {new Date(parseInt(entry.timestamp)).toLocaleDateString('de-DE', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </Text>
+                    personHistory.map((entry, index) => {
+                      const paymentDetails = getPaymentDetails(entry.details);
+                      const hasDetails = paymentDetails.length > 0;
+                      const isExpanded = expandedHistoryItems.has(entry.id);
+                      
+                      return (
+                        <View key={entry.id}>
+                          {/* Main History Entry */}
+                          <TouchableOpacity 
+                            onPress={() => hasDetails && toggleHistoryItemExpansion(entry.id)}
+                            className={`flex-row justify-between items-center py-3 border-b border-gray-100 ${hasDetails ? 'bg-gray-50' : ''}`}
+                            disabled={!hasDetails}
+                          >
+                            <View className="flex-1">
+                              <View className="flex-row items-center">
+                                <Text className="text-base text-gray-700">
+                                  {entry.itemName ? (
+                                    `${entry.itemName} ${entry.itemType === 'drink' ? '🍺' : '🍽️'}`
+                                  ) : (
+                                    'Alle Schulden beglichen'
+                                  )}
+                                </Text>
+                                {hasDetails && (
+                                  <Text className="text-gray-400 ml-2">
+                                    {isExpanded ? '▼' : '▶'}
+                                  </Text>
+                                )}
+                              </View>
+                              <Text className="text-sm text-gray-500">
+                                {new Date(parseInt(entry.timestamp)).toLocaleDateString('de-DE', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </Text>
+                            </View>
+                            <Text className="text-base font-semibold text-green-600">
+                              {entry.paid.toFixed(2)}€
+                            </Text>
+                          </TouchableOpacity>
+                          
+                          {/* Expanded Details */}
+                          {hasDetails && isExpanded && (
+                            <View className="bg-blue-50 px-4 py-3 border-b border-gray-100">
+                              <Text className="text-sm font-medium text-blue-800 mb-2">
+                                📋 Artikel-Details:
+                              </Text>
+                              {paymentDetails.map((detail, detailIndex) => (
+                                <View key={detailIndex} className="flex-row justify-between items-center py-1">
+                                  <Text className="text-sm text-blue-700">
+                                    {detail.quantity}x {detail.name} {detail.type === 'drink' ? '🍺' : '🍽️'}
+                                  </Text>
+                                  <Text className="text-sm font-medium text-blue-800">
+                                    {(detail.price / 100 * detail.quantity).toFixed(2)}€
+                                  </Text>
+                                </View>
+                              ))}
+                            </View>
+                          )}
                         </View>
-                        <Text className="text-base font-semibold text-green-600">
-                          {entry.paid.toFixed(2)}€
-                        </Text>
-                      </View>
-                    ))
+                      );
+                    })
                   ) : (
                     <Text className="text-gray-500 text-center py-4">
                       Keine Zahlungen bisher

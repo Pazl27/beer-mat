@@ -1,5 +1,5 @@
 import { SQLiteDatabase } from "expo-sqlite";
-import { Person, Item, ItemType, History, Speise, Getraenk } from "@/types"
+import { Person, Item, ItemType, History, Speise, Getraenk, PaymentDetail } from "@/types"
 import { DrinkCategory, FoodCategory } from "@/types/category";
 
 export const createUser = async (db: SQLiteDatabase, name: string): Promise<Person | undefined> => {
@@ -308,10 +308,41 @@ export const clearUserDebt = async (db: SQLiteDatabase, userId: number): Promise
       [userId]
     );
 
+    // Collect payment details before clearing items
+    const userItems = await getItemsForUser(db, userId);
+    const details: PaymentDetail[] = [];
+    
+    // Count quantities for each unique item
+    const itemCounts = new Map<string, {name: string, price: number, type: 'drink' | 'food', count: number}>();
+    
+    userItems.forEach(item => {
+      const key = `${item.name}-${item.price}-${item.type}`;
+      if (itemCounts.has(key)) {
+        itemCounts.get(key)!.count += 1;
+      } else {
+        itemCounts.set(key, {
+          name: item.name,
+          price: item.price,
+          type: item.type as 'drink' | 'food',
+          count: 1
+        });
+      }
+    });
+    
+    // Convert to PaymentDetail array
+    itemCounts.forEach(item => {
+      details.push({
+        name: item.name,
+        price: item.price,
+        quantity: item.count,
+        type: item.type
+      });
+    });
+
     await db.runAsync('DELETE FROM user_items WHERE user_id = ?', [userId]);
     await db.runAsync('UPDATE users SET total_debt = 0 WHERE id = ?', [userId]);
 
-    await addToHistory(db, userId, null, userResult?.total_debt ?? 0);
+    await addToHistory(db, userId, null, userResult?.total_debt ?? 0, undefined, undefined, undefined, details);
   } catch (e) {
     console.error("Error clearing user debt:", e);
   }
@@ -350,11 +381,12 @@ export const payUserItem = async (db: SQLiteDatabase, userId: number, itemName: 
   }
 };
 
-const addToHistory = async (db: SQLiteDatabase, userId: number, itemId: number | null, paid: number, itemName?: string, itemType?: ItemType, itemPrice?: number): Promise<void> => {
+const addToHistory = async (db: SQLiteDatabase, userId: number, itemId: number | null, paid: number, itemName?: string, itemType?: ItemType, itemPrice?: number, details?: PaymentDetail[]): Promise<void> => {
   try {
+    const detailsJson = details ? JSON.stringify(details) : '[]';
     await db.runAsync(
-      'INSERT INTO history (user_id, item_id, paid, timestamp, item_name, item_type, item_price) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [userId, itemId, paid, Date.now(), itemName || null, itemType || null, itemPrice || null]
+      'INSERT INTO history (user_id, item_id, paid, timestamp, item_name, item_type, item_price, details) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [userId, itemId, paid, Date.now(), itemName || null, itemType || null, itemPrice || null, detailsJson]
     );
   } catch (e) {
     console.error("Error adding to history:", e);
@@ -394,8 +426,9 @@ export const getDetailedHistoryForUser = async (db: SQLiteDatabase, userId: numb
       timestamp: number;
       item_name: string | null;
       item_type: string | null;
+      details: string | null;
     }>(`
-      SELECT h.id, h.user_id, h.item_id, h.paid, h.timestamp, h.item_name, h.item_type
+      SELECT h.id, h.user_id, h.item_id, h.paid, h.timestamp, h.item_name, h.item_type, h.details
       FROM history h
       WHERE h.user_id = ?
       ORDER BY h.timestamp DESC
@@ -409,6 +442,7 @@ export const getDetailedHistoryForUser = async (db: SQLiteDatabase, userId: numb
       timestamp: String(row.timestamp),
       itemName: row.item_name || undefined,
       itemType: row.item_type as ItemType || undefined,
+      details: row.details || undefined,
     }));
   } catch(e) {
     console.error("Error fetching detailed history for user:", e);

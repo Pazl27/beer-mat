@@ -35,6 +35,7 @@ export interface HistoryRow {
   item_name: string | null;
   item_type: ItemType | null;
   item_price: number | null;
+  details: string | null; // JSON string containing payment details
 }
 
 // Types for inserts (without id and with optional fields)
