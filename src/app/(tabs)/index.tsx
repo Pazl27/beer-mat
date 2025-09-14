@@ -99,7 +99,18 @@ export default function PersonenPage() {
     person.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Helper function to toggle expanded history items
+  // Helper function to parse payment details from JSON string
+  const getPaymentDetails = (detailsJson?: string): PaymentDetail[] => {
+    if (!detailsJson) return [];
+    try {
+      return JSON.parse(detailsJson) as PaymentDetail[];
+    } catch (error) {
+      console.error("Error parsing payment details:", error);
+      return [];
+    }
+  };
+
+  // Helper function to toggle history item expansion
   const toggleHistoryItemExpansion = (historyId: number) => {
     setExpandedHistoryItems(prev => {
       const newSet = new Set(prev);
@@ -110,17 +121,6 @@ export default function PersonenPage() {
       }
       return newSet;
     });
-  };
-
-  // Helper function to parse and display payment details
-  const getPaymentDetails = (detailsJson?: string): PaymentDetail[] => {
-    if (!detailsJson) return [];
-    try {
-      return JSON.parse(detailsJson);
-    } catch (error) {
-      console.error('Error parsing payment details:', error);
-      return [];
-    }
   };
 
   const addPerson = async () => {
@@ -755,9 +755,14 @@ export default function PersonenPage() {
                               </Text>
                               {paymentDetails.map((detail, detailIndex) => (
                                 <View key={detailIndex} className="flex-row justify-between items-center py-1">
-                                  <Text className="text-sm text-blue-700">
-                                    {detail.quantity}x {detail.name} {detail.type === 'drink' ? '🍺' : '🍽️'}
-                                  </Text>
+                                  <View className="flex-1">
+                                    <Text className="text-sm text-blue-700">
+                                      {detail.quantity}x {detail.name} {detail.type === 'drink' ? '🍺' : '🍽️'}
+                                    </Text>
+                                    <Text className="text-xs text-blue-600">
+                                      à {(detail.price / 100).toFixed(2)}€
+                                    </Text>
+                                  </View>
                                   <Text className="text-sm font-medium text-blue-800">
                                     {(detail.price / 100 * detail.quantity).toFixed(2)}€
                                   </Text>
