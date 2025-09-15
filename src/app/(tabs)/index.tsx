@@ -375,6 +375,7 @@ export default function PersonenPage() {
   const handlePersonDetailsSelect = async (person: Person) => {
     setSelectedPersonForDetails(person);
     setActiveDetailsTab('offen');
+    setExpandedHistoryItems(new Set()); // Zurücksetzen der aufgeklappten Items
     await loadPersonHistory(person.id);
   };
 
@@ -563,7 +564,10 @@ export default function PersonenPage() {
               </Text>
               <View className="flex-1 items-end">
                 <TouchableOpacity
-                  onPress={() => setSelectedPersonForDetails(null)}
+                  onPress={() => {
+                    setSelectedPersonForDetails(null);
+                    setExpandedHistoryItems(new Set()); // Zurücksetzen beim Schließen
+                  }}
                   className="bg-gray-100 px-3 py-1 rounded-lg"
                 >
                   <Text className="text-gray-700 font-medium">✕</Text>
