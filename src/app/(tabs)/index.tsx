@@ -575,7 +575,10 @@ export default function PersonenPage() {
               </View>
             </View>
 
-            <ScrollView className="flex-1 px-4 py-6">
+            <ScrollView 
+              className="flex-1 px-4 py-6"
+              contentContainerStyle={{ paddingBottom: 40 }}
+            >
               {/* Person Header */}
               <View className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
                 <View className="flex-row justify-between items-start mb-2">
