@@ -153,7 +153,10 @@ export default function SpeisenPage() {
 
   return (
     <View className="flex-1 bg-gray-50">
-      <ScrollView className="flex-1 px-4 py-6">
+      <ScrollView 
+        className="flex-1 px-4 py-6"
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Header */}
         <View className="flex-row justify-between items-center mb-6">
           <Text className="text-2xl font-bold text-gray-800">

@@ -200,7 +200,10 @@ export default function PersonArtikelHinzufuegen({
           </View>
         </View>
 
-        <ScrollView className="flex-1 px-4 py-6">
+        <ScrollView 
+          className="flex-1 px-4 py-6"
+          keyboardShouldPersistTaps="handled"
+        >
           {/* Person Header */}
           <View className="bg-white rounded-lg p-4 mb-4 shadow-sm border border-gray-200">
             <Text className="text-xl font-bold text-gray-800 text-center mb-2">
