@@ -231,19 +231,33 @@ export default function PersonBegleichen({
             </View>
           )}
 
-          {/* Alle begleichen Button */}
-          <View className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 mb-6">
-            <TouchableOpacity
-              onPress={handlePayAll}
-              className={`py-3 rounded-lg ${person.totalDebt > 0 ? 'bg-green-600' : 'bg-gray-400'}`}
-              disabled={person.totalDebt <= 0}
-            >
-              <Text className="text-white text-center font-semibold">
-                💰 {person.totalDebt > 0 ? 'Alle Schulden begleichen' : 'Keine Schulden vorhanden'}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          {/* Spacer für Button */}
+          <View className="h-20" />
         </ScrollView>
+
+        {/* Alle begleichen Button */}
+        <View className="p-4 bg-white border-t border-gray-200">
+          <TouchableOpacity
+            onPress={handlePayAll}
+            className={`p-4 rounded-lg items-center ${
+              person.totalDebt > 0
+                ? 'bg-green-500'
+                : 'bg-gray-300'
+            }`}
+            disabled={person.totalDebt <= 0}
+          >
+            <Text className={`text-lg font-semibold ${
+              person.totalDebt > 0
+                ? 'text-white'
+                : 'text-gray-500'
+            }`}>
+              {person.totalDebt > 0
+                ? `💰 Alle Schulden begleichen (${person.totalDebt.toFixed(2)}€)`
+                : '💰 Keine Schulden vorhanden'
+              }
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         {/* In-Modal Toast */}
         {inModalToast.visible && (
