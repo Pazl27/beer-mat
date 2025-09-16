@@ -1,12 +1,13 @@
 import { Suspense, useEffect, useState } from "react";
 import "../global.css";
 import { Slot } from "expo-router";
-import { ActivityIndicator } from "react-native";
+import { ActivityIndicator, Platform } from "react-native";
 import { SQLiteProvider, openDatabaseSync } from "expo-sqlite";
 import { addDummyData } from "@/db/addDummyData";
 import { initializeDatabase } from "@/db/migrations";
 import { TrainingsstrichProvider } from "@/contexts/TrainingsstrichContext";
 import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
+import * as NavigationBar from 'expo-navigation-bar';
 
 export const DATABASE_NAME = "beer-mat";
 
@@ -34,6 +35,13 @@ export default function Layout() {
   const [dbReady, setDbReady] = useState(false);
 
   useEffect(() => {
+    // Hide Android navigation bar for immersive experience
+    if (Platform.OS === 'android') {
+      NavigationBar.setVisibilityAsync('hidden');
+      NavigationBar.setBehaviorAsync('overlay-swipe');
+      NavigationBar.setBackgroundColorAsync('#00000000');
+    }
+
     const setupDatabase = async () => {
       if (databaseInitialized) {
         setDbReady(true);
