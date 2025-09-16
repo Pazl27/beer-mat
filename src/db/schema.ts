@@ -1,37 +1,51 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
-import { ItemType } from '@/types';
+import { ItemType } from "@/types";
 
-export const users = sqliteTable('users', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  name: text('name').notNull(),
-  totalDebt: integer('total_debt').notNull().default(0), // total debt in cents
-});
+// Database row interfaces
+export interface UserRow {
+  id: number;
+  name: string;
+  total_debt: number;
+}
 
-export const items = sqliteTable('items', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  name: text('name').notNull(),
-  type: text('type', { enum: [ItemType.Drink, ItemType.Food] }).notNull(),
-  price: integer('price').notNull(), // price in cents to avoid floating point issues
-  info: text('info'),
-  category: text('category'),
-});
+export interface ItemRow {
+  id: number;
+  name: string;
+  type: ItemType;
+  price: number;
+  info: string | null;
+  category: string | null;
+}
 
-export const userItems = sqliteTable('user_items', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  itemId: integer('item_id').notNull().references(() => items.id, { onDelete: 'cascade' }),
-  pricePerItem: integer('price_per_item').notNull(), // price per item in cents
-});
+export interface UserItemRow {
+  id: number;
+  user_id: number;
+  item_id: number;
+  price_per_item: number;
+  item_name: string;
+  item_type: ItemType;
+  item_price: number;
+}
 
-export const history = sqliteTable('history', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }),
-  itemId: integer('item_id').references(() => items.id, { onDelete: 'cascade' }),
-  timestamp: integer('timestamp').notNull().default(Date.now()),
-  paid: integer('paid').notNull(), // price in cents
-})
+export interface HistoryRow {
+  id: number;
+  user_id: number | null;
+  item_id: number | null;
+  timestamp: number;
+  paid: number;
+  item_name: string | null;
+  item_type: ItemType | null;
+  item_price: number | null;
+  details: string | null; // JSON string containing payment details
+}
 
-export type User = typeof users.$inferInsert;
-export type Item = typeof items.$inferInsert;
-export type UserItem = typeof userItems.$inferInsert;
-export type History = typeof history.$inferInsert;
+// Types for inserts (without id and with optional fields)
+export type UserInsert = Omit<UserRow, 'id' | 'total_debt'> & { total_debt?: number };
+export type ItemInsert = Omit<ItemRow, 'id'>;
+export type UserItemInsert = Omit<UserItemRow, 'id'>;
+export type HistoryInsert = Omit<HistoryRow, 'id'>;
+
+// Legacy exports for compatibility
+export type User = UserInsert;
+export type Item = ItemInsert;
+export type UserItem = UserItemInsert;
+export type History = HistoryInsert;

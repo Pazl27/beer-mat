@@ -7,6 +7,7 @@ export type Item = {
   type: ItemType;
   category?: FoodCategory | DrinkCategory;
   info?: string;
+  originalItemId?: number; // Reference to the original item in items table
 };
 
 export enum ItemType {

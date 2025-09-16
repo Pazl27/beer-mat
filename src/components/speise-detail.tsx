@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { Speise, SpeiseDetailsProps } from '@/types';
 import { FoodCategory } from '@/types/category';
+import { showSuccessToast, showErrorToast } from '@/utils/toast';
 
 export default function SpeiseDetails({
   speise,
@@ -10,6 +11,7 @@ export default function SpeiseDetails({
   onUpdate,
   onDelete
 }: SpeiseDetailsProps) {
+  const [editedName, setEditedName] = useState(speise.name);
   const [editedPrice, setEditedPrice] = useState(speise.price.toString());
   const [editedInfo, setEditedInfo] = useState(speise.info || '');
   const [editedCategory, setEditedCategory] = useState(speise.category);
@@ -29,12 +31,18 @@ export default function SpeiseDetails({
   const handleSave = () => {
     const price = parseFloat(editedPrice);
     if (isNaN(price) || price <= 0) {
-      Alert.alert('Fehler', 'Bitte geben Sie einen gültigen Preis ein.');
+      showErrorToast('Bitte geben Sie einen gültigen Preis ein.');
+      return;
+    }
+
+    if (!editedName.trim()) {
+      showErrorToast('Bitte geben Sie einen Namen für die Speise ein.');
       return;
     }
 
     const updatedSpeise: Speise = {
       ...speise,
+      name: editedName.trim(),
       price,
       category: editedCategory,
       info: editedInfo.trim() || undefined
@@ -42,7 +50,10 @@ export default function SpeiseDetails({
 
     onUpdate(updatedSpeise);
     onClose();
-    Alert.alert('Gespeichert', 'Die Speise wurde erfolgreich aktualisiert.');
+    // Toast nach Modal-Schließung anzeigen
+    setTimeout(() => {
+      showSuccessToast('Die Speise wurde erfolgreich aktualisiert.');
+    }, 300);
   };
 
   const handleDelete = () => {
@@ -57,17 +68,14 @@ export default function SpeiseDetails({
           onPress: () => {
             onDelete(speise.id);
             onClose();
-            Alert.alert('Gelöscht', `"${speise.name}" wurde gelöscht.`);
+            // Toast nach Modal-Schließung anzeigen
+            setTimeout(() => {
+              showSuccessToast(`"${speise.name}" wurde gelöscht.`);
+            }, 300);
           }
         }
       ]
     );
-  };
-
-  const resetChanges = () => {
-    setEditedPrice(speise.price.toString());
-    setEditedInfo(speise.info || '');
-    setEditedCategory(speise.category);
   };
 
   return (
@@ -93,29 +101,52 @@ export default function SpeiseDetails({
           </View>
         </View>
 
-        <ScrollView className="flex-1 px-4 py-6">
+        <ScrollView 
+          className="flex-1 px-4 py-6"
+          keyboardShouldPersistTaps="handled"
+        >
           {/* Speise Header */}
           <View className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
-            <View className="items-center mb-4">
-              <Text className="text-4xl mb-2">
-                {getCategoryIcon(speise.category)}
-              </Text>
-              <Text className="text-2xl font-bold text-gray-800 text-center mb-1">
-                {speise.name}
-              </Text>
-              <View className="bg-green-100 px-3 py-1 rounded-full">
-                <Text className="text-sm font-medium text-green-700">
-                  {editedCategory}
+            <View className="flex-row justify-between items-start mb-4">
+              <View className="w-10" />
+              <View className="flex-1 items-center">
+                <Text className="text-4xl mb-2">
+                  {getCategoryIcon(speise.category)}
                 </Text>
+                <Text className="text-2xl font-bold text-gray-800 text-center mb-1">
+                  {editedName}
+                </Text>
+                <View className="bg-green-100 px-3 py-1 rounded-full">
+                  <Text className="text-sm font-medium text-green-700">
+                    {editedCategory}
+                  </Text>
+                </View>
+              </View>
+              <View className="w-10 items-end">
+                <TouchableOpacity
+                  onPress={handleDelete}
+                  className="bg-red-100 p-2 rounded-lg"
+                >
+                  <Text className="text-red-600 text-lg">🗑️</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
 
-          {/* Preis bearbeiten */}
+          {/* Speise bearbeiten */}
           <View className="bg-white rounded-lg p-4 mb-6 shadow-sm border border-gray-200">
             <Text className="text-xl font-bold text-gray-800 mb-4">
-              💰 Preis bearbeiten
+              ✏️ Speise bearbeiten
             </Text>
+            
+            <Text className="text-sm font-medium text-gray-700 mb-2">Name:</Text>
+            <TextInput
+              value={editedName}
+              onChangeText={setEditedName}
+              placeholder="z.B. Schnitzel Wiener Art"
+              className="border border-gray-300 rounded-lg px-4 py-3 text-base mb-4"
+            />
+
             <Text className="text-sm font-medium text-gray-700 mb-2">
               Aktueller Preis: {speise.price.toFixed(2)}€
             </Text>
@@ -166,18 +197,6 @@ export default function SpeiseDetails({
             >
               <Text className="text-white text-center font-semibold">
                 ✓ Änderungen speichern
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Gefährliche Aktionen */}
-          <View className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 mb-6">
-            <TouchableOpacity
-              onPress={handleDelete}
-              className="bg-red-600 py-3 rounded-lg"
-            >
-              <Text className="text-white text-center font-semibold">
-                🗑️ Speise löschen
               </Text>
             </TouchableOpacity>
           </View>

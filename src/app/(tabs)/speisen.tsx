@@ -1,18 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { useSQLiteContext } from 'expo-sqlite';
+import { useFocusEffect } from '@react-navigation/native';
 import SpeiseDetails from '@/components/speise-detail';
 import SpeiseZuPersonHinzufuegen from '@/components/speise-zu-person-hinzufuegen';
 import { Speise } from '@/types';
 import { FoodCategory } from '@/types/category';
+import { getAllFoodItems, createFoodItem, updateFoodItem, deleteFoodItem, addItemToUser } from '@/db/dbFunctions';
+import { ItemType, Item, Person } from '@/types';
+import { showWarningToast } from '@/utils/toast';
 
 export default function SpeisenPage() {
-  const [speisen, setSpeisen] = useState<Speise[]>([
-    { id: 1, name: 'Hot Dog', price: 2.00, category: FoodCategory.Hauptgericht },
-    { id: 2, name: 'Bratwurst', price: 2.00, category: FoodCategory.Hauptgericht },
-    { id: 3, name: 'Paar Bratwürste', price: 3.00, category: FoodCategory.Hauptgericht },
-    { id: 4, name: 'Steak', price: 3.50, category: FoodCategory.Hauptgericht },
-    { id: 5, name: 'Kuchen', price: 1.00, category: FoodCategory.Nachspeise },
-  ]);
+  const [speisen, setSpeisen] = useState<Speise[]>([]);
+  const db = useSQLiteContext();
+
+  // Load speisen from database on component mount
+  useEffect(() => {
+    loadSpeisen();
+  }, []);
+
+  // Reload speisen when tab comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadSpeisen();
+    }, [])
+  );
+
+  const loadSpeisen = async () => {
+    try {
+      const foodItems = await getAllFoodItems(db);
+      // Convert price from cents to euros for display
+      const speisenWithEurosPrices = foodItems.map(item => ({
+        ...item,
+        price: item.price / 100
+      }));
+      setSpeisen(speisenWithEurosPrices);
+    } catch (error) {
+      console.error("Error loading speisen:", error);
+      Alert.alert("Fehler", "Speisen konnten nicht geladen werden");
+    }
+  };
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [newSpeise, setNewSpeise] = useState({
@@ -42,32 +69,81 @@ export default function SpeisenPage() {
     }
   };
 
-  const addSpeise = () => {
-    if (newSpeise.name.trim() && newSpeise.price) {
-      const speise: Speise = {
-        id: Date.now(),
+  const addSpeise = async () => {
+    if (!newSpeise.name.trim()) {
+      showWarningToast('Bitte geben Sie einen Namen ein');
+      return;
+    }
+    if (!newSpeise.price || isNaN(parseFloat(newSpeise.price))) {
+      showWarningToast('Bitte geben Sie einen gültigen Preis ein');
+      return;
+    }
+
+    try {
+      const priceInCents = Math.round(parseFloat(newSpeise.price) * 100);
+      const newFoodItem = await createFoodItem(db, {
         name: newSpeise.name.trim(),
-        price: parseFloat(newSpeise.price),
+        price: priceInCents,
         category: newSpeise.category,
         info: newSpeise.info.trim() || undefined
-      };
-      setSpeisen([...speisen, speise]);
-      setNewSpeise({ name: '', price: '', category: FoodCategory.Hauptgericht, info: '' });
-      setShowAddForm(false);
+      });
+
+      if (newFoodItem) {
+        setNewSpeise({ name: '', price: '', category: FoodCategory.Hauptgericht, info: '' });
+        setShowAddForm(false);
+        loadSpeisen(); // Reload data from database
+      } else {
+        Alert.alert("Fehler", "Speise konnte nicht hinzugefügt werden");
+      }
+    } catch (error) {
+      console.error("Error adding speise:", error);
+      Alert.alert("Fehler", "Fehler beim Hinzufügen der Speise");
     }
   };
 
-  const deleteSpeise = (id: number) => {
-    setSpeisen(speisen.filter(s => s.id !== id));
+  const deleteSpeise = async (id: number) => {
+    try {
+      await deleteFoodItem(db, id);
+      loadSpeisen(); // Reload data from database
+    } catch (error) {
+      console.error("Error deleting speise:", error);
+      Alert.alert("Fehler", "Fehler beim Löschen der Speise");
+    }
   };
 
-  const updateSpeise = (updatedSpeise: Speise) => {
-    setSpeisen(speisen.map(s => s.id === updatedSpeise.id ? updatedSpeise : s));
+  const updateSpeise = async (updatedSpeise: Speise) => {
+    try {
+      // Convert price from euros to cents for database
+      const speiseWithCentsPrice = {
+        ...updatedSpeise,
+        price: Math.round(updatedSpeise.price * 100)
+      };
+      await updateFoodItem(db, speiseWithCentsPrice);
+      loadSpeisen(); // Reload data from database
+    } catch (error) {
+      console.error("Error updating speise:", error);
+      Alert.alert("Fehler", "Fehler beim Aktualisieren der Speise");
+    }
   };
 
-  const handleAddSpeiseToPerson = (personId: number, speise: Speise, quantity: number) => {
-    // TODO: Hier würde die echte Logik zum Hinzufügen zur Datenbank kommen
-    // Success-Feedback wird bereits in der Modal-Komponente angezeigt
+  const handleAddSpeiseToPerson = async (person: Person, speise: Speise, quantity: number) => {
+    try {
+      // Konvertiere Speise zu Item für DB-Funktion
+      const item: Item = {
+        id: speise.id,
+        name: speise.name,
+        price: Math.round(speise.price * 100), // Euro zu Cents für DB
+        type: ItemType.Food,
+        info: speise.info,
+        category: speise.category
+      };
+
+      await addItemToUser(db, person, item, quantity);
+      console.log(`${quantity}x ${speise.name} zu ${person.name} hinzugefügt`);
+    } catch (error) {
+      console.error("Error adding speise to person:", error);
+      Alert.alert("Fehler", "Speise konnte nicht hinzugefügt werden");
+    }
   };
 
   const groupedSpeisen = Object.values(FoodCategory).reduce((acc, category) => {
@@ -77,7 +153,10 @@ export default function SpeisenPage() {
 
   return (
     <View className="flex-1 bg-gray-50">
-      <ScrollView className="flex-1 px-4 py-6">
+      <ScrollView 
+        className="flex-1 px-4 py-6"
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Header */}
         <View className="flex-row justify-between items-center mb-6">
           <Text className="text-2xl font-bold text-gray-800">

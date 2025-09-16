@@ -1,18 +1,17 @@
-import { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite";
-import { Person, Item, ItemType, History} from "@/types"
-import { users, items, userItems, history } from "./schema";
-import { eq } from "drizzle-orm";
+import { SQLiteDatabase } from "expo-sqlite";
+import { Person, Item, ItemType, History, Speise, Getraenk, PaymentDetail } from "@/types"
 import { DrinkCategory, FoodCategory } from "@/types/category";
 
-export const createUser = async (db: ExpoSQLiteDatabase, name: string): Promise<Person | undefined> => {
+export const createUser = async (db: SQLiteDatabase, name: string): Promise<Person | undefined> => {
   try {
-    const insertedUser = await db.insert(users).values([
-      { name: name },
-    ]).returning();
+    const result = await db.runAsync(
+      'INSERT INTO users (name) VALUES (?) RETURNING id, name, total_debt',
+      [name]
+    );
 
     const newPerson: Person = {
-      id: insertedUser[0].id,
-      name: insertedUser[0].name,
+      id: result.lastInsertRowId,
+      name: name,
       totalDebt: 0,
       items: [],
     }
@@ -20,11 +19,11 @@ export const createUser = async (db: ExpoSQLiteDatabase, name: string): Promise<
     return newPerson;
 
   } catch (e) {
-    console.error("Error adding dummy data:", e);
+    console.error("Error creating user:", e);
   }
 }
 
-function parseCategory(category: string | undefined): DrinkCategory | FoodCategory | undefined {
+function parseCategory(category: string | null): DrinkCategory | FoodCategory | undefined {
   if (!category) return undefined;
   if (Object.values(DrinkCategory).includes(category as DrinkCategory)) {
     return category as DrinkCategory;
@@ -36,25 +35,22 @@ function parseCategory(category: string | undefined): DrinkCategory | FoodCatego
 }
 
 export const createItem = async (
-  db: ExpoSQLiteDatabase,
+  db: SQLiteDatabase,
   item: { name: string; type: ItemType; price: number; info?: string; category?: DrinkCategory | FoodCategory }
 ): Promise<Item | undefined> => {
   try {
-    // Save the enum as a string in the DB
-    const insertedItem = await db.insert(items).values({
-      ...item,
-      category: item.category ?? null,
-    }).returning();
-
-    const dbItem = insertedItem[0];
+    const result = await db.runAsync(
+      'INSERT INTO items (name, type, price, info, category) VALUES (?, ?, ?, ?, ?)',
+      [item.name, item.type, item.price, item.info || null, item.category || null]
+    );
 
     const newItem: Item = {
-      id: dbItem.id,
-      name: dbItem.name,
-      type: dbItem.type,
-      price: dbItem.price,
-      info: dbItem.info,
-      category: parseCategory(dbItem.category),
+      id: result.lastInsertRowId,
+      name: item.name,
+      type: item.type,
+      price: item.price,
+      info: item.info,
+      category: item.category,
     };
 
     return newItem;
@@ -64,61 +60,66 @@ export const createItem = async (
   }
 };
 
-export const addItemToUser = async (db: ExpoSQLiteDatabase, user: Person, item: Item, quantity: number): Promise<void> => {
+export const addItemToUser = async (
+  db: SQLiteDatabase,
+  user: Person,
+  item: Item,
+  quantity: number
+): Promise<void> => {
   try {
-    // Insert one row per quantity
-    const inserts = [];
+    if (!item.id) {
+      console.error("Cannot add item to user: item.id is undefined");
+      return;
+    }
+
+    // Insert one row per item (not just one row with quantity)
     for (let i = 0; i < quantity; i++) {
-      inserts.push(
-        db.insert(userItems).values({
-          userId: user.id,
-          itemId: item.id,
-          pricePerItem: item.price,
-        })
+      await db.runAsync(
+        'INSERT INTO user_items (user_id, item_id, price_per_item, item_name, item_price, item_type) VALUES (?, ?, ?, ?, ?, ?)',
+        [user.id, item.id, item.price, item.name, item.price, item.type]
       );
     }
-    await Promise.all(inserts);
 
     const additionalDebt = item.price * quantity;
 
-    const userRow = await db.select().from(users).where(eq(users.id, user.id));
-    const currentDebt = userRow[0]?.totalDebt ?? 0;
+    const userResult = await db.getFirstAsync<{ total_debt: number }>(
+      'SELECT total_debt FROM users WHERE id = ?',
+      [user.id]
+    );
 
-    await db.update(users)
-      .set({ totalDebt: currentDebt + additionalDebt })
-      .where(eq(users.id, user.id));
+    const currentDebt = userResult?.total_debt ?? 0;
+
+    await db.runAsync(
+      'UPDATE users SET total_debt = ? WHERE id = ?',
+      [currentDebt + additionalDebt, user.id]
+    );
   } catch (e) {
     console.error("Error adding item to user:", e);
   }
 };
 
-// Helper to get items for a user
-const getItemsForUser = async (db: ExpoSQLiteDatabase, userId: number): Promise<Item[]> => {
-  const result = await db
-    .select({
-      id: items.id,
-      name: items.name,
-      price: items.price,
-      type: items.type,
-      userItemId: userItems.id,
-    })
-    .from(userItems)
-    .innerJoin(items, eq(userItems.itemId, items.id))
-    .where(eq(userItems.userId, userId));
+export const getItemsForUser = async (db: SQLiteDatabase, userId: number): Promise<Item[]> => {
+  const rows = await db.getAllAsync<{
+    id: number;
+    item_id: number;
+    item_name: string;
+    item_price: number;
+    item_type: string;
+  }>('SELECT id, item_id, item_name, item_price, item_type FROM user_items WHERE user_id = ?', [userId]);
 
-  // Each row is a single item instance
-  const itemsList: Item[] = result.map(row => ({
-    id: row.userItemId,
-    name: row.name,
-    price: row.price,
-    type: row.type as ItemType,
+  return rows.map((row) => ({
+    id: row.id, // Use the unique user_items.id instead of item_id
+    name: row.item_name,
+    price: row.item_price,
+    type: row.item_type as ItemType,
+    originalItemId: row.item_id, // Keep reference to original item if needed
   }));
-  return itemsList;
 };
 
-// Main function to get all users with items and totalDebt
-export const getAllUsers = async (db: ExpoSQLiteDatabase): Promise<Person[]> => {
-  const userRows = await db.select().from(users);
+export const getAllUsers = async (db: SQLiteDatabase): Promise<Person[]> => {
+  const userRows = await db.getAllAsync<{ id: number; name: string; total_debt: number }>(
+    'SELECT id, name, total_debt FROM users'
+  );
 
   const persons: Person[] = [];
   for (const user of userRows) {
@@ -127,132 +128,332 @@ export const getAllUsers = async (db: ExpoSQLiteDatabase): Promise<Person[]> => 
     persons.push({
       id: user.id,
       name: user.name,
-      totalDebt: user.totalDebt ?? 0,
+      totalDebt: user.total_debt ?? 0,
       items: userItems,
     });
   }
   return persons;
 };
 
-export const getAllItems = async (db: ExpoSQLiteDatabase): Promise<Item[]> => {
-  const result = await db.select().from(items);
+export const getAllItems = async (db: SQLiteDatabase): Promise<Item[]> => {
+  const result = await db.getAllAsync<{
+    id: number;
+    name: string;
+    price: number;
+    type: string;
+    info: string | null;
+    category: string | null;
+  }>('SELECT id, name, price, type, info, category FROM items');
 
   return result.map(row => ({
     id: row.id,
     name: row.name,
     price: row.price,
-    type: row.type,
+    type: row.type as ItemType,
+    info: row.info || undefined,
+    category: parseCategory(row.category),
   }));
 };
 
-export const deleteUser = async (db: ExpoSQLiteDatabase, userId: number): Promise<void> => {
+export const getAllFoodItems = async (db: SQLiteDatabase): Promise<Speise[]> => {
+  const result = await db.getAllAsync<{
+    id: number;
+    name: string;
+    price: number;
+    info: string | null;
+    category: string | null;
+  }>('SELECT id, name, price, info, category FROM items WHERE type = ?', ['food']);
+
+  return result.map(row => ({
+    id: row.id,
+    name: row.name,
+    price: row.price,
+    info: row.info || undefined,
+    category: parseCategory(row.category) as FoodCategory || FoodCategory.Hauptgericht,
+  }));
+};
+
+export const getAllDrinkItems = async (db: SQLiteDatabase): Promise<Getraenk[]> => {
+  const result = await db.getAllAsync<{
+    id: number;
+    name: string;
+    price: number;
+    info: string | null;
+    category: string | null;
+  }>('SELECT id, name, price, info, category FROM items WHERE type = ?', ['drink']);
+
+  return result.map(row => ({
+    id: row.id,
+    name: row.name,
+    price: row.price,
+    info: row.info || undefined,
+    category: parseCategory(row.category) as DrinkCategory || DrinkCategory.Bier,
+  }));
+};
+
+export const createFoodItem = async (
+  db: SQLiteDatabase,
+  speise: { name: string; price: number; category: FoodCategory; info?: string }
+): Promise<Speise | undefined> => {
   try {
-    await db.delete(users).where(eq(users.id, userId));
+    const result = await db.runAsync(
+      'INSERT INTO items (name, type, price, info, category) VALUES (?, ?, ?, ?, ?)',
+      [speise.name, 'food', speise.price, speise.info || null, speise.category]
+    );
+
+    const newSpeise: Speise = {
+      id: result.lastInsertRowId,
+      name: speise.name,
+      price: speise.price,
+      info: speise.info,
+      category: speise.category,
+    };
+
+    return newSpeise;
+
+  } catch (e) {
+    console.error("Error creating food item:", e);
+  }
+};
+
+export const createDrinkItem = async (
+  db: SQLiteDatabase,
+  getraenk: { name: string; price: number; category: DrinkCategory; info?: string }
+): Promise<Getraenk | undefined> => {
+  try {
+    const result = await db.runAsync(
+      'INSERT INTO items (name, type, price, info, category) VALUES (?, ?, ?, ?, ?)',
+      [getraenk.name, 'drink', getraenk.price, getraenk.info || null, getraenk.category]
+    );
+
+    const newGetraenk: Getraenk = {
+      id: result.lastInsertRowId,
+      name: getraenk.name,
+      price: getraenk.price,
+      info: getraenk.info,
+      category: getraenk.category,
+    };
+
+    return newGetraenk;
+
+  } catch (e) {
+    console.error("Error creating drink item:", e);
+  }
+};
+
+export const updateFoodItem = async (
+  db: SQLiteDatabase,
+  speise: Speise
+): Promise<void> => {
+  try {
+    await db.runAsync(
+      'UPDATE items SET name = ?, price = ?, info = ?, category = ? WHERE id = ?',
+      [speise.name, speise.price, speise.info || null, speise.category, speise.id]
+    );
+  } catch (e) {
+    console.error("Error updating food item:", e);
+  }
+};
+
+export const updateDrinkItem = async (
+  db: SQLiteDatabase,
+  getraenk: Getraenk
+): Promise<void> => {
+  try {
+    await db.runAsync(
+      'UPDATE items SET name = ?, price = ?, info = ?, category = ? WHERE id = ?',
+      [getraenk.name, getraenk.price, getraenk.info || null, getraenk.category, getraenk.id]
+    );
+  } catch (e) {
+    console.error("Error updating drink item:", e);
+  }
+};
+
+export const deleteFoodItem = async (db: SQLiteDatabase, itemId: number): Promise<void> => {
+  try {
+    await db.runAsync('DELETE FROM items WHERE id = ?', [itemId]);
+  } catch (e) {
+    console.error("Error deleting food item:", e);
+  }
+};
+
+export const deleteDrinkItem = async (db: SQLiteDatabase, itemId: number): Promise<void> => {
+  try {
+    await db.runAsync('DELETE FROM items WHERE id = ?', [itemId]);
+  } catch (e) {
+    console.error("Error deleting drink item:", e);
+  }
+};
+
+export const deleteUser = async (db: SQLiteDatabase, userId: number): Promise<void> => {
+  try {
+    await db.runAsync('DELETE FROM users WHERE id = ?', [userId]);
   } catch (e) {
     console.error("Error deleting user:", e);
   }
 };
 
-export const deleteItem = async (db: ExpoSQLiteDatabase, itemId: number): Promise<void> => {
+export const deleteItem = async (db: SQLiteDatabase, itemId: number): Promise<void> => {
   try {
-    await db.delete(items).where(eq(items.id, itemId));
+    await db.runAsync('DELETE FROM items WHERE id = ?', [itemId]);
   } catch (e) {
     console.error("Error deleting item:", e);
   }
 };
 
-// Clear all debt and items for a user
-export const clearUserDebt = async (db: ExpoSQLiteDatabase, userId: number): Promise<void> => {
+export const clearUserDebt = async (db: SQLiteDatabase, userId: number): Promise<void> => {
   try {
-    const totalDebt = await db.select({ totalDebt: users.totalDebt }).from(users).where(eq(users.id, userId));
+    const userResult = await db.getFirstAsync<{ total_debt: number }>(
+      'SELECT total_debt FROM users WHERE id = ?',
+      [userId]
+    );
 
-    // Delete all user items
-    await db.delete(userItems).where(eq(userItems.userId, userId));
+    // Collect payment details before clearing items
+    const userItems = await getItemsForUser(db, userId);
+    const details: PaymentDetail[] = [];
+    
+    // Count quantities for each unique item
+    const itemCounts = new Map<string, {name: string, price: number, type: 'drink' | 'food', count: number}>();
+    
+    userItems.forEach(item => {
+      const key = `${item.name}-${item.price}-${item.type}`;
+      if (itemCounts.has(key)) {
+        itemCounts.get(key)!.count += 1;
+      } else {
+        itemCounts.set(key, {
+          name: item.name,
+          price: item.price,
+          type: item.type as 'drink' | 'food',
+          count: 1
+        });
+      }
+    });
+    
+    // Convert to PaymentDetail array
+    itemCounts.forEach(item => {
+      details.push({
+        name: item.name,
+        price: item.price,
+        quantity: item.count,
+        type: item.type
+      });
+    });
 
-    // Reset totalDebt to 0
-    await db.update(users)
-      .set({ totalDebt: 0 })
-      .where(eq(users.id, userId));
+    await db.runAsync('DELETE FROM user_items WHERE user_id = ?', [userId]);
+    await db.runAsync('UPDATE users SET total_debt = 0 WHERE id = ?', [userId]);
 
-    await addToHistory(db, userId, null, totalDebt[0]?.totalDebt ?? 0); // Add to history with 0 paid amount
+    await addToHistory(db, userId, null, userResult?.total_debt ?? 0, undefined, undefined, undefined, details);
   } catch (e) {
     console.error("Error clearing user debt:", e);
   }
 };
 
-// Remove one item from user by name and type (for paying individual items) - for clear single items from debt
-export const payUserItem = async (
-  db: ExpoSQLiteDatabase,
-  userId: number,
-  itemName: string,
-  itemType: ItemType
-): Promise<void> => {
+export const payUserItem = async (db: SQLiteDatabase, userId: number, itemName: string, itemType: ItemType, itemPrice: number): Promise<void> => {
   try {
-    // Find the first matching user_item with item details
-    const userItemsWithDetails = await db
-      .select({
-        userItemId: userItems.id,
-        itemId: userItems.itemId,
-        pricePerItem: userItems.pricePerItem,
-        itemName: items.name,
-        itemType: items.type,
-      })
-      .from(userItems)
-      .innerJoin(items, eq(userItems.itemId, items.id))
-      .where(eq(userItems.userId, userId));
-
-    const matchingUserItem = userItemsWithDetails.find(
-      item => item.itemName === itemName && item.itemType === itemType
-    );
+    const matchingUserItem = await db.getFirstAsync<{
+      id: number;
+      item_id: number;
+      price_per_item: number;
+      item_name: string;
+      item_type: string;
+    }>('SELECT id, item_id, price_per_item, item_name, item_type FROM user_items WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ? ORDER BY id ASC LIMIT 1',
+      [userId, itemName, itemType, Math.round(itemPrice * 100)]);
 
     if (!matchingUserItem) {
       console.warn("No matching item found to pay");
       return;
     }
 
-    // Subtract the correct pricePerItem from user's totalDebt
-    const userRow = await db.select().from(users).where(eq(users.id, userId));
-    const currentDebt = userRow[0]?.totalDebt ?? 0;
-    const newDebt = Math.max(0, currentDebt - matchingUserItem.pricePerItem);
+    const userResult = await db.getFirstAsync<{ total_debt: number }>(
+      'SELECT total_debt FROM users WHERE id = ?',
+      [userId]
+    );
 
-    await db.update(users)
-      .set({ totalDebt: newDebt })
-      .where(eq(users.id, userId));
+    const currentDebt = userResult?.total_debt ?? 0;
+    const newDebt = Math.max(0, currentDebt - matchingUserItem.price_per_item);
 
-    await addToHistory(db, userId, matchingUserItem.itemId, matchingUserItem.pricePerItem);
-
-    // Delete the user_items row (since each row is one item instance)
-    await db.delete(userItems).where(eq(userItems.id, matchingUserItem.userItemId));
+    await db.runAsync('UPDATE users SET total_debt = ? WHERE id = ?', [newDebt, userId]);
+    await addToHistory(db, userId, matchingUserItem.item_id, matchingUserItem.price_per_item, matchingUserItem.item_name, matchingUserItem.item_type as ItemType, matchingUserItem.price_per_item);
+    await db.runAsync('DELETE FROM user_items WHERE id = ?', [matchingUserItem.id]);
 
   } catch (e) {
     console.error("Error paying user item:", e);
   }
 };
 
-const addToHistory = async (db: ExpoSQLiteDatabase, userId: number, itemId: number, paid: number): Promise<void> => {
+const addToHistory = async (db: SQLiteDatabase, userId: number, itemId: number | null, paid: number, itemName?: string, itemType?: ItemType, itemPrice?: number, details?: PaymentDetail[]): Promise<void> => {
   try {
-    await db.insert(history).values({
-      userId,
-      itemId,
-      paid
-    });
+    const detailsJson = details ? JSON.stringify(details) : '[]';
+    await db.runAsync(
+      'INSERT INTO history (user_id, item_id, paid, timestamp, item_name, item_type, item_price, details) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [userId, itemId, paid, Date.now(), itemName || null, itemType || null, itemPrice || null, detailsJson]
+    );
   } catch (e) {
     console.error("Error adding to history:", e);
   }
 };
 
-export const getHistoryForUser = async (db: ExpoSQLiteDatabase, userId: number): Promise<History[]> => {
+export const getHistoryForUser = async (db: SQLiteDatabase, userId: number): Promise<History[]> => {
   try {
-    const result = await db.select().from(history).where(eq(history.userId, userId));
+    const result = await db.getAllAsync<{
+      id: number;
+      user_id: number;
+      item_id: number | null;
+      paid: number;
+      timestamp: number;
+    }>('SELECT id, user_id, item_id, paid, timestamp FROM history WHERE user_id = ?', [userId]);
 
     return result.map(row => ({
       id: row.id,
-      userId: row.userId,
-      itemId: row.itemId,
+      userId: row.user_id,
+      itemId: row.item_id,
       paid: row.paid,
       timestamp: String(row.timestamp),
     }));
   } catch(e) {
     console.error("Error fetching history for user:", e);
+    return [];
+  }
+};
+
+export const getDetailedHistoryForUser = async (db: SQLiteDatabase, userId: number): Promise<(History & { itemName?: string; itemType?: ItemType })[]> => {
+  try {
+    const result = await db.getAllAsync<{
+      id: number;
+      user_id: number;
+      item_id: number | null;
+      paid: number;
+      timestamp: number;
+      item_name: string | null;
+      item_type: string | null;
+      details: string | null;
+    }>(`
+      SELECT h.id, h.user_id, h.item_id, h.paid, h.timestamp, h.item_name, h.item_type, h.details
+      FROM history h
+      WHERE h.user_id = ?
+      ORDER BY h.timestamp DESC
+    `, [userId]);
+
+    return result.map(row => ({
+      id: row.id,
+      userId: row.user_id,
+      itemId: row.item_id,
+      paid: row.paid,
+      timestamp: String(row.timestamp),
+      itemName: row.item_name || undefined,
+      itemType: row.item_type as ItemType || undefined,
+      details: row.details || undefined,
+    }));
+  } catch(e) {
+    console.error("Error fetching detailed history for user:", e);
+    return [];
+  }
+};
+
+export const clearUserHistory = async (db: SQLiteDatabase, userId: number): Promise<void> => {
+  try {
+    await db.runAsync('DELETE FROM history WHERE user_id = ?', [userId]);
+  } catch (e) {
+    console.error("Error clearing user history:", e);
   }
 };

@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
-import { Person, ItemType, SpeiseZuPersonHinzufuegenProps } from '@/types';
+import { useSQLiteContext } from 'expo-sqlite';
+import { Person, SpeiseZuPersonHinzufuegenProps } from '@/types';
+import { getAllUsers } from '@/db/dbFunctions';
+import { showSuccessToast, showErrorToast } from '@/utils/toast';
 
 export default function SpeiseZuPersonHinzufuegen({
   speise,
@@ -8,44 +11,40 @@ export default function SpeiseZuPersonHinzufuegen({
   onClose,
   onAddToPerson
 }: SpeiseZuPersonHinzufuegenProps) {
-  // Mock-Daten für Personen (später aus echten Daten holen)
-  const [persons] = useState<Person[]>([
-    {
-      id: 1,
-      name: 'Max Mustermann',
-      totalDebt: 5.50,
-      items: [
-        { id: 1, name: 'Bier (Flasche, 0,5l)', price: 2.50, type: ItemType.Drink },
-        { id: 2, name: 'Steak', price: 3.50, type: ItemType.Food }
-      ]
-    },
-    {
-      id: 2,
-      name: 'Anna Schmidt',
-      totalDebt: 3.50,
-      items: [
-        { id: 3, name: 'Cola Mix (Flasche, 0,5l)', price: 2.00, type: ItemType.Drink },
-        { id: 4, name: 'Kaffee (Tasse)', price: 1.50, type: ItemType.Drink }
-      ]
-    },
-    {
-      id: 3,
-      name: 'Tom Weber',
-      totalDebt: 0,
-      items: []
-    },
-    {
-      id: 4,
-      name: 'Lisa Müller',
-      totalDebt: 7.20,
-      items: [
-        { id: 5, name: 'Hot Dog', price: 2.00, type: ItemType.Food },
-        { id: 6, name: 'Pommes', price: 1.50, type: ItemType.Food },
-        { id: 7, name: 'Cola Mix (Flasche, 0,5l)', price: 2.00, type: ItemType.Drink },
-        { id: 8, name: 'Kaffee (Tasse)', price: 1.70, type: ItemType.Drink }
-      ]
+  const [persons, setPersons] = useState<Person[]>([]);
+  const db = useSQLiteContext();
+
+  // Load persons from database
+  useEffect(() => {
+    if (visible) {
+      loadPersons();
     }
-  ]);
+  }, [visible]);
+
+  const loadPersons = async () => {
+    try {
+      const users = await getAllUsers(db);
+      // Convert price from cents to euros for display
+      const personsWithEurosPrices = users.map(user => ({
+        ...user,
+        totalDebt: user.totalDebt / 100,
+        items: user.items.map(item => ({
+          ...item,
+          price: item.price / 100
+        }))
+      }));
+      
+      // Sort persons alphabetically by name
+      const sortedPersons = personsWithEurosPrices.sort((a, b) => 
+        a.name.localeCompare(b.name, 'de', { sensitivity: 'base' })
+      );
+      
+      setPersons(sortedPersons);
+    } catch (error) {
+      console.error("Error loading persons:", error);
+      showErrorToast("Personen konnten nicht geladen werden");
+    }
+  };
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
@@ -88,7 +87,7 @@ export default function SpeiseZuPersonHinzufuegen({
 
   const handleAddToPersons = () => {
     if (Object.keys(selectedQuantities).length === 0) {
-      Alert.alert('Keine Auswahl', 'Bitte wählen Sie mindestens eine Person aus.');
+      showErrorToast('Bitte wählen Sie mindestens eine Person aus.');
       return;
     }
 
@@ -102,23 +101,31 @@ export default function SpeiseZuPersonHinzufuegen({
         { text: 'Abbrechen', style: 'cancel' },
         {
           text: 'Hinzufügen',
-          onPress: () => {
-            Object.entries(selectedQuantities).forEach(([personId, quantity]) => {
-              onAddToPerson(Number(personId), speise, quantity);
-            });
+          onPress: async () => {
+            try {
+              const personNames: string[] = [];
 
-            setSelectedQuantities({});
-            onClose();
+              for (const [personId, quantity] of Object.entries(selectedQuantities)) {
+                const person = persons.find(p => p.id === Number(personId));
+                if (person && quantity > 0) {
+                  await onAddToPerson(person, speise, quantity);
+                  personNames.push(person.name);
+                }
+              }
 
-            const personNames = Object.keys(selectedQuantities)
-              .map(id => persons.find(p => p.id == Number(id))?.name)
-              .filter(Boolean)
-              .join(', ');
+              setSelectedQuantities({});
+              onClose();
 
-            Alert.alert(
-              'Hinzugefügt',
-              `${totalItems}x "${speise.name}" wurde zu ${personNames} hinzugefügt.`
-            );
+              // Toast nach Modal-Schließung anzeigen
+              setTimeout(() => {
+                showSuccessToast(
+                  `${totalItems}x "${speise.name}" wurde zu ${personNames.join(', ')} hinzugefügt.`
+                );
+              }, 300);
+            } catch (error) {
+              console.error("Error in handleAddToPersons:", error);
+              showErrorToast("Fehler beim Hinzufügen der Speise");
+            }
           }
         }
       ]
@@ -148,7 +155,10 @@ export default function SpeiseZuPersonHinzufuegen({
           </View>
         </View>
 
-        <ScrollView className="flex-1 px-4 py-6">
+        <ScrollView 
+          className="flex-1 px-4 py-6"
+          keyboardShouldPersistTaps="handled"
+        >
           {/* Speise Header */}
           <View className="bg-white rounded-lg p-4 mb-6 shadow-sm border border-gray-200">
             <Text className="text-xl font-bold text-gray-800 text-center mb-2">

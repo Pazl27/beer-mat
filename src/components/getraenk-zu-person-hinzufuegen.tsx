@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
+import { useSQLiteContext } from 'expo-sqlite';
 import { Person, ItemType, GetraenkZuPersonHinzufuegenProps } from '@/types';
+import { getAllUsers } from '@/db/dbFunctions';
+import { useTrainingsstrich } from '@/contexts/TrainingsstrichContext';
+import { showSuccessToast, showErrorToast } from '@/utils/toast';
 
 export default function GetraenkZuPersonHinzufuegen({
   getraenk,
@@ -8,44 +12,41 @@ export default function GetraenkZuPersonHinzufuegen({
   onClose,
   onAddToPerson
 }: GetraenkZuPersonHinzufuegenProps) {
-  // Mock-Daten für Personen (später aus echten Daten holen)
-  const [persons] = useState<Person[]>([
-    {
-      id: 1,
-      name: 'Max Mustermann',
-      totalDebt: 5.50,
-      items: [
-        { id: 1, name: 'Bier (Flasche, 0,5l)', price: 2.50, type: ItemType.Drink },
-        { id: 2, name: 'Steak', price: 3.50, type: ItemType.Food }
-      ]
-    },
-    {
-      id: 2,
-      name: 'Anna Schmidt',
-      totalDebt: 3.50,
-      items: [
-        { id: 3, name: 'Cola Mix (Flasche, 0,5l)', price: 2.00, type: ItemType.Drink },
-        { id: 4, name: 'Kaffee (Tasse)', price: 1.50, type: ItemType.Drink }
-      ]
-    },
-    {
-      id: 3,
-      name: 'Tom Weber',
-      totalDebt: 0,
-      items: []
-    },
-    {
-      id: 4,
-      name: 'Lisa Müller',
-      totalDebt: 7.20,
-      items: [
-        { id: 5, name: 'Hot Dog', price: 2.00, type: ItemType.Food },
-        { id: 6, name: 'Pommes', price: 1.50, type: ItemType.Food },
-        { id: 7, name: 'Cola Mix (Flasche, 0,5l)', price: 2.00, type: ItemType.Drink },
-        { id: 8, name: 'Kaffee (Tasse)', price: 1.70, type: ItemType.Drink }
-      ]
+  const [persons, setPersons] = useState<Person[]>([]);
+  const db = useSQLiteContext();
+  const { isTrainingsstrichActive, getDisplayPrice } = useTrainingsstrich();
+
+  // Load persons from database
+  useEffect(() => {
+    if (visible) {
+      loadPersons();
     }
-  ]);
+  }, [visible]);
+
+  const loadPersons = async () => {
+    try {
+      const users = await getAllUsers(db);
+      // Convert price from cents to euros for display
+      const personsWithEurosPrices = users.map(user => ({
+        ...user,
+        totalDebt: user.totalDebt / 100,
+        items: user.items.map(item => ({
+          ...item,
+          price: item.price / 100
+        }))
+      }));
+      
+      // Sort persons alphabetically by name
+      const sortedPersons = personsWithEurosPrices.sort((a, b) => 
+        a.name.localeCompare(b.name, 'de', { sensitivity: 'base' })
+      );
+      
+      setPersons(sortedPersons);
+    } catch (error) {
+      console.error("Error loading persons:", error);
+      showErrorToast("Personen konnten nicht geladen werden");
+    }
+  };
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
@@ -85,12 +86,12 @@ export default function GetraenkZuPersonHinzufuegen({
   };
 
   const getTotalPrice = () => {
-    return getTotalItems() * getraenk.price;
+    return getTotalItems() * getDisplayPrice(getraenk.price);
   };
 
   const handleAddToPersons = () => {
     if (Object.keys(selectedQuantities).length === 0) {
-      Alert.alert('Keine Auswahl', 'Bitte wählen Sie mindestens eine Person aus.');
+      showErrorToast('Bitte wählen Sie mindestens eine Person aus.');
       return;
     }
 
@@ -104,23 +105,36 @@ export default function GetraenkZuPersonHinzufuegen({
         { text: 'Abbrechen', style: 'cancel' },
         {
           text: 'Hinzufügen',
-          onPress: () => {
-            Object.entries(selectedQuantities).forEach(([personId, quantity]) => {
-              onAddToPerson(Number(personId), getraenk, quantity);
-            });
+          onPress: async () => {
+            try {
+              const totalItems = getTotalItems();
+              const personNames = Object.keys(selectedQuantities)
+                .map(id => persons.find(p => p.id === Number(id))?.name)
+                .filter(Boolean)
+                .join(', ');
 
-            setSelectedQuantities({});
-            onClose();
+              const promises = Object.entries(selectedQuantities).map(async ([personId, quantity]) => {
+                const person = persons.find(p => p.id === Number(personId));
+                if (person) {
+                  await onAddToPerson(person, getraenk, quantity);
+                }
+              });
 
-            const personNames = Object.keys(selectedQuantities)
-              .map(id => persons.find(p => p.id === Number(id))?.name)
-              .filter(Boolean)
-              .join(', ');
+              await Promise.all(promises);
 
-            Alert.alert(
-              'Hinzugefügt',
-              `${totalItems}x "${getraenk.name}" wurde zu ${personNames} hinzugefügt.`
-            );
+              setSelectedQuantities({});
+              onClose();
+
+              // Toast nach Modal-Schließung anzeigen
+              setTimeout(() => {
+                showSuccessToast(
+                  `${totalItems}x "${getraenk.name}" wurde zu ${personNames} hinzugefügt.`
+                );
+              }, 300);
+            } catch (error) {
+              console.error("Error adding drink to persons:", error);
+              showErrorToast('Getränk konnte nicht hinzugefügt werden');
+            }
           }
         }
       ]
@@ -150,14 +164,22 @@ export default function GetraenkZuPersonHinzufuegen({
           </View>
         </View>
 
-        <ScrollView className="flex-1 px-4 py-6">
+        <ScrollView 
+          className="flex-1 px-4 py-6"
+          keyboardShouldPersistTaps="handled"
+        >
           {/* Getränk Header */}
           <View className="bg-white rounded-lg p-4 mb-6 shadow-sm border border-gray-200">
             <Text className="text-xl font-bold text-gray-800 text-center mb-2">
               {getGetraenkEmoji(getraenk.name)} {getraenk.name}
             </Text>
             <Text className="text-lg font-semibold text-green-600 text-center">
-              {getraenk.price.toFixed(2)}€
+              {getDisplayPrice(getraenk.price).toFixed(2)}€
+              {isTrainingsstrichActive && getraenk.price !== 1.0 && (
+                <Text className="text-sm text-gray-400 line-through ml-2">
+                  {getraenk.price.toFixed(2)}€
+                </Text>
+              )}
             </Text>
           </View>
 
