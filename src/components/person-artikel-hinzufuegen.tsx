@@ -365,29 +365,48 @@ export default function PersonArtikelHinzufuegen({
             )}
           </View>
 
-          {/* Zusammenfassung und Hinzufügen Button */}
+          {/* Zusammenfassung */}
           {getTotalItems() > 0 && (
-            <View className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 mb-6">
-              <Text className="text-lg font-bold text-gray-800 mb-2 text-center">
+            <View className="bg-blue-50 rounded-lg p-4 mt-6 mb-6 border border-blue-200">
+              <Text className="text-lg font-bold text-blue-800 mb-2 text-center">
                 📋 Zusammenfassung
               </Text>
-              <Text className="text-base text-gray-700 text-center mb-2">
+              <Text className="text-base text-blue-700 text-center mb-2">
                 {getTotalItems()} Artikel ausgewählt
               </Text>
-              <Text className="text-xl font-bold text-green-600 text-center mb-4">
+              <Text className="text-xl font-bold text-blue-600 text-center">
                 Gesamtpreis: {getTotalPrice().toFixed(2)}€
               </Text>
-              <TouchableOpacity
-                onPress={handleAddItems}
-                className="bg-green-600 py-3 rounded-lg"
-              >
-                <Text className="text-white text-center font-semibold">
-                  ✓ Alles hinzufügen
-                </Text>
-              </TouchableOpacity>
             </View>
           )}
+
+          {/* Spacer für Button */}
+          <View className="h-20" />
         </ScrollView>
+
+        {/* Hinzufügen Button */}
+        <View className="p-4 bg-white border-t border-gray-200">
+          <TouchableOpacity
+            onPress={handleAddItems}
+            className={`p-4 rounded-lg items-center ${
+              getTotalItems() > 0
+                ? 'bg-green-500'
+                : 'bg-gray-300'
+            }`}
+            disabled={getTotalItems() === 0}
+          >
+            <Text className={`text-lg font-semibold ${
+              getTotalItems() > 0
+                ? 'text-white'
+                : 'text-gray-500'
+            }`}>
+              {getTotalItems() > 0
+                ? `Hinzufügen (${getTotalPrice().toFixed(2)}€)`
+                : 'Keine Auswahl'
+              }
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </Modal>
   );
