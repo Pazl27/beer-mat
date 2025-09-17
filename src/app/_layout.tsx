@@ -3,7 +3,7 @@ import "../global.css";
 import { Slot } from "expo-router";
 import { ActivityIndicator, Platform } from "react-native";
 import { SQLiteProvider, openDatabaseSync } from "expo-sqlite";
-import { addDummyData } from "@/db/addDummyData";
+import { addDefaultItems } from "@/db/addDefaultItems";
 import { initializeDatabase } from "@/db/migrations";
 import { TrainingsstrichProvider } from "@/contexts/TrainingsstrichContext";
 import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
@@ -53,7 +53,7 @@ export default function Layout() {
           const db = openDatabaseSync(DATABASE_NAME);
           await initializeDatabase(db);
           console.log("Database initialized successfully");
-          await addDummyData(db);
+          await addDefaultItems(db);
           databaseInitialized = true;
         })();
 
