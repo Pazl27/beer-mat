@@ -150,6 +150,7 @@ export default function GetraenkDetails({
               value={editedName}
               onChangeText={setEditedName}
               placeholder="z.B. Pils"
+              placeholderTextColor="#9CA3AF"
               className="border border-gray-300 rounded-lg px-4 py-3 text-base mb-4"
             />
 
@@ -161,6 +162,7 @@ export default function GetraenkDetails({
               value={editedPrice}
               onChangeText={setEditedPrice}
               placeholder="z.B. 3.50"
+              placeholderTextColor="#9CA3AF"
               keyboardType="decimal-pad"
               className="border border-gray-300 rounded-lg px-4 py-3 text-base mb-4"
             />
@@ -170,6 +172,7 @@ export default function GetraenkDetails({
               value={editedInfo}
               onChangeText={setEditedInfo}
               placeholder="z.B. 0,5l Flasche"
+              placeholderTextColor="#9CA3AF"
               className="border border-gray-300 rounded-lg px-4 py-3 text-base mb-4"
               multiline
             />

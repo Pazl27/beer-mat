@@ -220,6 +220,7 @@ export default function PersonArtikelHinzufuegen({
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Artikel suchen..."
+              placeholderTextColor="#9CA3AF"
               className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-base shadow-sm"
             />
           </View>

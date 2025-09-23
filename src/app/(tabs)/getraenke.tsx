@@ -199,6 +199,7 @@ export default function GetraenkePage() {
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholder="Getränk suchen..."
+            placeholderTextColor="#9CA3AF"
             className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-base"
           />
         </View>
@@ -215,6 +216,7 @@ export default function GetraenkePage() {
               value={newGetraenk.name}
               onChangeText={(text) => setNewGetraenk({ ...newGetraenk, name: text })}
               placeholder="z.B. Pils"
+              placeholderTextColor="#9CA3AF"
               className="border border-gray-300 rounded-lg px-3 py-2 mb-3 text-base"
             />
 
@@ -223,6 +225,7 @@ export default function GetraenkePage() {
               value={newGetraenk.price}
               onChangeText={(text) => setNewGetraenk({ ...newGetraenk, price: text })}
               placeholder="z.B. 4.20"
+              placeholderTextColor="#9CA3AF"
               keyboardType="decimal-pad"
               className="border border-gray-300 rounded-lg px-3 py-2 mb-3 text-base"
             />
@@ -232,6 +235,7 @@ export default function GetraenkePage() {
               value={newGetraenk.info}
               onChangeText={(text) => setNewGetraenk({ ...newGetraenk, info: text })}
               placeholder="z.B. 0,5l"
+              placeholderTextColor="#9CA3AF"
               className="border border-gray-300 rounded-lg px-3 py-2 mb-3 text-base"
             />
 
