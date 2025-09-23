@@ -405,6 +405,7 @@ export default function PersonenPage() {
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholder="Person suchen..."
+            placeholderTextColor="#9CA3AF"
             className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-base"
           />
         </View>
@@ -419,6 +420,7 @@ export default function PersonenPage() {
               value={newPersonName}
               onChangeText={setNewPersonName}
               placeholder="Name eingeben..."
+              placeholderTextColor="#9CA3AF"
               className="border border-gray-300 rounded-lg px-3 py-2 mb-3 text-base"
               autoFocus
             />

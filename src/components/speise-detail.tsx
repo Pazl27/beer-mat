@@ -144,6 +144,7 @@ export default function SpeiseDetails({
               value={editedName}
               onChangeText={setEditedName}
               placeholder="z.B. Schnitzel Wiener Art"
+              placeholderTextColor="#9CA3AF"
               className="border border-gray-300 rounded-lg px-4 py-3 text-base mb-4"
             />
 
@@ -155,6 +156,7 @@ export default function SpeiseDetails({
               value={editedPrice}
               onChangeText={setEditedPrice}
               placeholder="z.B. 12.90"
+              placeholderTextColor="#9CA3AF"
               keyboardType="decimal-pad"
               className="border border-gray-300 rounded-lg px-4 py-3 text-base mb-4"
             />
@@ -164,6 +166,7 @@ export default function SpeiseDetails({
               value={editedInfo}
               onChangeText={setEditedInfo}
               placeholder="z.B. mit Pommes und Salat"
+              placeholderTextColor="#9CA3AF"
               className="border border-gray-300 rounded-lg px-4 py-3 text-base mb-4"
               multiline
             />
