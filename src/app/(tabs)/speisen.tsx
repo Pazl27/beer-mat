@@ -176,6 +176,7 @@ export default function SpeisenPage() {
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholder="Speise suchen..."
+            placeholderTextColor="#9CA3AF"
             className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-base"
           />
         </View>
@@ -192,6 +193,7 @@ export default function SpeisenPage() {
               value={newSpeise.name}
               onChangeText={(text) => setNewSpeise({ ...newSpeise, name: text })}
               placeholder="z.B. Schnitzel Wiener Art"
+              placeholderTextColor="#9CA3AF"
               className="border border-gray-300 rounded-lg px-3 py-2 mb-3 text-base"
             />
 
@@ -200,6 +202,7 @@ export default function SpeisenPage() {
               value={newSpeise.price}
               onChangeText={(text) => setNewSpeise({ ...newSpeise, price: text })}
               placeholder="z.B. 12.90"
+              placeholderTextColor="#9CA3AF"
               keyboardType="decimal-pad"
               className="border border-gray-300 rounded-lg px-3 py-2 mb-3 text-base"
             />
@@ -209,6 +212,7 @@ export default function SpeisenPage() {
               value={newSpeise.info}
               onChangeText={(text) => setNewSpeise({ ...newSpeise, info: text })}
               placeholder="z.B. mit Pommes und Salat"
+              placeholderTextColor="#9CA3AF"
               className="border border-gray-300 rounded-lg px-3 py-2 mb-3 text-base"
             />
 
