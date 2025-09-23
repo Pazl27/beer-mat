@@ -8,6 +8,7 @@ import { initializeDatabase } from "@/db/migrations";
 import { TrainingsstrichProvider } from "@/contexts/TrainingsstrichContext";
 import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
 import * as NavigationBar from 'expo-navigation-bar';
+import { StatusBar } from 'expo-status-bar';
 
 export const DATABASE_NAME = "beer-mat";
 
@@ -74,6 +75,7 @@ export default function Layout() {
 
   return (
     <Suspense fallback={<ActivityIndicator size="large" />}>
+      <StatusBar style="light" backgroundColor="#4F46E5" />
       <SQLiteProvider
         databaseName={DATABASE_NAME}
         options={{ enableChangeListener: true }}

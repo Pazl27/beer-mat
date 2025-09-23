@@ -25,7 +25,11 @@
         "backgroundColor": "#ffffff"
       },
       "softwareKeyboardLayoutMode": "pan",
-      "package": "com.pazl27.beermat"
+      "package": "com.pazl27.beermat",
+      "statusBarColor": "#4F46E5",
+      "statusBarStyle": "light",
+      "statusBarBackgroundColor": "#4F46E5",
+      "statusBarTranslucent": false
     },
     "web": {
       "bundler": "metro",
