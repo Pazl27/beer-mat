@@ -7,7 +7,7 @@
     "icon": "./src/assets/app-icon/app-icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./src/assets/app-icon/app-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -25,19 +25,20 @@
         "backgroundColor": "#ffffff"
       },
       "softwareKeyboardLayoutMode": "pan",
-      "navigationBar": {
-        "visible": false,
-        "backgroundColor": "#000000"
-      },
-      "statusBar": {
-        "hidden": true,
-        "backgroundColor": "#000000"
-      }
+      "package": "com.pazl27.beermat"
     },
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./src/assets/app-icon/app-icon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "99b6ff88-2a09-460d-97ae-b04d3d7ab360"
+      }
+    },
+    "plugins": [
+      "expo-router"
+    ]
   }
 }
