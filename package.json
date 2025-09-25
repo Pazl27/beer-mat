@@ -35,7 +35,6 @@
     "@babel/core": "^7.20.0",
     "@types/react": "~19.0.10",
     "drizzle-kit": "^0.31.4",
-    "lightningcss-linux-x64-gnu": "^1.21.0",
     "typescript": "~5.8.3",
     "lightningcss": "1.27.0"
   },
