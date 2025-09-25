@@ -104,6 +104,7 @@ export default function SpeiseDetails({
         <ScrollView 
           className="flex-1 px-4 py-6"
           keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: 30 }}
         >
           {/* Speise Header */}
           <View className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
@@ -200,6 +201,32 @@ export default function SpeiseDetails({
             >
               <Text className="text-white text-center font-semibold">
                 ✓ Änderungen speichern
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* PIN ändern Karte */}
+          <View className="bg-white rounded-lg p-4 mb-6 shadow-sm border border-gray-200">
+            <Text className="text-xl font-bold text-gray-800 mb-4">
+              🔐 Sicherheitseinstellungen
+            </Text>
+            
+            <Text className="text-sm text-gray-600 mb-4">
+              Ändern Sie die PIN für den Zugriff auf die Einstellungen
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => {
+                Alert.alert(
+                  "PIN ändern",
+                  "Diese Funktion wird bald verfügbar sein.",
+                  [{ text: "OK" }]
+                );
+              }}
+              className="bg-yellow-500 py-3 rounded-lg"
+            >
+              <Text className="text-white text-center font-semibold">
+                🔐 PIN ändern
               </Text>
             </TouchableOpacity>
           </View>
