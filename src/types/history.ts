@@ -13,4 +13,5 @@ export interface PaymentDetail {
   price: number; // Price in cents
   quantity: number;
   type: 'drink' | 'food';
+  dateAdded?: string; // Date when item was originally added (YYYY-MM-DD format)
 }

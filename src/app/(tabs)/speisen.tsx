@@ -4,6 +4,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect } from '@react-navigation/native';
 import SpeiseDetails from '@/components/speise-detail';
 import SpeiseZuPersonHinzufuegen from '@/components/speise-zu-person-hinzufuegen';
+import PinProtection from '@/components/pin-protection';
 import { Speise } from '@/types';
 import { FoodCategory } from '@/types/category';
 import { getAllFoodItems, createFoodItem, updateFoodItem, deleteFoodItem, addItemToUser } from '@/db/dbFunctions';
@@ -51,6 +52,7 @@ export default function SpeisenPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpeise, setSelectedSpeise] = useState<Speise | null>(null);
   const [selectedSpeiseForPerson, setSelectedSpeiseForPerson] = useState<Speise | null>(null);
+  const [isPinAuthenticated, setIsPinAuthenticated] = useState(false);
 
   // Filter speisen based on search query
   const filteredSpeisen = speisen.filter(speise =>
@@ -347,13 +349,24 @@ export default function SpeisenPage() {
       {/* Speise Details Modal */}
       {/* Speise Details Modal */}
       {selectedSpeise && (
-        <SpeiseDetails
-          speise={selectedSpeise}
-          visible={selectedSpeise !== null}
-          onClose={() => setSelectedSpeise(null)}
-          onUpdate={updateSpeise}
-          onDelete={deleteSpeise}
-        />
+        <PinProtection 
+          onAuthenticated={() => setIsPinAuthenticated(true)}
+          onCancel={() => {
+            setSelectedSpeise(null);
+            setIsPinAuthenticated(false);
+          }}
+        >
+          <SpeiseDetails
+            speise={selectedSpeise}
+            visible={selectedSpeise !== null && isPinAuthenticated}
+            onClose={() => {
+              setSelectedSpeise(null);
+              setIsPinAuthenticated(false);
+            }}
+            onUpdate={updateSpeise}
+            onDelete={deleteSpeise}
+          />
+        </PinProtection>
       )}
 
       {/* Speise zu Person hinzufügen Modal */}
