@@ -8,6 +8,7 @@ export default function PersonBegleichen({
   visible,
   onClose,
   onPayItem,
+  onPayItems,
   onPayAll
 }: PersonBegleichenProps) {
   const [inModalToast, setInModalToast] = useState<{message: string, visible: boolean}>({message: '', visible: false});
@@ -145,14 +146,8 @@ export default function PersonBegleichen({
 
   // Funktion für das Begleichen mit variabler Anzahl
   const payItemWithQuantity = async (itemName: string, itemType: ItemType, unitPrice: number, quantity: number) => {
-    // Begleiche die gewünschte Anzahl sequenziell
-    for (let i = 0; i < quantity; i++) {
-      await new Promise(resolve => {
-        onPayItem(person.id, itemName, itemType, unitPrice);
-        // Kurze Pause zwischen den Aufrufen, um sicherzustellen, dass jeder verarbeitet wird
-        setTimeout(resolve, 50);
-      });
-    }
+    // Verwende die neue Bulk-Funktion statt der Schleife
+    onPayItems(person.id, itemName, itemType, unitPrice, quantity);
     showInModalToast(`${quantity}x "${itemName}" (${(quantity * unitPrice).toFixed(2)}€) wurde beglichen.`);
   };
 

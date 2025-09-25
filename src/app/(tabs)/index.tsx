@@ -5,7 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import PersonBegleichen from '@/components/person-begleichen';
 import PersonArtikelHinzufuegen from '@/components/person-artikel-hinzufuegen';
 import { ItemType, Person, History, PaymentDetail } from '@/types';
-import { getAllUsers, createUser, deleteUser, clearUserDebt, payUserItem, getDetailedHistoryForUser, addItemToUser, clearUserHistory, cancelUserItem } from '@/db/dbFunctions';
+import { getAllUsers, createUser, deleteUser, clearUserDebt, payUserItem, payUserItems, getDetailedHistoryForUser, addItemToUser, clearUserHistory, cancelUserItem } from '@/db/dbFunctions';
 import { showSuccessToast, showWarningToast, showInfoToast } from '@/utils/toast';
 
 export default function PersonenPage() {
@@ -250,6 +250,54 @@ export default function PersonenPage() {
     } catch (error) {
       console.error("Error paying item:", error);
       Alert.alert("Fehler", "Artikel konnte nicht beglichen werden");
+    }
+  };
+
+  const payItems = async (personId: number, itemName: string, itemType: ItemType, itemPrice: number, quantity: number) => {
+    try {
+      await payUserItems(db, personId, itemName, itemType, itemPrice, quantity);
+      await loadPersons(); // Reload from database
+
+      // Update selected person for begleichen modal if it's open
+      if (selectedPersonForBegleichen && selectedPersonForBegleichen.id === personId) {
+        const updatedPersons = await getAllUsers(db);
+        const updatedPerson = updatedPersons.find(p => p.id === personId);
+        if (updatedPerson) {
+          // Convert price from cents to euros for display
+          const personWithEuros = {
+            ...updatedPerson,
+            totalDebt: updatedPerson.totalDebt / 100,
+            items: updatedPerson.items.map(item => ({
+              ...item,
+              price: item.price / 100
+            }))
+          };
+          setSelectedPersonForBegleichen(personWithEuros);
+        }
+      }
+
+      // Update selected person for details modal if it's open and reload history
+      if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
+        const updatedPersons = await getAllUsers(db);
+        const updatedPerson = updatedPersons.find(p => p.id === personId);
+        if (updatedPerson) {
+          // Convert price from cents to euros for display
+          const personWithEuros = {
+            ...updatedPerson,
+            totalDebt: updatedPerson.totalDebt / 100,
+            items: updatedPerson.items.map(item => ({
+              ...item,
+              price: item.price / 100
+            }))
+          };
+          setSelectedPersonForDetails(personWithEuros);
+          // Reload history
+          await loadPersonHistory(personId);
+        }
+      }
+    } catch (error) {
+      console.error("Error paying items:", error);
+      Alert.alert("Fehler", "Artikel konnten nicht beglichen werden");
     }
   };
 
@@ -1017,6 +1065,7 @@ export default function PersonenPage() {
           visible={selectedPersonForBegleichen !== null}
           onClose={() => setSelectedPersonForBegleichen(null)}
           onPayItem={payItem}
+          onPayItems={payItems}
           onPayAll={clearDebt}
         />
       )}
