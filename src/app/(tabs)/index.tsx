@@ -110,6 +110,22 @@ export default function PersonenPage() {
     }
   };
 
+  // Helper function to format date for display
+  const formatDisplayDate = (dateString: string): string => {
+    if (dateString === 'unknown') return '';
+    
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('de-DE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch (error) {
+      return '';
+    }
+  };
+
   // Helper function to toggle history item expansion
   const toggleHistoryItemExpansion = (historyId: number) => {
     setExpandedHistoryItems(prev => {
@@ -320,24 +336,25 @@ export default function PersonenPage() {
     );
   };
 
-  // Group items by name, type AND price for summary in details modal
+  // Group items by name, type, price AND date for summary in details modal
   const getGroupedItems = (person: Person) => {
     const grouped = person.items.reduce((acc, item) => {
-      // Include price in the key to separate items with different prices
-      const key = `${item.type}-${item.name}-${item.price}`;
+      // Include price and date in the key to separate items with different prices or dates
+      const key = `${item.type}-${item.name}-${item.price}-${item.dateAdded || 'unknown'}`;
       if (!acc[key]) {
         acc[key] = {
           name: item.name,
           type: item.type,
           count: 0,
           totalPrice: 0,
-          unitPrice: item.price
+          unitPrice: item.price,
+          dateAdded: item.dateAdded || 'unknown'
         };
       }
       acc[key].count += 1;
       acc[key].totalPrice += item.price;
       return acc;
-    }, {} as Record<string, { name: string; type: ItemType; count: number; totalPrice: number; unitPrice: number }>);
+    }, {} as Record<string, { name: string; type: ItemType; count: number; totalPrice: number; unitPrice: number; dateAdded: string }>);
 
     return {
       getraenke: Object.values(grouped).filter(item => item.type === ItemType.Drink),
@@ -704,6 +721,11 @@ export default function PersonenPage() {
                                 <Text className="text-sm text-gray-500">
                                   à {item.unitPrice.toFixed(2)}€
                                 </Text>
+                                {item.dateAdded && item.dateAdded !== 'unknown' && (
+                                  <Text className="text-xs text-gray-400">
+                                    {formatDisplayDate(item.dateAdded)}
+                                  </Text>
+                                )}
                               </View>
                               <View className="flex-row items-center gap-3">
                                 <Text className="text-base font-semibold text-green-600">
@@ -739,6 +761,11 @@ export default function PersonenPage() {
                                 <Text className="text-sm text-gray-500">
                                   à {item.unitPrice.toFixed(2)}€
                                 </Text>
+                                {item.dateAdded && item.dateAdded !== 'unknown' && (
+                                  <Text className="text-xs text-gray-400">
+                                    {formatDisplayDate(item.dateAdded)}
+                                  </Text>
+                                )}
                               </View>
                               <View className="flex-row items-center gap-3">
                                 <Text className="text-base font-semibold text-green-600">

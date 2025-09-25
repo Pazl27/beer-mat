@@ -72,11 +72,14 @@ export const addItemToUser = async (
       return;
     }
 
+    // Get current date in YYYY-MM-DD format (without time)
+    const currentDate = new Date().toISOString().split('T')[0];
+
     // Insert one row per item (not just one row with quantity)
     for (let i = 0; i < quantity; i++) {
       await db.runAsync(
-        'INSERT INTO user_items (user_id, item_id, price_per_item, item_name, item_price, item_type) VALUES (?, ?, ?, ?, ?, ?)',
-        [user.id, item.id, item.price, item.name, item.price, item.type]
+        'INSERT INTO user_items (user_id, item_id, price_per_item, item_name, item_price, item_type, date_added) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [user.id, item.id, item.price, item.name, item.price, item.type, currentDate]
       );
     }
 
@@ -105,7 +108,8 @@ export const getItemsForUser = async (db: SQLiteDatabase, userId: number): Promi
     item_name: string;
     item_price: number;
     item_type: string;
-  }>('SELECT id, item_id, item_name, item_price, item_type FROM user_items WHERE user_id = ?', [userId]);
+    date_added: string;
+  }>('SELECT id, item_id, item_name, item_price, item_type, date_added FROM user_items WHERE user_id = ?', [userId]);
 
   return rows.map((row) => ({
     id: row.id, // Use the unique user_items.id instead of item_id
@@ -113,6 +117,7 @@ export const getItemsForUser = async (db: SQLiteDatabase, userId: number): Promi
     price: row.item_price,
     type: row.item_type as ItemType,
     originalItemId: row.item_id, // Keep reference to original item if needed
+    dateAdded: row.date_added, // Add the date field
   }));
 };
 
