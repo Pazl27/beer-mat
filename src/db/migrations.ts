@@ -2,7 +2,7 @@ import { SQLiteDatabase } from "expo-sqlite";
 import AsyncStorage from "expo-sqlite/kv-store";
 
 // Schema version management
-const CURRENT_SCHEMA_VERSION = 2;
+const CURRENT_SCHEMA_VERSION = 3;
 
 const getCurrentSchemaVersion = async (db: SQLiteDatabase): Promise<number> => {
   try {
@@ -123,6 +123,20 @@ export const initializeDatabase = async (db: SQLiteDatabase): Promise<void> => {
       
       console.log("Migration completed: details column added to history table");
       await setSchemaVersion(db, 2);
+    }
+
+    // Migration Version 3: Add date_added column to user_items table
+    if (currentVersion < 3) {
+      console.log("Running migration: Adding date_added column to user_items table");
+      
+      // Add the date_added column with current date as default for existing items
+      const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      await db.execAsync(`
+        ALTER TABLE user_items ADD COLUMN date_added TEXT DEFAULT '${currentDate}';
+      `);
+      
+      console.log("Migration completed: date_added column added to user_items table");
+      await setSchemaVersion(db, 3);
     }
 
     console.log(`Database initialized at schema version ${CURRENT_SCHEMA_VERSION}`);

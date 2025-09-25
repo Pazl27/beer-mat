@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal } fro
 import { Speise, SpeiseDetailsProps } from '@/types';
 import { FoodCategory } from '@/types/category';
 import { showSuccessToast, showErrorToast } from '@/utils/toast';
+import PinChangeModal from '@/components/pin-change-modal';
 
 export default function SpeiseDetails({
   speise,
@@ -15,6 +16,17 @@ export default function SpeiseDetails({
   const [editedPrice, setEditedPrice] = useState(speise.price.toString());
   const [editedInfo, setEditedInfo] = useState(speise.info || '');
   const [editedCategory, setEditedCategory] = useState(speise.category);
+  const [showPinChangeModal, setShowPinChangeModal] = useState(false);
+  const [showLocalToast, setShowLocalToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  const showInModalToast = (message: string) => {
+    setToastMessage(message);
+    setShowLocalToast(true);
+    setTimeout(() => {
+      setShowLocalToast(false);
+    }, 3000);
+  };
 
   const getCategoryIcon = (category: FoodCategory) => {
     switch (category) {
@@ -104,6 +116,7 @@ export default function SpeiseDetails({
         <ScrollView 
           className="flex-1 px-4 py-6"
           keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: 30 }}
         >
           {/* Speise Header */}
           <View className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
@@ -203,8 +216,51 @@ export default function SpeiseDetails({
               </Text>
             </TouchableOpacity>
           </View>
+
+          {/* PIN ändern Karte */}
+          <View className="bg-white rounded-lg p-4 mb-6 shadow-sm border border-gray-200">
+            <Text className="text-xl font-bold text-gray-800 mb-4">
+              🔐 Sicherheitseinstellungen
+            </Text>
+            
+            <Text className="text-sm text-gray-600 mb-4">
+              Ändern Sie die PIN für den Zugriff auf die Einstellungen
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => setShowPinChangeModal(true)}
+              className="bg-yellow-500 py-3 rounded-lg"
+            >
+              <Text className="text-white text-center font-semibold">
+                🔐 PIN ändern
+              </Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </View>
+
+      {/* PIN Change Modal */}
+      <PinChangeModal
+        visible={showPinChangeModal}
+        onClose={() => setShowPinChangeModal(false)}
+        onSuccess={() => {
+          // Toast nach Modal-Schließung anzeigen
+          setTimeout(() => {
+            showInModalToast('PIN wurde erfolgreich geändert');
+          }, 300);
+        }}
+      />
+
+      {/* Local Toast - appears within this modal */}
+      {showLocalToast && (
+        <View className="absolute top-16 left-4 right-4 z-50">
+          <View className="bg-green-600 rounded-lg p-4 shadow-lg">
+            <Text className="text-white text-center font-semibold">
+              {toastMessage}
+            </Text>
+          </View>
+        </View>
+      )}
     </Modal>
   );
 }

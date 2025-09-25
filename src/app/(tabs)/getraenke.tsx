@@ -4,6 +4,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect } from '@react-navigation/native';
 import GetraenkDetails from '@/components/getraenk-detail';
 import GetraenkZuPersonHinzufuegen from '@/components/getraenk-zu-person-hinzufuegen';
+import PinProtection from '@/components/pin-protection';
 import { Getraenk } from '@/types';
 import { DrinkCategory } from '@/types/category';
 import { getAllDrinkItems, createDrinkItem, updateDrinkItem, deleteDrinkItem, addItemToUser } from '@/db/dbFunctions';
@@ -53,6 +54,7 @@ export default function GetraenkePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGetraenk, setSelectedGetraenk] = useState<Getraenk | null>(null);
   const [selectedGetraenkForPerson, setSelectedGetraenkForPerson] = useState<Getraenk | null>(null);
+  const [isPinAuthenticated, setIsPinAuthenticated] = useState(false);
 
   // Filter getraenke based on search query
   const filteredGetraenke = getraenke.filter(getraenk =>
@@ -373,15 +375,25 @@ export default function GetraenkePage() {
       </ScrollView>
 
       {/* Getränk Details Modal */}
-      {/* Getränk Details Modal */}
       {selectedGetraenk && (
-        <GetraenkDetails
-          getraenk={selectedGetraenk}
-          visible={selectedGetraenk !== null}
-          onClose={() => setSelectedGetraenk(null)}
-          onUpdate={updateGetraenk}
-          onDelete={deleteGetraenk}
-        />
+        <PinProtection 
+          onAuthenticated={() => setIsPinAuthenticated(true)}
+          onCancel={() => {
+            setSelectedGetraenk(null);
+            setIsPinAuthenticated(false);
+          }}
+        >
+          <GetraenkDetails
+            getraenk={selectedGetraenk}
+            visible={selectedGetraenk !== null && isPinAuthenticated}
+            onClose={() => {
+              setSelectedGetraenk(null);
+              setIsPinAuthenticated(false);
+            }}
+            onUpdate={updateGetraenk}
+            onDelete={deleteGetraenk}
+          />
+        </PinProtection>
       )}
 
       {/* Getränk zu Person hinzufügen Modal */}

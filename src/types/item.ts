@@ -8,6 +8,7 @@ export type Item = {
   category?: FoodCategory | DrinkCategory;
   info?: string;
   originalItemId?: number; // Reference to the original item in items table
+  dateAdded?: string; // Date when item was added to user (YYYY-MM-DD format)
 };
 
 export enum ItemType {

@@ -5,8 +5,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import PersonBegleichen from '@/components/person-begleichen';
 import PersonArtikelHinzufuegen from '@/components/person-artikel-hinzufuegen';
 import { ItemType, Person, History, PaymentDetail } from '@/types';
-import { getAllUsers, createUser, deleteUser, clearUserDebt, payUserItem, getDetailedHistoryForUser, addItemToUser, clearUserHistory } from '@/db/dbFunctions';
-import { showSuccessToast, showWarningToast } from '@/utils/toast';
+import { getAllUsers, createUser, deleteUser, clearUserDebt, payUserItem, payUserItems, getDetailedHistoryForUser, addItemToUser, clearUserHistory, cancelUserItem, cancelUserItems } from '@/db/dbFunctions';
+import { showSuccessToast, showWarningToast, showInfoToast } from '@/utils/toast';
 
 export default function PersonenPage() {
   const [persons, setPersons] = useState<Person[]>([]);
@@ -59,19 +59,36 @@ export default function PersonenPage() {
   const [personHistory, setPersonHistory] = useState<(History & { itemName?: string; itemType?: ItemType })[]>([]);
   const [expandedHistoryItems, setExpandedHistoryItems] = useState<Set<number>>(new Set());
 
+  // Stornieren Modal State
+  const [cancelModal, setCancelModal] = useState<{
+    visible: boolean;
+    itemName: string;
+    itemType: ItemType;
+    unitPrice: number;
+    maxQuantity: number;
+    quantity: number;
+  }>({
+    visible: false,
+    itemName: '',
+    itemType: ItemType.Drink,
+    unitPrice: 0,
+    maxQuantity: 0,
+    quantity: 1
+  });
+
   // In-Modal Toast State für Details Modal
-  const [inModalToast, setInModalToast] = useState<{message: string, visible: boolean}>({message: '', visible: false});
+  const [inModalToast, setInModalToast] = useState<{message: string, visible: boolean, type?: 'success' | 'info'}>({message: '', visible: false, type: 'success'});
   const [fadeAnim] = useState(new Animated.Value(0));
   const [currentAnimation, setCurrentAnimation] = useState<Animated.CompositeAnimation | null>(null);
 
-  const showInModalToast = (message: string) => {
+  const showInModalToast = (message: string, type: 'success' | 'info' = 'success') => {
     // Stoppe vorherige Animation falls noch aktiv
     if (currentAnimation) {
       currentAnimation.stop();
       setCurrentAnimation(null);
     }
 
-    setInModalToast({message, visible: true});
+    setInModalToast({message, visible: true, type});
     
     const animation = Animated.sequence([
       Animated.timing(fadeAnim, {
@@ -89,7 +106,7 @@ export default function PersonenPage() {
 
     setCurrentAnimation(animation);
     animation.start(() => {
-      setInModalToast({message: '', visible: false});
+      setInModalToast({message: '', visible: false, type: 'success'});
       setCurrentAnimation(null);
     });
   };
@@ -107,6 +124,22 @@ export default function PersonenPage() {
     } catch (error) {
       console.error("Error parsing payment details:", error);
       return [];
+    }
+  };
+
+  // Helper function to format date for display
+  const formatDisplayDate = (dateString: string): string => {
+    if (dateString === 'unknown') return '';
+    
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('de-DE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch (error) {
+      return '';
     }
   };
 
@@ -220,6 +253,176 @@ export default function PersonenPage() {
     }
   };
 
+  const payItems = async (personId: number, itemName: string, itemType: ItemType, itemPrice: number, quantity: number) => {
+    try {
+      await payUserItems(db, personId, itemName, itemType, itemPrice, quantity);
+      await loadPersons(); // Reload from database
+
+      // Update selected person for begleichen modal if it's open
+      if (selectedPersonForBegleichen && selectedPersonForBegleichen.id === personId) {
+        const updatedPersons = await getAllUsers(db);
+        const updatedPerson = updatedPersons.find(p => p.id === personId);
+        if (updatedPerson) {
+          // Convert price from cents to euros for display
+          const personWithEuros = {
+            ...updatedPerson,
+            totalDebt: updatedPerson.totalDebt / 100,
+            items: updatedPerson.items.map(item => ({
+              ...item,
+              price: item.price / 100
+            }))
+          };
+          setSelectedPersonForBegleichen(personWithEuros);
+        }
+      }
+
+      // Update selected person for details modal if it's open and reload history
+      if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
+        const updatedPersons = await getAllUsers(db);
+        const updatedPerson = updatedPersons.find(p => p.id === personId);
+        if (updatedPerson) {
+          // Convert price from cents to euros for display
+          const personWithEuros = {
+            ...updatedPerson,
+            totalDebt: updatedPerson.totalDebt / 100,
+            items: updatedPerson.items.map(item => ({
+              ...item,
+              price: item.price / 100
+            }))
+          };
+          setSelectedPersonForDetails(personWithEuros);
+          // Reload history
+          await loadPersonHistory(personId);
+        }
+      }
+    } catch (error) {
+      console.error("Error paying items:", error);
+      Alert.alert("Fehler", "Artikel konnten nicht beglichen werden");
+    }
+  };
+
+  const cancelItem = async (personId: number, itemName: string, itemType: ItemType, itemPrice: number) => {
+    try {
+      await cancelUserItem(db, personId, itemName, itemType, itemPrice);
+      await loadPersons(); // Reload from database
+
+      // Update selected person for details modal if it's open - same pattern as payment
+      if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
+        const updatedPersons = await getAllUsers(db);
+        const updatedPerson = updatedPersons.find(p => p.id === personId);
+        if (updatedPerson) {
+          // Convert price from cents to euros for display
+          const personWithEuros = {
+            ...updatedPerson,
+            totalDebt: updatedPerson.totalDebt / 100,
+            items: updatedPerson.items.map(item => ({
+              ...item,
+              price: item.price / 100
+            }))
+          };
+          setSelectedPersonForDetails(personWithEuros);
+        }
+      }
+    } catch (error) {
+      console.error("Error canceling item:", error);
+      Alert.alert("Fehler", "Artikel konnte nicht storniert werden");
+    }
+  };
+
+  // Funktion zum Öffnen des Stornieren-Modals
+  const openCancelModal = (itemName: string, itemType: ItemType, unitPrice: number) => {
+    if (!selectedPersonForDetails) return;
+    
+    // Finde die maximale Anzahl für diesen Artikel
+    const grouped = getGroupedItems(selectedPersonForDetails);
+    const itemGroup = [...grouped.getraenke, ...grouped.speisen].find(item => 
+      item.name === itemName && item.type === itemType && item.unitPrice === unitPrice
+    );
+    
+    if (!itemGroup || itemGroup.count === 0) return;
+    
+    setCancelModal({
+      visible: true,
+      itemName,
+      itemType,
+      unitPrice,
+      maxQuantity: itemGroup.count,
+      quantity: 1
+    });
+  };
+
+  // Funktion zum Schließen des Stornieren-Modals
+  const closeCancelModal = () => {
+    setCancelModal({
+      visible: false,
+      itemName: '',
+      itemType: ItemType.Drink,
+      unitPrice: 0,
+      maxQuantity: 0,
+      quantity: 1
+    });
+  };
+
+  // Funktion zum Anpassen der Stornierungsmenge
+  const updateCancelQuantity = (change: number) => {
+    setCancelModal(prev => ({
+      ...prev,
+      quantity: Math.max(1, Math.min(prev.maxQuantity, prev.quantity + change))
+    }));
+  };
+
+  // Erweiterte Cancel-Funktion für variable Anzahl
+  const cancelItemWithQuantity = async (personId: number, itemName: string, itemType: ItemType, unitPrice: number, quantity: number) => {
+    try {
+      // Verwende die neue Bulk-Funktion statt der sequenziellen Schleife
+      await cancelUserItems(db, personId, itemName, itemType, unitPrice, quantity);
+      
+      // Reload persons to update the UI
+      await loadPersons();
+      
+      // Update selected person details if it's the one being modified - same pattern as payment
+      if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
+        const updatedPersons = await getAllUsers(db);
+        const updatedPerson = updatedPersons.find(p => p.id === personId);
+        if (updatedPerson) {
+          // Convert price from cents to euros for display
+          const personWithEuros = {
+            ...updatedPerson,
+            totalDebt: updatedPerson.totalDebt / 100,
+            items: updatedPerson.items.map(item => ({
+              ...item,
+              price: item.price / 100
+            }))
+          };
+          setSelectedPersonForDetails(personWithEuros);
+        }
+      }
+    } catch (error) {
+      console.error("Error canceling item:", error);
+      Alert.alert("Fehler", "Artikel konnte nicht storniert werden");
+    }
+  };
+
+  const handleCancelItem = (itemName: string, itemType: ItemType, unitPrice: number) => {
+    if (!selectedPersonForDetails) return;
+    
+    Alert.alert(
+      'Artikel stornieren',
+      `Möchten Sie 1x "${itemName}" (${unitPrice.toFixed(2)}€) wirklich stornieren? Der Artikel wird vollständig entfernt und erscheint NICHT in der Zahlungshistorie.`,
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        {
+          text: 'Stornieren',
+          style: 'destructive',
+          onPress: async () => {
+            await cancelItem(selectedPersonForDetails.id, itemName, itemType, unitPrice);
+            showInModalToast(`1x "${itemName}" (${unitPrice.toFixed(2)}€) wurde storniert.`);
+          }
+        }
+      ]
+    );
+  };
+
   const deletePerson = (personId: number, personName: string) => {
     Alert.alert(
       'Person löschen',
@@ -272,29 +475,80 @@ export default function PersonenPage() {
     );
   };
 
-  // Group items by name, type AND price for summary in details modal
+  // Group items by name, type, price AND date for summary in details modal
   const getGroupedItems = (person: Person) => {
     const grouped = person.items.reduce((acc, item) => {
-      // Include price in the key to separate items with different prices
-      const key = `${item.type}-${item.name}-${item.price}`;
+      // Include price and date in the key to separate items with different prices or dates
+      const key = `${item.type}-${item.name}-${item.price}-${item.dateAdded || 'unknown'}`;
       if (!acc[key]) {
         acc[key] = {
           name: item.name,
           type: item.type,
           count: 0,
           totalPrice: 0,
-          unitPrice: item.price
+          unitPrice: item.price,
+          dateAdded: item.dateAdded || 'unknown'
         };
       }
       acc[key].count += 1;
       acc[key].totalPrice += item.price;
       return acc;
-    }, {} as Record<string, { name: string; type: ItemType; count: number; totalPrice: number; unitPrice: number }>);
+    }, {} as Record<string, { name: string; type: ItemType; count: number; totalPrice: number; unitPrice: number; dateAdded: string }>);
 
     return {
       getraenke: Object.values(grouped).filter(item => item.type === ItemType.Drink),
       speisen: Object.values(grouped).filter(item => item.type === ItemType.Food)
     };
+  };
+
+  // Neue Funktion für Datum-gruppierte Items
+  const getItemsGroupedByDate = (person: Person) => {
+    const grouped = person.items.reduce((acc, item) => {
+      const key = `${item.type}-${item.name}-${item.price}-${item.dateAdded || 'unknown'}`;
+      if (!acc[key]) {
+        acc[key] = {
+          name: item.name,
+          type: item.type,
+          count: 0,
+          totalPrice: 0,
+          unitPrice: item.price,
+          dateAdded: item.dateAdded || 'unknown'
+        };
+      }
+      acc[key].count += 1;
+      acc[key].totalPrice += item.price;
+      return acc;
+    }, {} as Record<string, { name: string; type: ItemType; count: number; totalPrice: number; unitPrice: number; dateAdded: string }>);
+
+    const allItems = Object.values(grouped);
+    
+    // Gruppiere nach Datum
+    const byDate = allItems.reduce((acc, item) => {
+      const dateKey = item.dateAdded;
+      if (!acc[dateKey]) {
+        acc[dateKey] = {
+          getraenke: [],
+          speisen: []
+        };
+      }
+      
+      if (item.type === ItemType.Drink) {
+        acc[dateKey].getraenke.push(item);
+      } else {
+        acc[dateKey].speisen.push(item);
+      }
+      
+      return acc;
+    }, {} as Record<string, { getraenke: any[]; speisen: any[] }>);
+
+    // Sortiere die Daten (neueste zuerst)
+    const sortedDates = Object.keys(byDate).sort((a, b) => {
+      if (a === 'unknown') return 1;
+      if (b === 'unknown') return -1;
+      return new Date(b).getTime() - new Date(a).getTime();
+    });
+
+    return { byDate, sortedDates };
   };
 
   const handleAddItemsToPerson = async (personId: number, selectedItems: Array<{name: string, price: number, type: ItemType, quantity: number, itemId: number}>) => {
@@ -636,64 +890,111 @@ export default function PersonenPage() {
 
               {/* Tab Content */}
               {activeDetailsTab === 'offen' ? (
-                // Offen Tab - Current unpaid items
+                // Offen Tab - Current unpaid items grouped by date
                 (() => {
-                  const grouped = getGroupedItems(selectedPersonForDetails);
+                  const { byDate, sortedDates } = getItemsGroupedByDate(selectedPersonForDetails);
+                  
+                  if (selectedPersonForDetails.items.length === 0) {
+                    return (
+                      <View className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                        <Text className="text-gray-500 text-lg text-center">Keine offenen Artikel</Text>
+                      </View>
+                    );
+                  }
+                  
                   return (
                     <>
-                      {/* Getränke Summary */}
-                      {grouped.getraenke.length > 0 && (
-                        <View className="bg-white rounded-lg p-4 mb-4 shadow-sm border border-gray-200">
-                          <Text className="text-xl font-bold text-gray-800 mb-3 text-center">
-                            🍺 Getränke
-                          </Text>
-                          {grouped.getraenke.map((item, index) => (
-                            <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
-                              <View className="flex-1">
-                                <Text className="text-base text-gray-700">
-                                  {item.count}x {item.name}
-                                </Text>
-                                <Text className="text-sm text-gray-500">
-                                  à {item.unitPrice.toFixed(2)}€
-                                </Text>
-                              </View>
-                              <Text className="text-base font-semibold text-green-600">
-                                {item.totalPrice.toFixed(2)}€
-                              </Text>
-                            </View>
-                          ))}
-                        </View>
-                      )}
-
-                      {/* Speisen Summary */}
-                      {grouped.speisen.length > 0 && (
-                        <View className="bg-white rounded-lg p-4 mb-4 shadow-sm border border-gray-200">
-                          <Text className="text-xl font-bold text-gray-800 mb-3 text-center">
-                            🍽️ Speisen
-                          </Text>
-                          {grouped.speisen.map((item, index) => (
-                            <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
-                              <View className="flex-1">
-                                <Text className="text-base text-gray-700">
-                                  {item.count}x {item.name}
-                                </Text>
-                                <Text className="text-sm text-gray-500">
-                                  à {item.unitPrice.toFixed(2)}€
+                      {sortedDates.map((dateKey, dateIndex) => {
+                        const dateData = byDate[dateKey];
+                        const hasItems = dateData.getraenke.length > 0 || dateData.speisen.length > 0;
+                        
+                        if (!hasItems) return null;
+                        
+                        return (
+                          <View key={dateKey} className="mb-4">
+                            {/* Datum-Separator */}
+                            <View className="flex-row items-center mb-3">
+                              <View className="flex-1 h-px bg-gray-300" />
+                              <View className="px-4 py-2 bg-gray-100 rounded-full">
+                                <Text className="text-sm font-semibold text-gray-600">
+                                  {dateKey === 'unknown' ? 'Unbekanntes Datum' : `vom ${formatDisplayDate(dateKey)}`}
                                 </Text>
                               </View>
-                              <Text className="text-base font-semibold text-green-600">
-                                {item.totalPrice.toFixed(2)}€
-                              </Text>
+                              <View className="flex-1 h-px bg-gray-300" />
                             </View>
-                          ))}
-                        </View>
-                      )}
+                            
+                            {/* Getränke für dieses Datum */}
+                            {dateData.getraenke.length > 0 && (
+                              <View className="bg-white rounded-lg p-4 mb-3 shadow-sm border border-gray-200">
+                                <Text className="text-lg font-bold text-gray-800 mb-3 text-center">
+                                  🍺 Getränke
+                                </Text>
+                                {dateData.getraenke.map((item, index) => (
+                                  <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                                    <View className="flex-1">
+                                      <Text className="text-base text-gray-700">
+                                        {item.count}x {item.name}
+                                      </Text>
+                                      <Text className="text-sm text-gray-500">
+                                        à {item.unitPrice.toFixed(2)}€
+                                      </Text>
+                                    </View>
+                                    <View className="flex-row items-center gap-3">
+                                      <Text className="text-base font-semibold text-green-600">
+                                        {item.totalPrice.toFixed(2)}€
+                                      </Text>
+                                      <TouchableOpacity
+                                        onPress={() => openCancelModal(item.name, item.type, item.unitPrice)}
+                                        className="bg-blue-100 px-3 py-1 rounded-lg"
+                                        disabled={item.count === 0}
+                                      >
+                                        <Text className="text-blue-700 text-sm font-medium">
+                                          stornieren
+                                        </Text>
+                                      </TouchableOpacity>
+                                    </View>
+                                  </View>
+                                ))}
+                              </View>
+                            )}
 
-                      {selectedPersonForDetails.items.length === 0 && (
-                        <View className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-                          <Text className="text-gray-500 text-lg text-center">Keine offenen Artikel</Text>
-                        </View>
-                      )}
+                            {/* Speisen für dieses Datum */}
+                            {dateData.speisen.length > 0 && (
+                              <View className="bg-white rounded-lg p-4 mb-3 shadow-sm border border-gray-200">
+                                <Text className="text-lg font-bold text-gray-800 mb-3 text-center">
+                                  🍽️ Speisen
+                                </Text>
+                                {dateData.speisen.map((item, index) => (
+                                  <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                                    <View className="flex-1">
+                                      <Text className="text-base text-gray-700">
+                                        {item.count}x {item.name}
+                                      </Text>
+                                      <Text className="text-sm text-gray-500">
+                                        à {item.unitPrice.toFixed(2)}€
+                                      </Text>
+                                    </View>
+                                    <View className="flex-row items-center gap-3">
+                                      <Text className="text-base font-semibold text-green-600">
+                                        {item.totalPrice.toFixed(2)}€
+                                      </Text>
+                                      <TouchableOpacity
+                                        onPress={() => openCancelModal(item.name, item.type, item.unitPrice)}
+                                        className="bg-blue-100 px-3 py-1 rounded-lg"
+                                        disabled={item.count === 0}
+                                      >
+                                        <Text className="text-blue-700 text-sm font-medium">
+                                          stornieren
+                                        </Text>
+                                      </TouchableOpacity>
+                                    </View>
+                                  </View>
+                                ))}
+                              </View>
+                            )}
+                          </View>
+                        );
+                      })}
                     </>
                   );
                 })()
@@ -719,7 +1020,8 @@ export default function PersonenPage() {
                   {personHistory.length > 0 ? (
                     personHistory.map((entry, index) => {
                       const paymentDetails = getPaymentDetails(entry.details);
-                      const hasDetails = paymentDetails.length > 0;
+                      // Nur "Alle Schulden beglichen" soll aufklappbar sein (wenn kein itemName vorhanden ist)
+                      const hasDetails = paymentDetails.length > 0 && !entry.itemName;
                       const isExpanded = expandedHistoryItems.has(entry.id);
                       
                       return (
@@ -734,7 +1036,10 @@ export default function PersonenPage() {
                               <View className="flex-row items-center">
                                 <Text className="text-base text-gray-700">
                                   {entry.itemName ? (
-                                    `${entry.itemName} ${entry.itemType === 'drink' ? '🍺' : '🍽️'}`
+                                    // Bei normalen Bulk-Zahlungen zeige nur die Quantity und Name
+                                    paymentDetails.length === 1 ? 
+                                      `${paymentDetails[0].quantity}x ${paymentDetails[0].name} ${paymentDetails[0].type === 'drink' ? '🍺' : '🍽️'}` :
+                                      `${entry.itemName} ${entry.itemType === 'drink' ? '🍺' : '🍽️'} (mehrere Daten)`
                                   ) : (
                                     'Alle Schulden beglichen'
                                   )}
@@ -746,13 +1051,24 @@ export default function PersonenPage() {
                                 )}
                               </View>
                               <Text className="text-sm text-gray-500">
-                                {new Date(parseInt(entry.timestamp)).toLocaleDateString('de-DE', {
-                                  day: '2-digit',
-                                  month: '2-digit',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
+                                {entry.itemName && paymentDetails.length === 1 && paymentDetails[0].dateAdded ? (
+                                  // Bei normalen Bulk-Zahlungen: jede Information in eigener Zeile
+                                  <>à {(paymentDetails[0].price / 100).toFixed(2)}€{'\n'}vom {formatDisplayDate(paymentDetails[0].dateAdded)}{'\n'}beglichen am {new Date(parseInt(entry.timestamp)).toLocaleDateString('de-DE', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}</>
+                                ) : (
+                                  `beglichen am ${new Date(parseInt(entry.timestamp)).toLocaleDateString('de-DE', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}`
+                                )}
                               </Text>
                             </View>
                             <Text className="text-base font-semibold text-green-600">
@@ -763,24 +1079,106 @@ export default function PersonenPage() {
                           {/* Expanded Details */}
                           {hasDetails && isExpanded && (
                             <View className="bg-blue-50 px-4 py-3 border-b border-gray-100">
-                              <Text className="text-sm font-medium text-blue-800 mb-2">
+                              <Text className="text-sm font-medium text-blue-800 mb-3">
                                 📋 Artikel-Details:
                               </Text>
-                              {paymentDetails.map((detail, detailIndex) => (
-                                <View key={detailIndex} className="flex-row justify-between items-center py-1">
-                                  <View className="flex-1">
-                                    <Text className="text-sm text-blue-700">
-                                      {detail.quantity}x {detail.name} {detail.type === 'drink' ? '🍺' : '🍽️'}
-                                    </Text>
-                                    <Text className="text-xs text-blue-600">
-                                      à {(detail.price / 100).toFixed(2)}€
-                                    </Text>
-                                  </View>
-                                  <Text className="text-sm font-medium text-blue-800">
-                                    {(detail.price / 100 * detail.quantity).toFixed(2)}€
-                                  </Text>
-                                </View>
-                              ))}
+                              {(() => {
+                                // Gruppiere Payment Details nach Datum
+                                const detailsByDate = paymentDetails.reduce((acc, detail) => {
+                                  const dateKey = detail.dateAdded || 'unknown';
+                                  if (!acc[dateKey]) {
+                                    acc[dateKey] = {
+                                      getraenke: [],
+                                      speisen: []
+                                    };
+                                  }
+                                  
+                                  if (detail.type === 'drink') {
+                                    acc[dateKey].getraenke.push(detail);
+                                  } else {
+                                    acc[dateKey].speisen.push(detail);
+                                  }
+                                  
+                                  return acc;
+                                }, {} as Record<string, { getraenke: any[]; speisen: any[] }>);
+
+                                // Sortiere die Daten (neueste zuerst)
+                                const sortedDates = Object.keys(detailsByDate).sort((a, b) => {
+                                  if (a === 'unknown') return 1;
+                                  if (b === 'unknown') return -1;
+                                  return new Date(b).getTime() - new Date(a).getTime();
+                                });
+
+                                return sortedDates.map((dateKey) => {
+                                  const dateData = detailsByDate[dateKey];
+                                  const hasItems = dateData.getraenke.length > 0 || dateData.speisen.length > 0;
+                                  
+                                  if (!hasItems) return null;
+                                  
+                                  return (
+                                    <View key={dateKey} className="mb-3">
+                                      {/* Datum-Separator */}
+                                      <View className="flex-row items-center mb-2">
+                                        <View className="flex-1 h-px bg-blue-300" />
+                                        <View className="px-3 py-1 bg-blue-100 rounded-full">
+                                          <Text className="text-xs font-medium text-blue-600">
+                                            {dateKey === 'unknown' ? 'Unbekanntes Datum' : `vom ${formatDisplayDate(dateKey)}`}
+                                          </Text>
+                                        </View>
+                                        <View className="flex-1 h-px bg-blue-300" />
+                                      </View>
+                                      
+                                      {/* Getränke für dieses Datum */}
+                                      {dateData.getraenke.length > 0 && (
+                                        <View className="mb-2">
+                                          <Text className="text-xs font-medium text-blue-700 mb-1">
+                                            🍺 Getränke
+                                          </Text>
+                                          {dateData.getraenke.map((detail, detailIndex) => (
+                                            <View key={detailIndex} className="flex-row justify-between items-center py-1 ml-3">
+                                              <View className="flex-1">
+                                                <Text className="text-sm text-blue-700">
+                                                  {detail.quantity}x {detail.name}
+                                                </Text>
+                                                <Text className="text-xs text-blue-600">
+                                                  à {(detail.price / 100).toFixed(2)}€
+                                                </Text>
+                                              </View>
+                                              <Text className="text-sm font-medium text-blue-800">
+                                                {(detail.price / 100 * detail.quantity).toFixed(2)}€
+                                              </Text>
+                                            </View>
+                                          ))}
+                                        </View>
+                                      )}
+                                      
+                                      {/* Speisen für dieses Datum */}
+                                      {dateData.speisen.length > 0 && (
+                                        <View className="mb-2">
+                                          <Text className="text-xs font-medium text-blue-700 mb-1">
+                                            🍽️ Speisen
+                                          </Text>
+                                          {dateData.speisen.map((detail, detailIndex) => (
+                                            <View key={detailIndex} className="flex-row justify-between items-center py-1 ml-3">
+                                              <View className="flex-1">
+                                                <Text className="text-sm text-blue-700">
+                                                  {detail.quantity}x {detail.name}
+                                                </Text>
+                                                <Text className="text-xs text-blue-600">
+                                                  à {(detail.price / 100).toFixed(2)}€
+                                                </Text>
+                                              </View>
+                                              <Text className="text-sm font-medium text-blue-800">
+                                                {(detail.price / 100 * detail.quantity).toFixed(2)}€
+                                              </Text>
+                                            </View>
+                                          ))}
+                                        </View>
+                                      )}
+                                    </View>
+                                  );
+                                });
+                              })()}
                             </View>
                           )}
                         </View>
@@ -803,7 +1201,7 @@ export default function PersonenPage() {
                   top: 60,
                   left: 20,
                   right: 20,
-                  backgroundColor: '#10B981',
+                  backgroundColor: inModalToast.type === 'info' ? '#3B82F6' : '#10B981',
                   padding: 15,
                   borderRadius: 8,
                   opacity: fadeAnim,
@@ -826,6 +1224,7 @@ export default function PersonenPage() {
           visible={selectedPersonForBegleichen !== null}
           onClose={() => setSelectedPersonForBegleichen(null)}
           onPayItem={payItem}
+          onPayItems={payItems}
           onPayAll={clearDebt}
         />
       )}
@@ -839,6 +1238,102 @@ export default function PersonenPage() {
           onAddItems={handleAddItemsToPerson}
         />
       )}
+
+      {/* Stornieren Modal */}
+      <Modal
+        visible={cancelModal.visible}
+        animationType="fade"
+        transparent={true}
+      >
+        <View className="flex-1 bg-black/50 justify-center items-center px-6">
+          <View className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <Text className="text-lg font-bold text-gray-800 mb-4 text-center">
+              Artikel stornieren
+            </Text>
+            
+            <Text className="text-base text-gray-600 mb-4 text-center">
+              Wie viele des ausgewählten Artikels sollen storniert werden?
+            </Text>
+            
+            <View className="bg-gray-50 rounded-lg p-4 mb-6">
+              <Text className="text-center text-gray-800 font-medium">
+                {cancelModal.itemName}
+              </Text>
+              <Text className="text-center text-gray-600 text-sm">
+                à {cancelModal.unitPrice.toFixed(2)}€
+              </Text>
+              <Text className="text-center text-gray-500 text-xs">
+                Verfügbar: {cancelModal.maxQuantity} Stück
+              </Text>
+            </View>
+
+            {/* Anzahl Selektor */}
+            <View className="flex-row items-center justify-center mb-6">
+              <TouchableOpacity
+                onPress={() => updateCancelQuantity(-1)}
+                className="bg-red-100 w-12 h-12 rounded-full justify-center items-center"
+                disabled={cancelModal.quantity <= 1}
+              >
+                <Text className="text-red-700 font-bold text-xl">−</Text>
+              </TouchableOpacity>
+              
+              <View className="mx-8 min-w-16 items-center">
+                <Text className="text-2xl font-bold text-gray-800">
+                  {cancelModal.quantity}
+                </Text>
+              </View>
+              
+              <TouchableOpacity
+                onPress={() => updateCancelQuantity(1)}
+                className="bg-green-100 w-12 h-12 rounded-full justify-center items-center"
+                disabled={cancelModal.quantity >= cancelModal.maxQuantity}
+              >
+                <Text className="text-green-700 font-bold text-xl">+</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Gesamtpreis */}
+            <View className="bg-blue-50 rounded-lg p-3 mb-6">
+              <Text className="text-center text-blue-800 font-semibold">
+                Stornierungswert: {(cancelModal.quantity * cancelModal.unitPrice).toFixed(2)}€
+              </Text>
+            </View>
+
+            {/* Action Buttons */}
+            <View className="flex-row gap-3">
+              <TouchableOpacity
+                onPress={closeCancelModal}
+                className="flex-1 bg-gray-100 py-3 rounded-lg"
+              >
+                <Text className="text-gray-700 text-center font-semibold">
+                  Abbrechen
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                onPress={() => {
+                  if (selectedPersonForDetails) {
+                    cancelItemWithQuantity(
+                      selectedPersonForDetails.id,
+                      cancelModal.itemName,
+                      cancelModal.itemType,
+                      cancelModal.unitPrice,
+                      cancelModal.quantity
+                    );
+                    showInModalToast(`${cancelModal.quantity}x "${cancelModal.itemName}" (${(cancelModal.quantity * cancelModal.unitPrice).toFixed(2)}€) wurde storniert.`);
+                    closeCancelModal();
+                  }
+                }}
+                className="flex-1 bg-red-600 py-3 rounded-lg"
+              >
+                <Text className="text-white text-center font-semibold">
+                  Stornieren
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

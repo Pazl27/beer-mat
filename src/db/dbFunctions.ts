@@ -72,11 +72,14 @@ export const addItemToUser = async (
       return;
     }
 
+    // Get current date in YYYY-MM-DD format (without time)
+    const currentDate = new Date().toISOString().split('T')[0];
+
     // Insert one row per item (not just one row with quantity)
     for (let i = 0; i < quantity; i++) {
       await db.runAsync(
-        'INSERT INTO user_items (user_id, item_id, price_per_item, item_name, item_price, item_type) VALUES (?, ?, ?, ?, ?, ?)',
-        [user.id, item.id, item.price, item.name, item.price, item.type]
+        'INSERT INTO user_items (user_id, item_id, price_per_item, item_name, item_price, item_type, date_added) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [user.id, item.id, item.price, item.name, item.price, item.type, currentDate]
       );
     }
 
@@ -105,7 +108,8 @@ export const getItemsForUser = async (db: SQLiteDatabase, userId: number): Promi
     item_name: string;
     item_price: number;
     item_type: string;
-  }>('SELECT id, item_id, item_name, item_price, item_type FROM user_items WHERE user_id = ?', [userId]);
+    date_added: string;
+  }>('SELECT id, item_id, item_name, item_price, item_type, date_added FROM user_items WHERE user_id = ?', [userId]);
 
   return rows.map((row) => ({
     id: row.id, // Use the unique user_items.id instead of item_id
@@ -113,6 +117,7 @@ export const getItemsForUser = async (db: SQLiteDatabase, userId: number): Promi
     price: row.item_price,
     type: row.item_type as ItemType,
     originalItemId: row.item_id, // Keep reference to original item if needed
+    dateAdded: row.date_added, // Add the date field
   }));
 };
 
@@ -308,23 +313,38 @@ export const clearUserDebt = async (db: SQLiteDatabase, userId: number): Promise
       [userId]
     );
 
-    // Collect payment details before clearing items
-    const userItems = await getItemsForUser(db, userId);
+    // Collect payment details before clearing items - now including date_added
+    const userItems = await db.getAllAsync<{
+      id: number;
+      item_id: number;
+      item_name: string;
+      item_price: number;
+      item_type: string;
+      date_added: string;
+    }>('SELECT id, item_id, item_name, item_price, item_type, date_added FROM user_items WHERE user_id = ?', [userId]);
+    
     const details: PaymentDetail[] = [];
     
-    // Count quantities for each unique item
-    const itemCounts = new Map<string, {name: string, price: number, type: 'drink' | 'food', count: number}>();
+    // Count quantities for each unique combination of item name, price, type AND date
+    const itemCounts = new Map<string, {
+      name: string, 
+      price: number, 
+      type: 'drink' | 'food', 
+      count: number, 
+      dateAdded: string
+    }>();
     
     userItems.forEach(item => {
-      const key = `${item.name}-${item.price}-${item.type}`;
+      const key = `${item.item_name}-${item.item_price}-${item.item_type}-${item.date_added}`;
       if (itemCounts.has(key)) {
         itemCounts.get(key)!.count += 1;
       } else {
         itemCounts.set(key, {
-          name: item.name,
-          price: item.price,
-          type: item.type as 'drink' | 'food',
-          count: 1
+          name: item.item_name,
+          price: item.item_price,
+          type: item.item_type as 'drink' | 'food',
+          count: 1,
+          dateAdded: item.date_added
         });
       }
     });
@@ -335,7 +355,8 @@ export const clearUserDebt = async (db: SQLiteDatabase, userId: number): Promise
         name: item.name,
         price: item.price,
         quantity: item.count,
-        type: item.type
+        type: item.type,
+        dateAdded: item.dateAdded
       });
     });
 
@@ -356,7 +377,8 @@ export const payUserItem = async (db: SQLiteDatabase, userId: number, itemName: 
       price_per_item: number;
       item_name: string;
       item_type: string;
-    }>('SELECT id, item_id, price_per_item, item_name, item_type FROM user_items WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ? ORDER BY id ASC LIMIT 1',
+      date_added: string;
+    }>('SELECT id, item_id, price_per_item, item_name, item_type, date_added FROM user_items WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ? ORDER BY id ASC LIMIT 1',
       [userId, itemName, itemType, Math.round(itemPrice * 100)]);
 
     if (!matchingUserItem) {
@@ -373,11 +395,123 @@ export const payUserItem = async (db: SQLiteDatabase, userId: number, itemName: 
     const newDebt = Math.max(0, currentDebt - matchingUserItem.price_per_item);
 
     await db.runAsync('UPDATE users SET total_debt = ? WHERE id = ?', [newDebt, userId]);
-    await addToHistory(db, userId, matchingUserItem.item_id, matchingUserItem.price_per_item, matchingUserItem.item_name, matchingUserItem.item_type as ItemType, matchingUserItem.price_per_item);
+    
+    // Erstelle einen einzelnen History-Eintrag mit Details (wie bei payUserItems)
+    const details: PaymentDetail[] = [{
+      name: matchingUserItem.item_name,
+      price: matchingUserItem.price_per_item,
+      quantity: 1,
+      type: matchingUserItem.item_type as 'drink' | 'food',
+      dateAdded: matchingUserItem.date_added
+    }];
+
+    await addToHistory(
+      db, 
+      userId, 
+      null, // Konsistent mit payUserItems - kein einzelnes item_id
+      matchingUserItem.price_per_item, 
+      matchingUserItem.item_name, 
+      matchingUserItem.item_type as ItemType, 
+      matchingUserItem.price_per_item,
+      details
+    );
+    
     await db.runAsync('DELETE FROM user_items WHERE id = ?', [matchingUserItem.id]);
 
   } catch (e) {
     console.error("Error paying user item:", e);
+  }
+};
+
+export const payUserItems = async (
+  db: SQLiteDatabase, 
+  userId: number, 
+  itemName: string, 
+  itemType: ItemType, 
+  itemPrice: number, 
+  quantity: number
+): Promise<void> => {
+  try {
+    // Hole alle passenden Items (sortiert nach ID für konsistente Reihenfolge)
+    const matchingItems = await db.getAllAsync<{
+      id: number;
+      item_id: number;
+      price_per_item: number;
+      item_name: string;
+      item_type: string;
+      date_added: string;
+    }>(`SELECT id, item_id, price_per_item, item_name, item_type, date_added
+        FROM user_items 
+        WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ? 
+        ORDER BY id ASC 
+        LIMIT ?`,
+      [userId, itemName, itemType, Math.round(itemPrice * 100), quantity]);
+
+    if (matchingItems.length === 0) {
+      console.warn("No matching items found to pay");
+      return;
+    }
+
+    const actualQuantity = matchingItems.length;
+    // Berechne die Gesamtsumme aus den tatsächlichen Preisen in Cent
+    const totalAmount = matchingItems.reduce((sum, item) => sum + item.price_per_item, 0);
+
+    // Update user debt
+    const userResult = await db.getFirstAsync<{ total_debt: number }>(
+      'SELECT total_debt FROM users WHERE id = ?',
+      [userId]
+    );
+
+    const currentDebt = userResult?.total_debt ?? 0;
+    const newDebt = Math.max(0, currentDebt - totalAmount);
+
+    await db.runAsync('UPDATE users SET total_debt = ? WHERE id = ?', [newDebt, userId]);
+
+    // Gruppiere Items nach Datum für bessere Historie-Anzeige
+    const itemsByDate = new Map<string, { items: typeof matchingItems[0][], count: number }>();
+    
+    matchingItems.forEach(item => {
+      const dateKey = item.date_added;
+      if (itemsByDate.has(dateKey)) {
+        const existing = itemsByDate.get(dateKey)!;
+        existing.items.push(item);
+        existing.count += 1;
+      } else {
+        itemsByDate.set(dateKey, { items: [item], count: 1 });
+      }
+    });
+
+    // Erstelle Payment Details gruppiert nach Datum
+    const details: PaymentDetail[] = [];
+    itemsByDate.forEach((group, dateAdded) => {
+      details.push({
+        name: matchingItems[0].item_name,
+        price: matchingItems[0].price_per_item,
+        quantity: group.count,
+        type: matchingItems[0].item_type as 'drink' | 'food',
+        dateAdded: dateAdded
+      });
+    });
+
+    // Erstelle einen einzigen History-Eintrag mit allen Details
+    await addToHistory(
+      db, 
+      userId, 
+      null, // Kein einzelnes item_id da es mehrere Items sind
+      totalAmount, 
+      matchingItems[0].item_name, 
+      matchingItems[0].item_type as ItemType, 
+      matchingItems[0].price_per_item, 
+      details
+    );
+
+    // Delete all selected items in one go
+    const itemIds = matchingItems.map(item => item.id);
+    const placeholders = itemIds.map(() => '?').join(',');
+    await db.runAsync(`DELETE FROM user_items WHERE id IN (${placeholders})`, itemIds);
+
+  } catch (e) {
+    console.error("Error paying user items:", e);
   }
 };
 
@@ -455,5 +589,93 @@ export const clearUserHistory = async (db: SQLiteDatabase, userId: number): Prom
     await db.runAsync('DELETE FROM history WHERE user_id = ?', [userId]);
   } catch (e) {
     console.error("Error clearing user history:", e);
+  }
+};
+
+export const cancelUserItem = async (db: SQLiteDatabase, userId: number, itemName: string, itemType: ItemType, itemPrice: number): Promise<void> => {
+  try {
+    const matchingUserItem = await db.getFirstAsync<{
+      id: number;
+      item_id: number;
+      price_per_item: number;
+      item_name: string;
+      item_type: string;
+    }>('SELECT id, item_id, price_per_item, item_name, item_type FROM user_items WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ? ORDER BY id ASC LIMIT 1',
+      [userId, itemName, itemType, Math.round(itemPrice * 100)]);
+
+    if (!matchingUserItem) {
+      console.warn("No matching item found to cancel");
+      return;
+    }
+
+    const userResult = await db.getFirstAsync<{ total_debt: number }>(
+      'SELECT total_debt FROM users WHERE id = ?',
+      [userId]
+    );
+
+    const currentDebt = userResult?.total_debt ?? 0;
+    const newDebt = Math.max(0, currentDebt - matchingUserItem.price_per_item);
+
+    await db.runAsync('UPDATE users SET total_debt = ? WHERE id = ?', [newDebt, userId]);
+    await db.runAsync('DELETE FROM user_items WHERE id = ?', [matchingUserItem.id]);
+
+    // Note: No history entry is created for cancellations, unlike payUserItem
+
+  } catch (e) {
+    console.error("Error canceling user item:", e);
+  }
+};
+
+export const cancelUserItems = async (
+  db: SQLiteDatabase, 
+  userId: number, 
+  itemName: string, 
+  itemType: ItemType, 
+  itemPrice: number, 
+  quantity: number
+): Promise<void> => {
+  try {
+    // Hole alle passenden Items (sortiert nach ID für konsistente Reihenfolge)
+    const matchingItems = await db.getAllAsync<{
+      id: number;
+      item_id: number;
+      price_per_item: number;
+      item_name: string;
+      item_type: string;
+    }>(`SELECT id, item_id, price_per_item, item_name, item_type 
+        FROM user_items 
+        WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ? 
+        ORDER BY id ASC 
+        LIMIT ?`,
+      [userId, itemName, itemType, Math.round(itemPrice * 100), quantity]);
+
+    if (matchingItems.length === 0) {
+      console.warn("No matching items found to cancel");
+      return;
+    }
+
+    // Berechne die Gesamtsumme aus den tatsächlichen Preisen in Cent
+    const totalAmount = matchingItems.reduce((sum, item) => sum + item.price_per_item, 0);
+
+    // Update user debt
+    const userResult = await db.getFirstAsync<{ total_debt: number }>(
+      'SELECT total_debt FROM users WHERE id = ?',
+      [userId]
+    );
+
+    const currentDebt = userResult?.total_debt ?? 0;
+    const newDebt = Math.max(0, currentDebt - totalAmount);
+
+    await db.runAsync('UPDATE users SET total_debt = ? WHERE id = ?', [newDebt, userId]);
+
+    // Delete all selected items in one go
+    const itemIds = matchingItems.map(item => item.id);
+    const placeholders = itemIds.map(() => '?').join(',');
+    await db.runAsync(`DELETE FROM user_items WHERE id IN (${placeholders})`, itemIds);
+
+    // Note: No history entry is created for cancellations (wie bei cancelUserItem)
+
+  } catch (e) {
+    console.error("Error canceling user items:", e);
   }
 };
