@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal } fro
 import { Getraenk, GetraenkDetailsProps } from '@/types';
 import { DrinkCategory } from '@/types/category';
 import { showSuccessToast, showErrorToast } from '@/utils/toast';
+import PinChangeModal from '@/components/pin-change-modal';
 
 export default function GetraenkDetails({
   getraenk,
@@ -15,6 +16,17 @@ export default function GetraenkDetails({
   const [editedPrice, setEditedPrice] = useState(getraenk.price.toString());
   const [editedInfo, setEditedInfo] = useState(getraenk.info || '');
   const [editedCategory, setEditedCategory] = useState(getraenk.category);
+  const [showPinChangeModal, setShowPinChangeModal] = useState(false);
+  const [showLocalToast, setShowLocalToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  const showInModalToast = (message: string) => {
+    setToastMessage(message);
+    setShowLocalToast(true);
+    setTimeout(() => {
+      setShowLocalToast(false);
+    }, 3000);
+  };
 
   const getCategoryIcon = (category: DrinkCategory) => {
     switch (category) {
@@ -222,13 +234,7 @@ export default function GetraenkDetails({
             </Text>
 
             <TouchableOpacity
-              onPress={() => {
-                Alert.alert(
-                  "PIN ändern",
-                  "Diese Funktion wird bald verfügbar sein.",
-                  [{ text: "OK" }]
-                );
-              }}
+              onPress={() => setShowPinChangeModal(true)}
               className="bg-yellow-500 py-3 rounded-lg"
             >
               <Text className="text-white text-center font-semibold">
@@ -238,6 +244,29 @@ export default function GetraenkDetails({
           </View>
         </ScrollView>
       </View>
+
+      {/* PIN Change Modal */}
+      <PinChangeModal
+        visible={showPinChangeModal}
+        onClose={() => setShowPinChangeModal(false)}
+        onSuccess={() => {
+          // Toast nach Modal-Schließung anzeigen
+          setTimeout(() => {
+            showInModalToast('PIN wurde erfolgreich geändert');
+          }, 300);
+        }}
+      />
+
+      {/* Local Toast - appears within this modal */}
+      {showLocalToast && (
+        <View className="absolute top-16 left-4 right-4 z-50">
+          <View className="bg-green-600 rounded-lg p-4 shadow-lg">
+            <Text className="text-white text-center font-semibold">
+              {toastMessage}
+            </Text>
+          </View>
+        </View>
+      )}
     </Modal>
   );
 }
