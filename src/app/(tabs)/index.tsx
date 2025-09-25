@@ -917,7 +917,7 @@ export default function PersonenPage() {
                               <View className="flex-1 h-px bg-gray-300" />
                               <View className="px-4 py-2 bg-gray-100 rounded-full">
                                 <Text className="text-sm font-semibold text-gray-600">
-                                  {dateKey === 'unknown' ? 'Unbekanntes Datum' : formatDisplayDate(dateKey)}
+                                  {dateKey === 'unknown' ? 'Unbekanntes Datum' : `vom ${formatDisplayDate(dateKey)}`}
                                 </Text>
                               </View>
                               <View className="flex-1 h-px bg-gray-300" />
