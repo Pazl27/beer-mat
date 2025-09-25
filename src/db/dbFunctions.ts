@@ -554,3 +554,57 @@ export const cancelUserItem = async (db: SQLiteDatabase, userId: number, itemNam
     console.error("Error canceling user item:", e);
   }
 };
+
+export const cancelUserItems = async (
+  db: SQLiteDatabase, 
+  userId: number, 
+  itemName: string, 
+  itemType: ItemType, 
+  itemPrice: number, 
+  quantity: number
+): Promise<void> => {
+  try {
+    // Hole alle passenden Items (sortiert nach ID für konsistente Reihenfolge)
+    const matchingItems = await db.getAllAsync<{
+      id: number;
+      item_id: number;
+      price_per_item: number;
+      item_name: string;
+      item_type: string;
+    }>(`SELECT id, item_id, price_per_item, item_name, item_type 
+        FROM user_items 
+        WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ? 
+        ORDER BY id ASC 
+        LIMIT ?`,
+      [userId, itemName, itemType, Math.round(itemPrice * 100), quantity]);
+
+    if (matchingItems.length === 0) {
+      console.warn("No matching items found to cancel");
+      return;
+    }
+
+    // Berechne die Gesamtsumme aus den tatsächlichen Preisen in Cent
+    const totalAmount = matchingItems.reduce((sum, item) => sum + item.price_per_item, 0);
+
+    // Update user debt
+    const userResult = await db.getFirstAsync<{ total_debt: number }>(
+      'SELECT total_debt FROM users WHERE id = ?',
+      [userId]
+    );
+
+    const currentDebt = userResult?.total_debt ?? 0;
+    const newDebt = Math.max(0, currentDebt - totalAmount);
+
+    await db.runAsync('UPDATE users SET total_debt = ? WHERE id = ?', [newDebt, userId]);
+
+    // Delete all selected items in one go
+    const itemIds = matchingItems.map(item => item.id);
+    const placeholders = itemIds.map(() => '?').join(',');
+    await db.runAsync(`DELETE FROM user_items WHERE id IN (${placeholders})`, itemIds);
+
+    // Note: No history entry is created for cancellations (wie bei cancelUserItem)
+
+  } catch (e) {
+    console.error("Error canceling user items:", e);
+  }
+};

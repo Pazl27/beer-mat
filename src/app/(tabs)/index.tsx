@@ -5,7 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import PersonBegleichen from '@/components/person-begleichen';
 import PersonArtikelHinzufuegen from '@/components/person-artikel-hinzufuegen';
 import { ItemType, Person, History, PaymentDetail } from '@/types';
-import { getAllUsers, createUser, deleteUser, clearUserDebt, payUserItem, payUserItems, getDetailedHistoryForUser, addItemToUser, clearUserHistory, cancelUserItem } from '@/db/dbFunctions';
+import { getAllUsers, createUser, deleteUser, clearUserDebt, payUserItem, payUserItems, getDetailedHistoryForUser, addItemToUser, clearUserHistory, cancelUserItem, cancelUserItems } from '@/db/dbFunctions';
 import { showSuccessToast, showWarningToast, showInfoToast } from '@/utils/toast';
 
 export default function PersonenPage() {
@@ -374,11 +374,8 @@ export default function PersonenPage() {
   // Erweiterte Cancel-Funktion für variable Anzahl
   const cancelItemWithQuantity = async (personId: number, itemName: string, itemType: ItemType, unitPrice: number, quantity: number) => {
     try {
-      // Storniere die gewünschte Anzahl
-      // unitPrice ist in Euro, cancelUserItem erwartet Euro und konvertiert selbst zu Cents
-      for (let i = 0; i < quantity; i++) {
-        await cancelUserItem(db, personId, itemName, itemType, unitPrice);
-      }
+      // Verwende die neue Bulk-Funktion statt der sequenziellen Schleife
+      await cancelUserItems(db, personId, itemName, itemType, unitPrice, quantity);
       
       // Reload persons to update the UI
       await loadPersons();
