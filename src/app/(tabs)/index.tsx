@@ -1052,8 +1052,8 @@ export default function PersonenPage() {
                               </View>
                               <Text className="text-sm text-gray-500">
                                 {entry.itemName && paymentDetails.length === 1 && paymentDetails[0].dateAdded ? (
-                                  // Bei normalen Bulk-Zahlungen: "à 2.50€ • vom Datum • beglichen am Datum"
-                                  <>à {(paymentDetails[0].price / 100).toFixed(2)}€ • vom {formatDisplayDate(paymentDetails[0].dateAdded)}{'\n'}beglichen am {new Date(parseInt(entry.timestamp)).toLocaleDateString('de-DE', {
+                                  // Bei normalen Bulk-Zahlungen: jede Information in eigener Zeile
+                                  <>à {(paymentDetails[0].price / 100).toFixed(2)}€{'\n'}vom {formatDisplayDate(paymentDetails[0].dateAdded)}{'\n'}beglichen am {new Date(parseInt(entry.timestamp)).toLocaleDateString('de-DE', {
                                     day: '2-digit',
                                     month: '2-digit',
                                     year: 'numeric',
