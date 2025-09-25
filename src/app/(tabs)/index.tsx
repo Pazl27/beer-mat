@@ -67,13 +67,15 @@ export default function PersonenPage() {
     unitPrice: number;
     maxQuantity: number;
     quantity: number;
+    dateAdded?: string;
   }>({
     visible: false,
     itemName: '',
     itemType: ItemType.Drink,
     unitPrice: 0,
     maxQuantity: 0,
-    quantity: 1
+    quantity: 1,
+    dateAdded: undefined
   });
 
   // In-Modal Toast State für Details Modal
@@ -205,9 +207,9 @@ export default function PersonenPage() {
     }
   };
 
-  const payItem = async (personId: number, itemName: string, itemType: ItemType, itemPrice: number) => {
+  const payItem = async (personId: number, itemName: string, itemType: ItemType, itemPrice: number, dateAdded?: string) => {
     try {
-      await payUserItem(db, personId, itemName, itemType, itemPrice);
+      await payUserItem(db, personId, itemName, itemType, itemPrice, dateAdded);
       await loadPersons(); // Reload from database
 
       // Update selected person for begleichen modal if it's open
@@ -253,9 +255,9 @@ export default function PersonenPage() {
     }
   };
 
-  const payItems = async (personId: number, itemName: string, itemType: ItemType, itemPrice: number, quantity: number) => {
+  const payItems = async (personId: number, itemName: string, itemType: ItemType, itemPrice: number, quantity: number, dateAdded?: string) => {
     try {
-      await payUserItems(db, personId, itemName, itemType, itemPrice, quantity);
+      await payUserItems(db, personId, itemName, itemType, itemPrice, quantity, dateAdded);
       await loadPersons(); // Reload from database
 
       // Update selected person for begleichen modal if it's open
@@ -301,9 +303,9 @@ export default function PersonenPage() {
     }
   };
 
-  const cancelItem = async (personId: number, itemName: string, itemType: ItemType, itemPrice: number) => {
+  const cancelItem = async (personId: number, itemName: string, itemType: ItemType, itemPrice: number, dateAdded?: string) => {
     try {
-      await cancelUserItem(db, personId, itemName, itemType, itemPrice);
+      await cancelUserItem(db, personId, itemName, itemType, itemPrice, dateAdded);
       await loadPersons(); // Reload from database
 
       // Update selected person for details modal if it's open - same pattern as payment
@@ -330,7 +332,7 @@ export default function PersonenPage() {
   };
 
   // Funktion zum Öffnen des Stornieren-Modals
-  const openCancelModal = (itemName: string, itemType: ItemType, unitPrice: number) => {
+  const openCancelModal = (itemName: string, itemType: ItemType, unitPrice: number, dateAdded?: string) => {
     if (!selectedPersonForDetails) return;
     
     // Finde die maximale Anzahl für diesen Artikel
@@ -347,7 +349,8 @@ export default function PersonenPage() {
       itemType,
       unitPrice,
       maxQuantity: itemGroup.count,
-      quantity: 1
+      quantity: 1,
+      dateAdded
     });
   };
 
@@ -359,7 +362,8 @@ export default function PersonenPage() {
       itemType: ItemType.Drink,
       unitPrice: 0,
       maxQuantity: 0,
-      quantity: 1
+      quantity: 1,
+      dateAdded: undefined
     });
   };
 
@@ -372,10 +376,10 @@ export default function PersonenPage() {
   };
 
   // Erweiterte Cancel-Funktion für variable Anzahl
-  const cancelItemWithQuantity = async (personId: number, itemName: string, itemType: ItemType, unitPrice: number, quantity: number) => {
+  const cancelItemWithQuantity = async (personId: number, itemName: string, itemType: ItemType, unitPrice: number, quantity: number, dateAdded?: string) => {
     try {
       // Verwende die neue Bulk-Funktion statt der sequenziellen Schleife
-      await cancelUserItems(db, personId, itemName, itemType, unitPrice, quantity);
+      await cancelUserItems(db, personId, itemName, itemType, unitPrice, quantity, dateAdded);
       
       // Reload persons to update the UI
       await loadPersons();
@@ -944,7 +948,7 @@ export default function PersonenPage() {
                                         {item.totalPrice.toFixed(2)}€
                                       </Text>
                                       <TouchableOpacity
-                                        onPress={() => openCancelModal(item.name, item.type, item.unitPrice)}
+                                        onPress={() => openCancelModal(item.name, item.type, item.unitPrice, dateKey)}
                                         className="bg-blue-100 px-3 py-1 rounded-lg"
                                         disabled={item.count === 0}
                                       >
@@ -979,7 +983,7 @@ export default function PersonenPage() {
                                         {item.totalPrice.toFixed(2)}€
                                       </Text>
                                       <TouchableOpacity
-                                        onPress={() => openCancelModal(item.name, item.type, item.unitPrice)}
+                                        onPress={() => openCancelModal(item.name, item.type, item.unitPrice, dateKey)}
                                         className="bg-blue-100 px-3 py-1 rounded-lg"
                                         disabled={item.count === 0}
                                       >
@@ -1318,7 +1322,8 @@ export default function PersonenPage() {
                       cancelModal.itemName,
                       cancelModal.itemType,
                       cancelModal.unitPrice,
-                      cancelModal.quantity
+                      cancelModal.quantity,
+                      cancelModal.dateAdded
                     );
                     showInModalToast(`${cancelModal.quantity}x "${cancelModal.itemName}" (${(cancelModal.quantity * cancelModal.unitPrice).toFixed(2)}€) wurde storniert.`);
                     closeCancelModal();

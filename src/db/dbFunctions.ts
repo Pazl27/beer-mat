@@ -369,8 +369,19 @@ export const clearUserDebt = async (db: SQLiteDatabase, userId: number): Promise
   }
 };
 
-export const payUserItem = async (db: SQLiteDatabase, userId: number, itemName: string, itemType: ItemType, itemPrice: number): Promise<void> => {
+export const payUserItem = async (db: SQLiteDatabase, userId: number, itemName: string, itemType: ItemType, itemPrice: number, dateAdded?: string): Promise<void> => {
   try {
+    // Erweiterte Query um Datum zu berücksichtigen
+    let query = 'SELECT id, item_id, price_per_item, item_name, item_type, date_added FROM user_items WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ?';
+    let params: any[] = [userId, itemName, itemType, Math.round(itemPrice * 100)];
+    
+    if (dateAdded) {
+      query += ' AND date_added = ?';
+      params.push(dateAdded);
+    }
+    
+    query += ' ORDER BY id ASC LIMIT 1';
+
     const matchingUserItem = await db.getFirstAsync<{
       id: number;
       item_id: number;
@@ -378,8 +389,7 @@ export const payUserItem = async (db: SQLiteDatabase, userId: number, itemName: 
       item_name: string;
       item_type: string;
       date_added: string;
-    }>('SELECT id, item_id, price_per_item, item_name, item_type, date_added FROM user_items WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ? ORDER BY id ASC LIMIT 1',
-      [userId, itemName, itemType, Math.round(itemPrice * 100)]);
+    }>(query, params);
 
     if (!matchingUserItem) {
       console.warn("No matching item found to pay");
@@ -429,9 +439,24 @@ export const payUserItems = async (
   itemName: string, 
   itemType: ItemType, 
   itemPrice: number, 
-  quantity: number
+  quantity: number,
+  dateAdded?: string
 ): Promise<void> => {
   try {
+    // Erweiterte Query um Datum zu berücksichtigen
+    let query = `SELECT id, item_id, price_per_item, item_name, item_type, date_added
+        FROM user_items 
+        WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ?`;
+    let params: any[] = [userId, itemName, itemType, Math.round(itemPrice * 100)];
+    
+    if (dateAdded) {
+      query += ' AND date_added = ?';
+      params.push(dateAdded);
+    }
+    
+    query += ` ORDER BY id ASC LIMIT ?`;
+    params.push(quantity);
+
     // Hole alle passenden Items (sortiert nach ID für konsistente Reihenfolge)
     const matchingItems = await db.getAllAsync<{
       id: number;
@@ -440,12 +465,7 @@ export const payUserItems = async (
       item_name: string;
       item_type: string;
       date_added: string;
-    }>(`SELECT id, item_id, price_per_item, item_name, item_type, date_added
-        FROM user_items 
-        WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ? 
-        ORDER BY id ASC 
-        LIMIT ?`,
-      [userId, itemName, itemType, Math.round(itemPrice * 100), quantity]);
+    }>(query, params);
 
     if (matchingItems.length === 0) {
       console.warn("No matching items found to pay");
@@ -592,16 +612,26 @@ export const clearUserHistory = async (db: SQLiteDatabase, userId: number): Prom
   }
 };
 
-export const cancelUserItem = async (db: SQLiteDatabase, userId: number, itemName: string, itemType: ItemType, itemPrice: number): Promise<void> => {
+export const cancelUserItem = async (db: SQLiteDatabase, userId: number, itemName: string, itemType: ItemType, itemPrice: number, dateAdded?: string): Promise<void> => {
   try {
+    // Erweiterte Query um Datum zu berücksichtigen
+    let query = 'SELECT id, item_id, price_per_item, item_name, item_type FROM user_items WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ?';
+    let params: any[] = [userId, itemName, itemType, Math.round(itemPrice * 100)];
+    
+    if (dateAdded) {
+      query += ' AND date_added = ?';
+      params.push(dateAdded);
+    }
+    
+    query += ' ORDER BY id ASC LIMIT 1';
+
     const matchingUserItem = await db.getFirstAsync<{
       id: number;
       item_id: number;
       price_per_item: number;
       item_name: string;
       item_type: string;
-    }>('SELECT id, item_id, price_per_item, item_name, item_type FROM user_items WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ? ORDER BY id ASC LIMIT 1',
-      [userId, itemName, itemType, Math.round(itemPrice * 100)]);
+    }>(query, params);
 
     if (!matchingUserItem) {
       console.warn("No matching item found to cancel");
@@ -632,9 +662,24 @@ export const cancelUserItems = async (
   itemName: string, 
   itemType: ItemType, 
   itemPrice: number, 
-  quantity: number
+  quantity: number,
+  dateAdded?: string
 ): Promise<void> => {
   try {
+    // Erweiterte Query um Datum zu berücksichtigen
+    let query = `SELECT id, item_id, price_per_item, item_name, item_type 
+        FROM user_items 
+        WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ?`;
+    let params: any[] = [userId, itemName, itemType, Math.round(itemPrice * 100)];
+    
+    if (dateAdded) {
+      query += ' AND date_added = ?';
+      params.push(dateAdded);
+    }
+    
+    query += ` ORDER BY id ASC LIMIT ?`;
+    params.push(quantity);
+
     // Hole alle passenden Items (sortiert nach ID für konsistente Reihenfolge)
     const matchingItems = await db.getAllAsync<{
       id: number;
@@ -642,12 +687,7 @@ export const cancelUserItems = async (
       price_per_item: number;
       item_name: string;
       item_type: string;
-    }>(`SELECT id, item_id, price_per_item, item_name, item_type 
-        FROM user_items 
-        WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ? 
-        ORDER BY id ASC 
-        LIMIT ?`,
-      [userId, itemName, itemType, Math.round(itemPrice * 100), quantity]);
+    }>(query, params);
 
     if (matchingItems.length === 0) {
       console.warn("No matching items found to cancel");

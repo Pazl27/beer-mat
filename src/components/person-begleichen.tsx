@@ -23,13 +23,15 @@ export default function PersonBegleichen({
     unitPrice: number;
     maxQuantity: number;
     quantity: number;
+    dateAdded?: string;
   }>({
     visible: false,
     itemName: '',
     itemType: ItemType.Drink,
     unitPrice: 0,
     maxQuantity: 0,
-    quantity: 1
+    quantity: 1,
+    dateAdded: undefined
   });
 
   const showInModalToast = (message: string) => {
@@ -155,11 +157,15 @@ export default function PersonBegleichen({
   };
 
   // Funktion zum Öffnen des Begleichen-Modals
-  const openPayModal = (itemName: string, itemType: ItemType, unitPrice: number) => {
-    // Finde die maximale Anzahl für diesen Artikel
-    const grouped = getGroupedItems(person);
-    const itemGroup = [...grouped.getraenke, ...grouped.speisen].find(item => 
-      item.name === itemName && item.type === itemType && item.unitPrice === unitPrice
+  const openPayModal = (itemName: string, itemType: ItemType, unitPrice: number, dateAdded?: string) => {
+    // Finde die maximale Anzahl für diesen Artikel mit spezifischem Datum
+    const grouped = getItemsGroupedByDate(person);
+    const dateData = grouped.byDate[dateAdded || 'unknown'];
+    if (!dateData) return;
+    
+    const allItems = [...dateData.getraenke, ...dateData.speisen];
+    const itemGroup = allItems.find(item => 
+      item.name === itemName && item.type === itemType && item.unitPrice === unitPrice && item.dateAdded === (dateAdded || 'unknown')
     );
     
     if (!itemGroup || itemGroup.count === 0) return;
@@ -170,7 +176,8 @@ export default function PersonBegleichen({
       itemType,
       unitPrice,
       maxQuantity: itemGroup.count,
-      quantity: 1
+      quantity: 1,
+      dateAdded: dateAdded || 'unknown'
     });
   };
 
@@ -182,7 +189,8 @@ export default function PersonBegleichen({
       itemType: ItemType.Drink,
       unitPrice: 0,
       maxQuantity: 0,
-      quantity: 1
+      quantity: 1,
+      dateAdded: undefined
     });
   };
 
@@ -195,9 +203,9 @@ export default function PersonBegleichen({
   };
 
   // Funktion für das Begleichen mit variabler Anzahl
-  const payItemWithQuantity = async (itemName: string, itemType: ItemType, unitPrice: number, quantity: number) => {
-    // Verwende die neue Bulk-Funktion statt der Schleife
-    onPayItems(person.id, itemName, itemType, unitPrice, quantity);
+  const payItemWithQuantity = async (itemName: string, itemType: ItemType, unitPrice: number, quantity: number, dateAdded?: string) => {
+    // Verwende die neue Bulk-Funktion statt der Schleife - inkludiert jetzt das Datum
+    onPayItems(person.id, itemName, itemType, unitPrice, quantity, dateAdded);
     showInModalToast(`${quantity}x "${itemName}" (${(quantity * unitPrice).toFixed(2)}€) wurde beglichen.`);
   };
 
@@ -328,7 +336,7 @@ export default function PersonBegleichen({
                                   {item.totalPrice.toFixed(2)}€
                                 </Text>
                                 <TouchableOpacity
-                                  onPress={() => openPayModal(item.name, item.type, item.unitPrice)}
+                                  onPress={() => openPayModal(item.name, item.type, item.unitPrice, dateKey)}
                                   className="bg-green-100 px-3 py-1 rounded-lg"
                                   disabled={item.count === 0}
                                 >
@@ -363,7 +371,7 @@ export default function PersonBegleichen({
                                   {item.totalPrice.toFixed(2)}€
                                 </Text>
                                 <TouchableOpacity
-                                  onPress={() => openPayModal(item.name, item.type, item.unitPrice)}
+                                  onPress={() => openPayModal(item.name, item.type, item.unitPrice, dateKey)}
                                   className="bg-green-100 px-3 py-1 rounded-lg"
                                   disabled={item.count === 0}
                                 >
@@ -510,7 +518,8 @@ export default function PersonBegleichen({
                     payModal.itemName,
                     payModal.itemType,
                     payModal.unitPrice,
-                    payModal.quantity
+                    payModal.quantity,
+                    payModal.dateAdded
                   );
                   closePayModal();
                 }}
