@@ -6,4 +6,5 @@ export type GroupedItem = {
   count: number;
   totalPrice: number;
   unitPrice: number;
+  dateAdded?: string;
 };
