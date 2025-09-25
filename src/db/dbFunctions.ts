@@ -457,3 +457,37 @@ export const clearUserHistory = async (db: SQLiteDatabase, userId: number): Prom
     console.error("Error clearing user history:", e);
   }
 };
+
+export const cancelUserItem = async (db: SQLiteDatabase, userId: number, itemName: string, itemType: ItemType, itemPrice: number): Promise<void> => {
+  try {
+    const matchingUserItem = await db.getFirstAsync<{
+      id: number;
+      item_id: number;
+      price_per_item: number;
+      item_name: string;
+      item_type: string;
+    }>('SELECT id, item_id, price_per_item, item_name, item_type FROM user_items WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ? ORDER BY id ASC LIMIT 1',
+      [userId, itemName, itemType, Math.round(itemPrice * 100)]);
+
+    if (!matchingUserItem) {
+      console.warn("No matching item found to cancel");
+      return;
+    }
+
+    const userResult = await db.getFirstAsync<{ total_debt: number }>(
+      'SELECT total_debt FROM users WHERE id = ?',
+      [userId]
+    );
+
+    const currentDebt = userResult?.total_debt ?? 0;
+    const newDebt = Math.max(0, currentDebt - matchingUserItem.price_per_item);
+
+    await db.runAsync('UPDATE users SET total_debt = ? WHERE id = ?', [newDebt, userId]);
+    await db.runAsync('DELETE FROM user_items WHERE id = ?', [matchingUserItem.id]);
+
+    // Note: No history entry is created for cancellations, unlike payUserItem
+
+  } catch (e) {
+    console.error("Error canceling user item:", e);
+  }
+};

@@ -5,8 +5,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import PersonBegleichen from '@/components/person-begleichen';
 import PersonArtikelHinzufuegen from '@/components/person-artikel-hinzufuegen';
 import { ItemType, Person, History, PaymentDetail } from '@/types';
-import { getAllUsers, createUser, deleteUser, clearUserDebt, payUserItem, getDetailedHistoryForUser, addItemToUser, clearUserHistory } from '@/db/dbFunctions';
-import { showSuccessToast, showWarningToast } from '@/utils/toast';
+import { getAllUsers, createUser, deleteUser, clearUserDebt, payUserItem, getDetailedHistoryForUser, addItemToUser, clearUserHistory, cancelUserItem } from '@/db/dbFunctions';
+import { showSuccessToast, showWarningToast, showInfoToast } from '@/utils/toast';
 
 export default function PersonenPage() {
   const [persons, setPersons] = useState<Person[]>([]);
@@ -60,18 +60,18 @@ export default function PersonenPage() {
   const [expandedHistoryItems, setExpandedHistoryItems] = useState<Set<number>>(new Set());
 
   // In-Modal Toast State für Details Modal
-  const [inModalToast, setInModalToast] = useState<{message: string, visible: boolean}>({message: '', visible: false});
+  const [inModalToast, setInModalToast] = useState<{message: string, visible: boolean, type?: 'success' | 'info'}>({message: '', visible: false, type: 'success'});
   const [fadeAnim] = useState(new Animated.Value(0));
   const [currentAnimation, setCurrentAnimation] = useState<Animated.CompositeAnimation | null>(null);
 
-  const showInModalToast = (message: string) => {
+  const showInModalToast = (message: string, type: 'success' | 'info' = 'success') => {
     // Stoppe vorherige Animation falls noch aktiv
     if (currentAnimation) {
       currentAnimation.stop();
       setCurrentAnimation(null);
     }
 
-    setInModalToast({message, visible: true});
+    setInModalToast({message, visible: true, type});
     
     const animation = Animated.sequence([
       Animated.timing(fadeAnim, {
@@ -89,7 +89,7 @@ export default function PersonenPage() {
 
     setCurrentAnimation(animation);
     animation.start(() => {
-      setInModalToast({message: '', visible: false});
+      setInModalToast({message: '', visible: false, type: 'success'});
       setCurrentAnimation(null);
     });
   };
@@ -218,6 +218,54 @@ export default function PersonenPage() {
       console.error("Error paying item:", error);
       Alert.alert("Fehler", "Artikel konnte nicht beglichen werden");
     }
+  };
+
+  const cancelItem = async (personId: number, itemName: string, itemType: ItemType, itemPrice: number) => {
+    try {
+      await cancelUserItem(db, personId, itemName, itemType, itemPrice);
+      await loadPersons(); // Reload from database
+
+      // Update selected person for details modal if it's open
+      if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
+        const updatedPersons = await getAllUsers(db);
+        const updatedPerson = updatedPersons.find(p => p.id === personId);
+        if (updatedPerson) {
+          // Convert price from cents to euros for display
+          const personWithEuros = {
+            ...updatedPerson,
+            totalDebt: updatedPerson.totalDebt / 100,
+            items: updatedPerson.items.map(item => ({
+              ...item,
+              price: item.price / 100
+            }))
+          };
+          setSelectedPersonForDetails(personWithEuros);
+        }
+      }
+    } catch (error) {
+      console.error("Error canceling item:", error);
+      Alert.alert("Fehler", "Artikel konnte nicht storniert werden");
+    }
+  };
+
+  const handleCancelItem = (itemName: string, itemType: ItemType, unitPrice: number) => {
+    if (!selectedPersonForDetails) return;
+    
+    Alert.alert(
+      'Artikel stornieren',
+      `Möchten Sie 1x "${itemName}" (${unitPrice.toFixed(2)}€) wirklich stornieren? Der Artikel wird vollständig entfernt und erscheint NICHT in der Zahlungshistorie.`,
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        {
+          text: 'Stornieren',
+          style: 'destructive',
+          onPress: async () => {
+            await cancelItem(selectedPersonForDetails.id, itemName, itemType, unitPrice);
+            showInModalToast(`1x "${itemName}" (${unitPrice.toFixed(2)}€) wurde storniert.`);
+          }
+        }
+      ]
+    );
   };
 
   const deletePerson = (personId: number, personName: string) => {
@@ -657,9 +705,20 @@ export default function PersonenPage() {
                                   à {item.unitPrice.toFixed(2)}€
                                 </Text>
                               </View>
-                              <Text className="text-base font-semibold text-green-600">
-                                {item.totalPrice.toFixed(2)}€
-                              </Text>
+                              <View className="flex-row items-center gap-3">
+                                <Text className="text-base font-semibold text-green-600">
+                                  {item.totalPrice.toFixed(2)}€
+                                </Text>
+                                <TouchableOpacity
+                                  onPress={() => handleCancelItem(item.name, item.type, item.unitPrice)}
+                                  className="bg-blue-100 px-3 py-1 rounded-lg"
+                                  disabled={item.count === 0}
+                                >
+                                  <Text className="text-blue-700 text-sm font-medium">
+                                    1x stornieren
+                                  </Text>
+                                </TouchableOpacity>
+                              </View>
                             </View>
                           ))}
                         </View>
@@ -681,9 +740,20 @@ export default function PersonenPage() {
                                   à {item.unitPrice.toFixed(2)}€
                                 </Text>
                               </View>
-                              <Text className="text-base font-semibold text-green-600">
-                                {item.totalPrice.toFixed(2)}€
-                              </Text>
+                              <View className="flex-row items-center gap-3">
+                                <Text className="text-base font-semibold text-green-600">
+                                  {item.totalPrice.toFixed(2)}€
+                                </Text>
+                                <TouchableOpacity
+                                  onPress={() => handleCancelItem(item.name, item.type, item.unitPrice)}
+                                  className="bg-blue-100 px-3 py-1 rounded-lg"
+                                  disabled={item.count === 0}
+                                >
+                                  <Text className="text-blue-700 text-sm font-medium">
+                                    1x stornieren
+                                  </Text>
+                                </TouchableOpacity>
+                              </View>
                             </View>
                           ))}
                         </View>
@@ -803,7 +873,7 @@ export default function PersonenPage() {
                   top: 60,
                   left: 20,
                   right: 20,
-                  backgroundColor: '#10B981',
+                  backgroundColor: inModalToast.type === 'info' ? '#3B82F6' : '#10B981',
                   padding: 15,
                   borderRadius: 8,
                   opacity: fadeAnim,
