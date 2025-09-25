@@ -59,6 +59,23 @@ export default function PersonenPage() {
   const [personHistory, setPersonHistory] = useState<(History & { itemName?: string; itemType?: ItemType })[]>([]);
   const [expandedHistoryItems, setExpandedHistoryItems] = useState<Set<number>>(new Set());
 
+  // Stornieren Modal State
+  const [cancelModal, setCancelModal] = useState<{
+    visible: boolean;
+    itemName: string;
+    itemType: ItemType;
+    unitPrice: number;
+    maxQuantity: number;
+    quantity: number;
+  }>({
+    visible: false,
+    itemName: '',
+    itemType: ItemType.Drink,
+    unitPrice: 0,
+    maxQuantity: 0,
+    quantity: 1
+  });
+
   // In-Modal Toast State für Details Modal
   const [inModalToast, setInModalToast] = useState<{message: string, visible: boolean, type?: 'success' | 'info'}>({message: '', visible: false, type: 'success'});
   const [fadeAnim] = useState(new Animated.Value(0));
@@ -242,6 +259,82 @@ export default function PersonenPage() {
       await loadPersons(); // Reload from database
 
       // Update selected person for details modal if it's open
+      if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
+        const updatedPersons = await getAllUsers(db);
+        const updatedPerson = updatedPersons.find(p => p.id === personId);
+        if (updatedPerson) {
+          // Convert price from cents to euros for display
+          const personWithEuros = {
+            ...updatedPerson,
+            totalDebt: updatedPerson.totalDebt / 100,
+            items: updatedPerson.items.map(item => ({
+              ...item,
+              price: item.price / 100
+            }))
+          };
+          setSelectedPersonForDetails(personWithEuros);
+        }
+      }
+    } catch (error) {
+      console.error("Error canceling item:", error);
+      Alert.alert("Fehler", "Artikel konnte nicht storniert werden");
+    }
+  };
+
+  // Funktion zum Öffnen des Stornieren-Modals
+  const openCancelModal = (itemName: string, itemType: ItemType, unitPrice: number) => {
+    if (!selectedPersonForDetails) return;
+    
+    // Finde die maximale Anzahl für diesen Artikel
+    const grouped = getGroupedItems(selectedPersonForDetails);
+    const itemGroup = [...grouped.getraenke, ...grouped.speisen].find(item => 
+      item.name === itemName && item.type === itemType && item.unitPrice === unitPrice
+    );
+    
+    if (!itemGroup || itemGroup.count === 0) return;
+    
+    setCancelModal({
+      visible: true,
+      itemName,
+      itemType,
+      unitPrice,
+      maxQuantity: itemGroup.count,
+      quantity: 1
+    });
+  };
+
+  // Funktion zum Schließen des Stornieren-Modals
+  const closeCancelModal = () => {
+    setCancelModal({
+      visible: false,
+      itemName: '',
+      itemType: ItemType.Drink,
+      unitPrice: 0,
+      maxQuantity: 0,
+      quantity: 1
+    });
+  };
+
+  // Funktion zum Anpassen der Stornierungsmenge
+  const updateCancelQuantity = (change: number) => {
+    setCancelModal(prev => ({
+      ...prev,
+      quantity: Math.max(1, Math.min(prev.maxQuantity, prev.quantity + change))
+    }));
+  };
+
+  // Erweiterte Cancel-Funktion für variable Anzahl
+  const cancelItemWithQuantity = async (personId: number, itemName: string, itemType: ItemType, unitPrice: number, quantity: number) => {
+    try {
+      // Storniere die gewünschte Anzahl
+      for (let i = 0; i < quantity; i++) {
+        await cancelUserItem(db, personId, itemName, itemType, Math.round(unitPrice * 100));
+      }
+      
+      // Reload persons to update the UI
+      await loadPersons();
+      
+      // Update selected person details if it's the one being modified
       if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
         const updatedPersons = await getAllUsers(db);
         const updatedPerson = updatedPersons.find(p => p.id === personId);
@@ -732,12 +825,12 @@ export default function PersonenPage() {
                                   {item.totalPrice.toFixed(2)}€
                                 </Text>
                                 <TouchableOpacity
-                                  onPress={() => handleCancelItem(item.name, item.type, item.unitPrice)}
+                                  onPress={() => openCancelModal(item.name, item.type, item.unitPrice)}
                                   className="bg-blue-100 px-3 py-1 rounded-lg"
                                   disabled={item.count === 0}
                                 >
                                   <Text className="text-blue-700 text-sm font-medium">
-                                    1x stornieren
+                                    stornieren
                                   </Text>
                                 </TouchableOpacity>
                               </View>
@@ -772,12 +865,12 @@ export default function PersonenPage() {
                                   {item.totalPrice.toFixed(2)}€
                                 </Text>
                                 <TouchableOpacity
-                                  onPress={() => handleCancelItem(item.name, item.type, item.unitPrice)}
+                                  onPress={() => openCancelModal(item.name, item.type, item.unitPrice)}
                                   className="bg-blue-100 px-3 py-1 rounded-lg"
                                   disabled={item.count === 0}
                                 >
                                   <Text className="text-blue-700 text-sm font-medium">
-                                    1x stornieren
+                                    stornieren
                                   </Text>
                                 </TouchableOpacity>
                               </View>
@@ -936,6 +1029,102 @@ export default function PersonenPage() {
           onAddItems={handleAddItemsToPerson}
         />
       )}
+
+      {/* Stornieren Modal */}
+      <Modal
+        visible={cancelModal.visible}
+        animationType="fade"
+        transparent={true}
+      >
+        <View className="flex-1 bg-black/50 justify-center items-center px-6">
+          <View className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <Text className="text-lg font-bold text-gray-800 mb-4 text-center">
+              Artikel stornieren
+            </Text>
+            
+            <Text className="text-base text-gray-600 mb-4 text-center">
+              Wie viele des ausgewählten Artikels sollen storniert werden?
+            </Text>
+            
+            <View className="bg-gray-50 rounded-lg p-4 mb-6">
+              <Text className="text-center text-gray-800 font-medium">
+                {cancelModal.itemName}
+              </Text>
+              <Text className="text-center text-gray-600 text-sm">
+                à {cancelModal.unitPrice.toFixed(2)}€
+              </Text>
+              <Text className="text-center text-gray-500 text-xs">
+                Verfügbar: {cancelModal.maxQuantity} Stück
+              </Text>
+            </View>
+
+            {/* Anzahl Selektor */}
+            <View className="flex-row items-center justify-center mb-6">
+              <TouchableOpacity
+                onPress={() => updateCancelQuantity(-1)}
+                className="bg-red-100 w-12 h-12 rounded-full justify-center items-center"
+                disabled={cancelModal.quantity <= 1}
+              >
+                <Text className="text-red-700 font-bold text-xl">−</Text>
+              </TouchableOpacity>
+              
+              <View className="mx-8 min-w-16 items-center">
+                <Text className="text-2xl font-bold text-gray-800">
+                  {cancelModal.quantity}
+                </Text>
+              </View>
+              
+              <TouchableOpacity
+                onPress={() => updateCancelQuantity(1)}
+                className="bg-green-100 w-12 h-12 rounded-full justify-center items-center"
+                disabled={cancelModal.quantity >= cancelModal.maxQuantity}
+              >
+                <Text className="text-green-700 font-bold text-xl">+</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Gesamtpreis */}
+            <View className="bg-blue-50 rounded-lg p-3 mb-6">
+              <Text className="text-center text-blue-800 font-semibold">
+                Stornierungswert: {(cancelModal.quantity * cancelModal.unitPrice).toFixed(2)}€
+              </Text>
+            </View>
+
+            {/* Action Buttons */}
+            <View className="flex-row gap-3">
+              <TouchableOpacity
+                onPress={closeCancelModal}
+                className="flex-1 bg-gray-100 py-3 rounded-lg"
+              >
+                <Text className="text-gray-700 text-center font-semibold">
+                  Abbrechen
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                onPress={() => {
+                  if (selectedPersonForDetails) {
+                    cancelItemWithQuantity(
+                      selectedPersonForDetails.id,
+                      cancelModal.itemName,
+                      cancelModal.itemType,
+                      cancelModal.unitPrice,
+                      cancelModal.quantity
+                    );
+                    showInModalToast(`${cancelModal.quantity}x "${cancelModal.itemName}" (${(cancelModal.quantity * cancelModal.unitPrice).toFixed(2)}€) wurde storniert.`);
+                    closeCancelModal();
+                  }
+                }}
+                className="flex-1 bg-red-600 py-3 rounded-lg"
+              >
+                <Text className="text-white text-center font-semibold">
+                  Stornieren
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
