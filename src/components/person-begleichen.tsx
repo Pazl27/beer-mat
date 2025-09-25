@@ -104,6 +104,56 @@ export default function PersonBegleichen({
     };
   };
 
+  // Neue Funktion für Datum-gruppierte Items (identisch mit index.tsx)
+  const getItemsGroupedByDate = (person: Person) => {
+    const grouped = person.items.reduce((acc, item) => {
+      const key = `${item.type}-${item.name}-${item.price}-${item.dateAdded || 'unknown'}`;
+      if (!acc[key]) {
+        acc[key] = {
+          name: item.name,
+          type: item.type,
+          count: 0,
+          totalPrice: 0,
+          unitPrice: item.price,
+          dateAdded: item.dateAdded || 'unknown'
+        };
+      }
+      acc[key].count += 1;
+      acc[key].totalPrice += item.price;
+      return acc;
+    }, {} as Record<string, GroupedItem>);
+
+    const allItems = Object.values(grouped);
+    
+    // Gruppiere nach Datum
+    const byDate = allItems.reduce((acc, item) => {
+      const dateKey = item.dateAdded || 'unknown';
+      if (!acc[dateKey]) {
+        acc[dateKey] = {
+          getraenke: [],
+          speisen: []
+        };
+      }
+      
+      if (item.type === ItemType.Drink) {
+        acc[dateKey].getraenke.push(item);
+      } else {
+        acc[dateKey].speisen.push(item);
+      }
+      
+      return acc;
+    }, {} as Record<string, { getraenke: GroupedItem[]; speisen: GroupedItem[] }>);
+
+    // Sortiere die Daten (neueste zuerst)
+    const sortedDates = Object.keys(byDate).sort((a, b) => {
+      if (a === 'unknown') return 1;
+      if (b === 'unknown') return -1;
+      return new Date(b).getTime() - new Date(a).getTime();
+    });
+
+    return { byDate, sortedDates };
+  };
+
   // Funktion zum Öffnen des Begleichen-Modals
   const openPayModal = (itemName: string, itemType: ItemType, unitPrice: number) => {
     // Finde die maximale Anzahl für diesen Artikel
@@ -182,8 +232,6 @@ export default function PersonBegleichen({
     );
   };
 
-  const grouped = getGroupedItems(person);
-
   return (
     <Modal
       visible={visible}
@@ -226,85 +274,114 @@ export default function PersonBegleichen({
             </View>
           </View>
 
-          {/* Getränke Summary */}
-          {grouped.getraenke.length > 0 && (
-            <View className="bg-white rounded-lg p-4 mb-4 shadow-sm border border-gray-200">
-              <Text className="text-xl font-bold text-gray-800 mb-3">
-                🍺 Getränke
-              </Text>
-              {grouped.getraenke.map((item, index) => (
-                <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
-                  <View className="flex-1">
-                    <Text className="text-base text-gray-700">
-                      {item.count}x {item.name}
-                    </Text>
-                    <Text className="text-sm text-gray-500">
-                      à {item.unitPrice.toFixed(2)}€
-                    </Text>
-                    {item.dateAdded && item.dateAdded !== 'unknown' && (
-                      <Text className="text-xs text-gray-400">
-                        vom {formatDisplayDate(item.dateAdded)}
-                      </Text>
-                    )}
-                  </View>
-                  <View className="flex-row items-center gap-3">
-                    <Text className="text-base font-semibold text-green-600">
-                      {item.totalPrice.toFixed(2)}€
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => openPayModal(item.name, item.type, item.unitPrice)}
-                      className="bg-green-100 px-3 py-1 rounded-lg"
-                      disabled={item.count === 0}
-                    >
-                      <Text className="text-green-700 text-sm font-medium">
-                        begleichen
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
+          {/* Items grouped by date */}
+          {(() => {
+            const { byDate, sortedDates } = getItemsGroupedByDate(person);
+            
+            if (person.items.length === 0) {
+              return (
+                <View className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                  <Text className="text-gray-500 text-lg text-center">Keine offenen Artikel</Text>
                 </View>
-              ))}
-            </View>
-          )}
+              );
+            }
+            
+            return (
+              <>
+                {sortedDates.map((dateKey, dateIndex) => {
+                  const dateData = byDate[dateKey];
+                  const hasItems = dateData.getraenke.length > 0 || dateData.speisen.length > 0;
+                  
+                  if (!hasItems) return null;
+                  
+                  return (
+                    <View key={dateKey} className="mb-4">
+                      {/* Datum-Separator */}
+                      <View className="flex-row items-center mb-3">
+                        <View className="flex-1 h-px bg-gray-300" />
+                        <View className="px-4 py-2 bg-gray-100 rounded-full">
+                          <Text className="text-sm font-semibold text-gray-600">
+                            {dateKey === 'unknown' ? 'Unbekanntes Datum' : formatDisplayDate(dateKey)}
+                          </Text>
+                        </View>
+                        <View className="flex-1 h-px bg-gray-300" />
+                      </View>
+                      
+                      {/* Getränke für dieses Datum */}
+                      {dateData.getraenke.length > 0 && (
+                        <View className="bg-white rounded-lg p-4 mb-3 shadow-sm border border-gray-200">
+                          <Text className="text-lg font-bold text-gray-800 mb-3">
+                            🍺 Getränke
+                          </Text>
+                          {dateData.getraenke.map((item, index) => (
+                            <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                              <View className="flex-1">
+                                <Text className="text-base text-gray-700">
+                                  {item.count}x {item.name}
+                                </Text>
+                                <Text className="text-sm text-gray-500">
+                                  à {item.unitPrice.toFixed(2)}€
+                                </Text>
+                              </View>
+                              <View className="flex-row items-center gap-3">
+                                <Text className="text-base font-semibold text-green-600">
+                                  {item.totalPrice.toFixed(2)}€
+                                </Text>
+                                <TouchableOpacity
+                                  onPress={() => openPayModal(item.name, item.type, item.unitPrice)}
+                                  className="bg-green-100 px-3 py-1 rounded-lg"
+                                  disabled={item.count === 0}
+                                >
+                                  <Text className="text-green-700 text-sm font-medium">
+                                    begleichen
+                                  </Text>
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          ))}
+                        </View>
+                      )}
 
-          {/* Speisen Summary */}
-          {grouped.speisen.length > 0 && (
-            <View className="bg-white rounded-lg p-4 mb-4 shadow-sm border border-gray-200">
-              <Text className="text-xl font-bold text-gray-800 mb-3">
-                🍽️ Speisen
-              </Text>
-              {grouped.speisen.map((item, index) => (
-                <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
-                  <View className="flex-1">
-                    <Text className="text-base text-gray-700">
-                      {item.count}x {item.name}
-                    </Text>
-                    <Text className="text-sm text-gray-500">
-                      à {item.unitPrice.toFixed(2)}€
-                    </Text>
-                    {item.dateAdded && item.dateAdded !== 'unknown' && (
-                      <Text className="text-xs text-gray-400">
-                        vom {formatDisplayDate(item.dateAdded)}
-                      </Text>
-                    )}
-                  </View>
-                  <View className="flex-row items-center gap-3">
-                    <Text className="text-base font-semibold text-green-600">
-                      {item.totalPrice.toFixed(2)}€
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => openPayModal(item.name, item.type, item.unitPrice)}
-                      className="bg-green-100 px-3 py-1 rounded-lg"
-                      disabled={item.count === 0}
-                    >
-                      <Text className="text-green-700 text-sm font-medium">
-                        begleichen
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
+                      {/* Speisen für dieses Datum */}
+                      {dateData.speisen.length > 0 && (
+                        <View className="bg-white rounded-lg p-4 mb-3 shadow-sm border border-gray-200">
+                          <Text className="text-lg font-bold text-gray-800 mb-3">
+                            🍽️ Speisen
+                          </Text>
+                          {dateData.speisen.map((item, index) => (
+                            <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                              <View className="flex-1">
+                                <Text className="text-base text-gray-700">
+                                  {item.count}x {item.name}
+                                </Text>
+                                <Text className="text-sm text-gray-500">
+                                  à {item.unitPrice.toFixed(2)}€
+                                </Text>
+                              </View>
+                              <View className="flex-row items-center gap-3">
+                                <Text className="text-base font-semibold text-green-600">
+                                  {item.totalPrice.toFixed(2)}€
+                                </Text>
+                                <TouchableOpacity
+                                  onPress={() => openPayModal(item.name, item.type, item.unitPrice)}
+                                  className="bg-green-100 px-3 py-1 rounded-lg"
+                                  disabled={item.count === 0}
+                                >
+                                  <Text className="text-green-700 text-sm font-medium">
+                                    begleichen
+                                  </Text>
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </>
+            );
+          })()}
 
           {/* Spacer für Button */}
           <View className="h-20" />

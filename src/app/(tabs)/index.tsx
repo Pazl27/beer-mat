@@ -501,6 +501,56 @@ export default function PersonenPage() {
     };
   };
 
+  // Neue Funktion für Datum-gruppierte Items
+  const getItemsGroupedByDate = (person: Person) => {
+    const grouped = person.items.reduce((acc, item) => {
+      const key = `${item.type}-${item.name}-${item.price}-${item.dateAdded || 'unknown'}`;
+      if (!acc[key]) {
+        acc[key] = {
+          name: item.name,
+          type: item.type,
+          count: 0,
+          totalPrice: 0,
+          unitPrice: item.price,
+          dateAdded: item.dateAdded || 'unknown'
+        };
+      }
+      acc[key].count += 1;
+      acc[key].totalPrice += item.price;
+      return acc;
+    }, {} as Record<string, { name: string; type: ItemType; count: number; totalPrice: number; unitPrice: number; dateAdded: string }>);
+
+    const allItems = Object.values(grouped);
+    
+    // Gruppiere nach Datum
+    const byDate = allItems.reduce((acc, item) => {
+      const dateKey = item.dateAdded;
+      if (!acc[dateKey]) {
+        acc[dateKey] = {
+          getraenke: [],
+          speisen: []
+        };
+      }
+      
+      if (item.type === ItemType.Drink) {
+        acc[dateKey].getraenke.push(item);
+      } else {
+        acc[dateKey].speisen.push(item);
+      }
+      
+      return acc;
+    }, {} as Record<string, { getraenke: any[]; speisen: any[] }>);
+
+    // Sortiere die Daten (neueste zuerst)
+    const sortedDates = Object.keys(byDate).sort((a, b) => {
+      if (a === 'unknown') return 1;
+      if (b === 'unknown') return -1;
+      return new Date(b).getTime() - new Date(a).getTime();
+    });
+
+    return { byDate, sortedDates };
+  };
+
   const handleAddItemsToPerson = async (personId: number, selectedItems: Array<{name: string, price: number, type: ItemType, quantity: number, itemId: number}>) => {
     try {
       const person = persons.find(p => p.id === personId);
@@ -840,96 +890,111 @@ export default function PersonenPage() {
 
               {/* Tab Content */}
               {activeDetailsTab === 'offen' ? (
-                // Offen Tab - Current unpaid items
+                // Offen Tab - Current unpaid items grouped by date
                 (() => {
-                  const grouped = getGroupedItems(selectedPersonForDetails);
+                  const { byDate, sortedDates } = getItemsGroupedByDate(selectedPersonForDetails);
+                  
+                  if (selectedPersonForDetails.items.length === 0) {
+                    return (
+                      <View className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                        <Text className="text-gray-500 text-lg text-center">Keine offenen Artikel</Text>
+                      </View>
+                    );
+                  }
+                  
                   return (
                     <>
-                      {/* Getränke Summary */}
-                      {grouped.getraenke.length > 0 && (
-                        <View className="bg-white rounded-lg p-4 mb-4 shadow-sm border border-gray-200">
-                          <Text className="text-xl font-bold text-gray-800 mb-3 text-center">
-                            🍺 Getränke
-                          </Text>
-                          {grouped.getraenke.map((item, index) => (
-                            <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
-                              <View className="flex-1">
-                                <Text className="text-base text-gray-700">
-                                  {item.count}x {item.name}
+                      {sortedDates.map((dateKey, dateIndex) => {
+                        const dateData = byDate[dateKey];
+                        const hasItems = dateData.getraenke.length > 0 || dateData.speisen.length > 0;
+                        
+                        if (!hasItems) return null;
+                        
+                        return (
+                          <View key={dateKey} className="mb-4">
+                            {/* Datum-Separator */}
+                            <View className="flex-row items-center mb-3">
+                              <View className="flex-1 h-px bg-gray-300" />
+                              <View className="px-4 py-2 bg-gray-100 rounded-full">
+                                <Text className="text-sm font-semibold text-gray-600">
+                                  {dateKey === 'unknown' ? 'Unbekanntes Datum' : formatDisplayDate(dateKey)}
                                 </Text>
-                                <Text className="text-sm text-gray-500">
-                                  à {item.unitPrice.toFixed(2)}€
-                                </Text>
-                                {item.dateAdded && item.dateAdded !== 'unknown' && (
-                                  <Text className="text-xs text-gray-400">
-                                    vom {formatDisplayDate(item.dateAdded)}
-                                  </Text>
-                                )}
                               </View>
-                              <View className="flex-row items-center gap-3">
-                                <Text className="text-base font-semibold text-green-600">
-                                  {item.totalPrice.toFixed(2)}€
-                                </Text>
-                                <TouchableOpacity
-                                  onPress={() => openCancelModal(item.name, item.type, item.unitPrice)}
-                                  className="bg-blue-100 px-3 py-1 rounded-lg"
-                                  disabled={item.count === 0}
-                                >
-                                  <Text className="text-blue-700 text-sm font-medium">
-                                    stornieren
-                                  </Text>
-                                </TouchableOpacity>
-                              </View>
+                              <View className="flex-1 h-px bg-gray-300" />
                             </View>
-                          ))}
-                        </View>
-                      )}
-
-                      {/* Speisen Summary */}
-                      {grouped.speisen.length > 0 && (
-                        <View className="bg-white rounded-lg p-4 mb-4 shadow-sm border border-gray-200">
-                          <Text className="text-xl font-bold text-gray-800 mb-3 text-center">
-                            🍽️ Speisen
-                          </Text>
-                          {grouped.speisen.map((item, index) => (
-                            <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
-                              <View className="flex-1">
-                                <Text className="text-base text-gray-700">
-                                  {item.count}x {item.name}
+                            
+                            {/* Getränke für dieses Datum */}
+                            {dateData.getraenke.length > 0 && (
+                              <View className="bg-white rounded-lg p-4 mb-3 shadow-sm border border-gray-200">
+                                <Text className="text-lg font-bold text-gray-800 mb-3 text-center">
+                                  🍺 Getränke
                                 </Text>
-                                <Text className="text-sm text-gray-500">
-                                  à {item.unitPrice.toFixed(2)}€
-                                </Text>
-                                {item.dateAdded && item.dateAdded !== 'unknown' && (
-                                  <Text className="text-xs text-gray-400">
-                                    vom {formatDisplayDate(item.dateAdded)}
-                                  </Text>
-                                )}
+                                {dateData.getraenke.map((item, index) => (
+                                  <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                                    <View className="flex-1">
+                                      <Text className="text-base text-gray-700">
+                                        {item.count}x {item.name}
+                                      </Text>
+                                      <Text className="text-sm text-gray-500">
+                                        à {item.unitPrice.toFixed(2)}€
+                                      </Text>
+                                    </View>
+                                    <View className="flex-row items-center gap-3">
+                                      <Text className="text-base font-semibold text-green-600">
+                                        {item.totalPrice.toFixed(2)}€
+                                      </Text>
+                                      <TouchableOpacity
+                                        onPress={() => openCancelModal(item.name, item.type, item.unitPrice)}
+                                        className="bg-blue-100 px-3 py-1 rounded-lg"
+                                        disabled={item.count === 0}
+                                      >
+                                        <Text className="text-blue-700 text-sm font-medium">
+                                          stornieren
+                                        </Text>
+                                      </TouchableOpacity>
+                                    </View>
+                                  </View>
+                                ))}
                               </View>
-                              <View className="flex-row items-center gap-3">
-                                <Text className="text-base font-semibold text-green-600">
-                                  {item.totalPrice.toFixed(2)}€
-                                </Text>
-                                <TouchableOpacity
-                                  onPress={() => openCancelModal(item.name, item.type, item.unitPrice)}
-                                  className="bg-blue-100 px-3 py-1 rounded-lg"
-                                  disabled={item.count === 0}
-                                >
-                                  <Text className="text-blue-700 text-sm font-medium">
-                                    stornieren
-                                  </Text>
-                                </TouchableOpacity>
-                              </View>
-                            </View>
-                          ))}
-                        </View>
-                      )}
+                            )}
 
-                      {selectedPersonForDetails.items.length === 0 && (
-                        <View className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-                          <Text className="text-gray-500 text-lg text-center">Keine offenen Artikel</Text>
-                        </View>
-                      )}
+                            {/* Speisen für dieses Datum */}
+                            {dateData.speisen.length > 0 && (
+                              <View className="bg-white rounded-lg p-4 mb-3 shadow-sm border border-gray-200">
+                                <Text className="text-lg font-bold text-gray-800 mb-3 text-center">
+                                  🍽️ Speisen
+                                </Text>
+                                {dateData.speisen.map((item, index) => (
+                                  <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                                    <View className="flex-1">
+                                      <Text className="text-base text-gray-700">
+                                        {item.count}x {item.name}
+                                      </Text>
+                                      <Text className="text-sm text-gray-500">
+                                        à {item.unitPrice.toFixed(2)}€
+                                      </Text>
+                                    </View>
+                                    <View className="flex-row items-center gap-3">
+                                      <Text className="text-base font-semibold text-green-600">
+                                        {item.totalPrice.toFixed(2)}€
+                                      </Text>
+                                      <TouchableOpacity
+                                        onPress={() => openCancelModal(item.name, item.type, item.unitPrice)}
+                                        className="bg-blue-100 px-3 py-1 rounded-lg"
+                                        disabled={item.count === 0}
+                                      >
+                                        <Text className="text-blue-700 text-sm font-medium">
+                                          stornieren
+                                        </Text>
+                                      </TouchableOpacity>
+                                    </View>
+                                  </View>
+                                ))}
+                              </View>
+                            )}
+                          </View>
+                        );
+                      })}
                     </>
                   );
                 })()
