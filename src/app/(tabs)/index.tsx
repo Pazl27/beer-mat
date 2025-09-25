@@ -306,7 +306,7 @@ export default function PersonenPage() {
       await cancelUserItem(db, personId, itemName, itemType, itemPrice);
       await loadPersons(); // Reload from database
 
-      // Update selected person for details modal if it's open
+      // Update selected person for details modal if it's open - same pattern as payment
       if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
         const updatedPersons = await getAllUsers(db);
         const updatedPerson = updatedPersons.find(p => p.id === personId);
@@ -380,7 +380,7 @@ export default function PersonenPage() {
       // Reload persons to update the UI
       await loadPersons();
       
-      // Update selected person details if it's the one being modified
+      // Update selected person details if it's the one being modified - same pattern as payment
       if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
         const updatedPersons = await getAllUsers(db);
         const updatedPerson = updatedPersons.find(p => p.id === personId);
