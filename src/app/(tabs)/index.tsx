@@ -862,7 +862,7 @@ export default function PersonenPage() {
                                 </Text>
                                 {item.dateAdded && item.dateAdded !== 'unknown' && (
                                   <Text className="text-xs text-gray-400">
-                                    {formatDisplayDate(item.dateAdded)}
+                                    vom {formatDisplayDate(item.dateAdded)}
                                   </Text>
                                 )}
                               </View>
@@ -902,7 +902,7 @@ export default function PersonenPage() {
                                 </Text>
                                 {item.dateAdded && item.dateAdded !== 'unknown' && (
                                   <Text className="text-xs text-gray-400">
-                                    {formatDisplayDate(item.dateAdded)}
+                                    vom {formatDisplayDate(item.dateAdded)}
                                   </Text>
                                 )}
                               </View>
@@ -982,7 +982,7 @@ export default function PersonenPage() {
                                 )}
                               </View>
                               <Text className="text-sm text-gray-500">
-                                {new Date(parseInt(entry.timestamp)).toLocaleDateString('de-DE', {
+                                beglichen am {new Date(parseInt(entry.timestamp)).toLocaleDateString('de-DE', {
                                   day: '2-digit',
                                   month: '2-digit',
                                   year: 'numeric',

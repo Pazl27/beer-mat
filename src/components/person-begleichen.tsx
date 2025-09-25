@@ -243,7 +243,7 @@ export default function PersonBegleichen({
                     </Text>
                     {item.dateAdded && item.dateAdded !== 'unknown' && (
                       <Text className="text-xs text-gray-400">
-                        {formatDisplayDate(item.dateAdded)}
+                        vom {formatDisplayDate(item.dateAdded)}
                       </Text>
                     )}
                   </View>
@@ -283,7 +283,7 @@ export default function PersonBegleichen({
                     </Text>
                     {item.dateAdded && item.dateAdded !== 'unknown' && (
                       <Text className="text-xs text-gray-400">
-                        {formatDisplayDate(item.dateAdded)}
+                        vom {formatDisplayDate(item.dateAdded)}
                       </Text>
                     )}
                   </View>
