@@ -327,8 +327,9 @@ export default function PersonenPage() {
   const cancelItemWithQuantity = async (personId: number, itemName: string, itemType: ItemType, unitPrice: number, quantity: number) => {
     try {
       // Storniere die gewünschte Anzahl
+      // unitPrice ist in Euro, cancelUserItem erwartet Euro und konvertiert selbst zu Cents
       for (let i = 0; i < quantity; i++) {
-        await cancelUserItem(db, personId, itemName, itemType, Math.round(unitPrice * 100));
+        await cancelUserItem(db, personId, itemName, itemType, unitPrice);
       }
       
       // Reload persons to update the UI
