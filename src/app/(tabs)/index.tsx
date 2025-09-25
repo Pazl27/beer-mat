@@ -1079,25 +1079,106 @@ export default function PersonenPage() {
                           {/* Expanded Details */}
                           {hasDetails && isExpanded && (
                             <View className="bg-blue-50 px-4 py-3 border-b border-gray-100">
-                              <Text className="text-sm font-medium text-blue-800 mb-2">
+                              <Text className="text-sm font-medium text-blue-800 mb-3">
                                 📋 Artikel-Details:
                               </Text>
-                              {paymentDetails.map((detail, detailIndex) => (
-                                <View key={detailIndex} className="flex-row justify-between items-center py-1">
-                                  <View className="flex-1">
-                                    <Text className="text-sm text-blue-700">
-                                      {detail.quantity}x {detail.name} {detail.type === 'drink' ? '🍺' : '🍽️'}
-                                    </Text>
-                                    <Text className="text-xs text-blue-600">
-                                      à {(detail.price / 100).toFixed(2)}€
-                                      {detail.dateAdded && ` • vom ${formatDisplayDate(detail.dateAdded)}`}
-                                    </Text>
-                                  </View>
-                                  <Text className="text-sm font-medium text-blue-800">
-                                    {(detail.price / 100 * detail.quantity).toFixed(2)}€
-                                  </Text>
-                                </View>
-                              ))}
+                              {(() => {
+                                // Gruppiere Payment Details nach Datum
+                                const detailsByDate = paymentDetails.reduce((acc, detail) => {
+                                  const dateKey = detail.dateAdded || 'unknown';
+                                  if (!acc[dateKey]) {
+                                    acc[dateKey] = {
+                                      getraenke: [],
+                                      speisen: []
+                                    };
+                                  }
+                                  
+                                  if (detail.type === 'drink') {
+                                    acc[dateKey].getraenke.push(detail);
+                                  } else {
+                                    acc[dateKey].speisen.push(detail);
+                                  }
+                                  
+                                  return acc;
+                                }, {} as Record<string, { getraenke: any[]; speisen: any[] }>);
+
+                                // Sortiere die Daten (neueste zuerst)
+                                const sortedDates = Object.keys(detailsByDate).sort((a, b) => {
+                                  if (a === 'unknown') return 1;
+                                  if (b === 'unknown') return -1;
+                                  return new Date(b).getTime() - new Date(a).getTime();
+                                });
+
+                                return sortedDates.map((dateKey) => {
+                                  const dateData = detailsByDate[dateKey];
+                                  const hasItems = dateData.getraenke.length > 0 || dateData.speisen.length > 0;
+                                  
+                                  if (!hasItems) return null;
+                                  
+                                  return (
+                                    <View key={dateKey} className="mb-3">
+                                      {/* Datum-Separator */}
+                                      <View className="flex-row items-center mb-2">
+                                        <View className="flex-1 h-px bg-blue-300" />
+                                        <View className="px-3 py-1 bg-blue-100 rounded-full">
+                                          <Text className="text-xs font-medium text-blue-600">
+                                            {dateKey === 'unknown' ? 'Unbekanntes Datum' : `vom ${formatDisplayDate(dateKey)}`}
+                                          </Text>
+                                        </View>
+                                        <View className="flex-1 h-px bg-blue-300" />
+                                      </View>
+                                      
+                                      {/* Getränke für dieses Datum */}
+                                      {dateData.getraenke.length > 0 && (
+                                        <View className="mb-2">
+                                          <Text className="text-xs font-medium text-blue-700 mb-1">
+                                            🍺 Getränke
+                                          </Text>
+                                          {dateData.getraenke.map((detail, detailIndex) => (
+                                            <View key={detailIndex} className="flex-row justify-between items-center py-1 ml-3">
+                                              <View className="flex-1">
+                                                <Text className="text-sm text-blue-700">
+                                                  {detail.quantity}x {detail.name}
+                                                </Text>
+                                                <Text className="text-xs text-blue-600">
+                                                  à {(detail.price / 100).toFixed(2)}€
+                                                </Text>
+                                              </View>
+                                              <Text className="text-sm font-medium text-blue-800">
+                                                {(detail.price / 100 * detail.quantity).toFixed(2)}€
+                                              </Text>
+                                            </View>
+                                          ))}
+                                        </View>
+                                      )}
+                                      
+                                      {/* Speisen für dieses Datum */}
+                                      {dateData.speisen.length > 0 && (
+                                        <View className="mb-2">
+                                          <Text className="text-xs font-medium text-blue-700 mb-1">
+                                            🍽️ Speisen
+                                          </Text>
+                                          {dateData.speisen.map((detail, detailIndex) => (
+                                            <View key={detailIndex} className="flex-row justify-between items-center py-1 ml-3">
+                                              <View className="flex-1">
+                                                <Text className="text-sm text-blue-700">
+                                                  {detail.quantity}x {detail.name}
+                                                </Text>
+                                                <Text className="text-xs text-blue-600">
+                                                  à {(detail.price / 100).toFixed(2)}€
+                                                </Text>
+                                              </View>
+                                              <Text className="text-sm font-medium text-blue-800">
+                                                {(detail.price / 100 * detail.quantity).toFixed(2)}€
+                                              </Text>
+                                            </View>
+                                          ))}
+                                        </View>
+                                      )}
+                                    </View>
+                                  );
+                                });
+                              })()}
                             </View>
                           )}
                         </View>
