@@ -444,43 +444,30 @@ export default function PersonBegleichen({
       {/* Begleichen Modal */}
       <Modal
         visible={payModal.visible}
-        animationType="slide"
-        presentationStyle="pageSheet"
+        animationType="fade"
+        transparent={true}
       >
-        <View className="flex-1 bg-gray-50">
-          {/* Modal Header */}
-          <View className="bg-white px-4 py-3 border-b border-gray-200 flex-row justify-between items-center">
-            <View className="flex-1" />
-            <Text className="text-lg font-semibold text-gray-800">
+        <View className="flex-1 bg-black/50 justify-center items-center px-6">
+          <View className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <Text className="text-lg font-bold text-gray-800 mb-4 text-center">
               Artikel begleichen
             </Text>
-            <View className="flex-1 items-end">
-              <TouchableOpacity
-                onPress={closePayModal}
-                className="bg-gray-100 px-3 py-1 rounded-lg"
-              >
-                <Text className="text-gray-700 font-medium">✕</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View className="flex-1 justify-center px-6">
-            <View className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-              <Text className="text-base text-gray-600 mb-4 text-center">
-                Wie viele des ausgewählten Artikels sollen beglichen werden?
+            
+            <Text className="text-base text-gray-600 mb-4 text-center">
+              Wie viele des ausgewählten Artikels sollen beglichen werden?
+            </Text>
+            
+            <View className="bg-gray-50 rounded-lg p-4 mb-6">
+              <Text className="text-center text-gray-800 font-medium">
+                {payModal.itemName}
               </Text>
-              
-              <View className="bg-gray-50 rounded-lg p-4 mb-6">
-                <Text className="text-center text-gray-800 font-medium">
-                  {payModal.itemName}
-                </Text>
-                <Text className="text-center text-gray-600 text-sm">
-                  à {payModal.unitPrice.toFixed(2)}€
-                </Text>
-                <Text className="text-center text-gray-500 text-xs">
-                  Verfügbar: {payModal.maxQuantity} Stück
-                </Text>
-              </View>
+              <Text className="text-center text-gray-600 text-sm">
+                à {payModal.unitPrice.toFixed(2)}€
+              </Text>
+              <Text className="text-center text-gray-500 text-xs">
+                Verfügbar: {payModal.maxQuantity} Stück
+              </Text>
+            </View>
 
             {/* Anzahl Selektor */}
             <View className="flex-row items-center justify-center mb-6">
@@ -514,35 +501,34 @@ export default function PersonBegleichen({
               </Text>
             </View>
 
-              {/* Action Buttons */}
-              <View className="flex-row gap-3 mt-6">
-                <TouchableOpacity
-                  onPress={closePayModal}
-                  className="flex-1 bg-gray-100 py-3 rounded-lg"
-                >
-                  <Text className="text-gray-700 text-center font-semibold">
-                    Abbrechen
-                  </Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity
-                  onPress={async () => {
-                    await payItemWithQuantity(
-                      payModal.itemName,
-                      payModal.itemType,
-                      payModal.unitPrice,
-                      payModal.quantity,
-                      payModal.dateAdded
-                    );
-                    closePayModal();
-                  }}
-                  className="flex-1 bg-green-600 py-3 rounded-lg"
-                >
-                  <Text className="text-white text-center font-semibold">
-                    Begleichen
-                  </Text>
-                </TouchableOpacity>
-              </View>
+            {/* Action Buttons */}
+            <View className="flex-row gap-3">
+              <TouchableOpacity
+                onPress={closePayModal}
+                className="flex-1 bg-gray-100 py-3 rounded-lg"
+              >
+                <Text className="text-gray-700 text-center font-semibold">
+                  Abbrechen
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                onPress={async () => {
+                  await payItemWithQuantity(
+                    payModal.itemName,
+                    payModal.itemType,
+                    payModal.unitPrice,
+                    payModal.quantity,
+                    payModal.dateAdded
+                  );
+                  closePayModal();
+                }}
+                className="flex-1 bg-green-600 py-3 rounded-lg"
+              >
+                <Text className="text-white text-center font-semibold">
+                  Begleichen
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
