@@ -400,7 +400,7 @@ export default function PersonBegleichen({
                                 <Text className="text-base font-semibold text-green-600">
                                   {item.totalPrice.toFixed(2)}€
                                 </Text>
-                                <View className="flex-row items-center gap-2">
+                                <View className="flex-row items-center gap-1">
                                   <TouchableOpacity
                                     onPress={() => updateSelectedQuantity(item.name, item.type, item.unitPrice, dateKey, -1, item.count)}
                                     className="bg-red-100 w-8 h-8 rounded-full justify-center items-center"
@@ -449,7 +449,7 @@ export default function PersonBegleichen({
                                 <Text className="text-base font-semibold text-green-600">
                                   {item.totalPrice.toFixed(2)}€
                                 </Text>
-                                <View className="flex-row items-center gap-2">
+                                <View className="flex-row items-center gap-1">
                                   <TouchableOpacity
                                     onPress={() => updateSelectedQuantity(item.name, item.type, item.unitPrice, dateKey, -1, item.count)}
                                     className="bg-red-100 w-8 h-8 rounded-full justify-center items-center"
