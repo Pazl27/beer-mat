@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { PersonArtikelHinzufuegenProps, ItemType, Item } from '@/types';
+import { DrinkCategory, FoodCategory } from '@/types/category';
 import { getAllItems } from '@/db/dbFunctions';
 import { useTrainingsstrich } from '@/contexts/TrainingsstrichContext';
 import { showSuccessToast, showErrorToast } from '@/utils/toast';
@@ -53,8 +54,31 @@ export default function PersonArtikelHinzufuegen({
     }
   };
 
-  const [getraenkeExpanded, setGetraenkeExpanded] = useState(false);
-  const [speisenExpanded, setSpeisenExpanded] = useState(false);
+
+
+  // Icon-Funktionen für Kategorien
+  const getDrinkCategoryIcon = (category: DrinkCategory) => {
+    switch (category) {
+      case DrinkCategory.Bier: return '🍺';
+      case DrinkCategory.Wein: return '🍷';
+      case DrinkCategory.Softdrinks: return '🥤';
+      case DrinkCategory.Heissgetraenke: return '☕';
+      case DrinkCategory.Spirituosen: return '🥃';
+      default: return '🥤';
+    }
+  };
+
+  const getFoodCategoryIcon = (category: FoodCategory) => {
+    switch (category) {
+      case FoodCategory.Vorspeise: return '🥗';
+      case FoodCategory.Hauptgericht: return '🍖';
+      case FoodCategory.Beilage: return '🍟';
+      case FoodCategory.Salat: return '🥙';
+      case FoodCategory.Nachspeise: return '🍰';
+      case FoodCategory.Suesses: return '🍭';
+      default: return '🍽️';
+    }
+  };
 
   // Funktion zum Filtern der Artikel basierend auf Suchbegriff
   const filterItems = (items: Item[]) => {
@@ -68,6 +92,23 @@ export default function PersonArtikelHinzufuegen({
   // Gefilterte Listen
   const filteredGetraenke = filterItems(getraenke);
   const filteredSpeisen = filterItems(speisen);
+
+  // Gruppierung nach Kategorien
+  const groupedGetraenke = Object.values(DrinkCategory).reduce((acc, category) => {
+    const items = filteredGetraenke.filter(g => g.category === category);
+    if (items.length > 0) {
+      acc[category] = items;
+    }
+    return acc;
+  }, {} as Record<DrinkCategory, Item[]>);
+
+  const groupedSpeisen = Object.values(FoodCategory).reduce((acc, category) => {
+    const items = filteredSpeisen.filter(s => s.category === category);
+    if (items.length > 0) {
+      acc[category] = items;
+    }
+    return acc;
+  }, {} as Record<FoodCategory, Item[]>);
 
   // State für ausgewählte Mengen
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
@@ -226,145 +267,152 @@ export default function PersonArtikelHinzufuegen({
           </View>
 
           {/* Getränke Section */}
-          <View className="bg-white rounded-lg mb-4 shadow-sm border border-gray-200">
-            <TouchableOpacity
-              onPress={() => setGetraenkeExpanded(!getraenkeExpanded)}
-              className="p-4 border-b border-gray-100"
-            >
-              <View className="flex-row justify-between items-center">
-                <Text className="text-lg font-bold text-gray-800">
+          {Object.keys(groupedGetraenke).length > 0 && (
+            <>
+              {/* Getränke Überschrift */}
+              <View className="bg-gray-200 rounded-lg p-4 mb-4 mx-[-16px]">
+                <Text className="text-2xl font-bold text-gray-800 text-center">
                   🍺 Getränke ({filteredGetraenke.length})
-                  {searchQuery.trim() && filteredGetraenke.length !== getraenke.length && (
-                    <Text className="text-sm text-gray-500"> • {getraenke.length} gesamt</Text>
-                  )}
-                </Text>
-                <Text className="text-gray-600 text-xl">
-                  {getraenkeExpanded ? '▼' : '▶'}
                 </Text>
               </View>
-            </TouchableOpacity>
 
-            {getraenkeExpanded && (
-              <View className="p-2">
-                {filteredGetraenke.length > 0 ? (
-                  filteredGetraenke.map((item) => (
-                    <View key={item.id} className="flex-row justify-between items-center py-3 px-2 border-b border-gray-50 last:border-b-0">
-                      <View className="flex-1">
-                        <Text className="text-base font-medium text-gray-800">
-                          {getItemEmoji(item.name, 'getraenk')} {item.name}
-                        </Text>
-                        {item.info && (
-                          <Text className="text-sm text-gray-600 mt-1">
-                            {item.info}
+              {/* Getränke nach Kategorien */}
+              {Object.entries(groupedGetraenke).map(([category, items]) => (
+                <View key={category} className="mb-4">
+                  {/* Kategorie-Trenner */}
+                  <View className="flex-row items-center mb-3">
+                    <View className="flex-1 h-px bg-gray-300" />
+                    <View className="px-4 py-2 bg-gray-100 rounded-full">
+                      <Text className="text-sm font-semibold text-gray-600">
+                        {getDrinkCategoryIcon(category as DrinkCategory)} {category}
+                      </Text>
+                    </View>
+                    <View className="flex-1 h-px bg-gray-300" />
+                  </View>
+
+                  {/* Items in dieser Kategorie */}
+                  <View className="bg-white rounded-lg p-4 mb-3 shadow-sm border border-gray-200">
+                    {items.map((item, index) => (
+                      <View key={item.id} className={`flex-row justify-between items-center py-3 ${index < items.length - 1 ? 'border-b border-gray-100' : ''}`}>
+                        <View className="flex-1">
+                          <Text className="text-base font-medium text-gray-800">
+                            {getItemEmoji(item.name, 'getraenk')} {item.name}
                           </Text>
-                        )}
-                        <Text className="text-sm font-semibold text-green-600 mt-1">
-                          {getDisplayPrice(item.price).toFixed(2)}€
-                          {isTrainingsstrichActive && item.type === ItemType.Drink && item.price !== 1.0 && (
-                            <Text className="text-xs text-gray-400 line-through ml-2">
-                              {item.price.toFixed(2)}€
+                          {item.info && (
+                            <Text className="text-sm text-gray-600 mt-1">
+                              {item.info}
                             </Text>
                           )}
-                        </Text>
+                          <Text className="text-sm font-semibold text-green-600 mt-1">
+                            {getDisplayPrice(item.price).toFixed(2)}€
+                            {isTrainingsstrichActive && item.type === ItemType.Drink && item.price !== 1.0 && (
+                              <Text className="text-xs text-gray-400 line-through ml-2">
+                                {item.price.toFixed(2)}€
+                              </Text>
+                            )}
+                          </Text>
+                        </View>
+                        <View className="flex-row items-center gap-1">
+                          <TouchableOpacity
+                            onPress={() => item.id && updateQuantity(item.id, -1)}
+                            className="bg-red-100 w-8 h-8 rounded-full justify-center items-center"
+                            disabled={(selectedQuantities[item.id || 0] || 0) === 0}
+                          >
+                            <Text className="text-red-700 font-bold text-lg">−</Text>
+                          </TouchableOpacity>
+                          <Text className="text-lg font-bold text-gray-800 w-8 text-center">
+                            {selectedQuantities[item.id || 0] || 0}
+                          </Text>
+                          <TouchableOpacity
+                            onPress={() => item.id && updateQuantity(item.id, 1)}
+                            className="bg-green-100 w-8 h-8 rounded-full justify-center items-center"
+                          >
+                            <Text className="text-green-700 font-bold text-lg">+</Text>
+                          </TouchableOpacity>
+                        </View>
                       </View>
-                      <View className="flex-row items-center gap-1">
-                        <TouchableOpacity
-                          onPress={() => item.id && updateQuantity(item.id, -1)}
-                          className="bg-red-100 w-8 h-8 rounded-full justify-center items-center"
-                          disabled={(selectedQuantities[item.id || 0] || 0) === 0}
-                        >
-                          <Text className="text-red-700 font-bold text-lg">−</Text>
-                        </TouchableOpacity>
-                        <Text className="text-lg font-bold text-gray-800 w-8 text-center">
-                          {selectedQuantities[item.id || 0] || 0}
-                        </Text>
-                        <TouchableOpacity
-                          onPress={() => item.id && updateQuantity(item.id, 1)}
-                          className="bg-green-100 w-8 h-8 rounded-full justify-center items-center"
-                        >
-                          <Text className="text-green-700 font-bold text-lg">+</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  ))
-                ) : (
-                  <View className="p-4">
-                    <Text className="text-gray-500 text-center">
-                      Keine Getränke gefunden für "{searchQuery}"
-                    </Text>
+                    ))}
                   </View>
-                )}
-              </View>
-            )}
-          </View>
+                </View>
+              ))}
+            </>
+          )}
 
           {/* Speisen Section */}
-          <View className="bg-white rounded-lg mb-6 shadow-sm border border-gray-200">
-            <TouchableOpacity
-              onPress={() => setSpeisenExpanded(!speisenExpanded)}
-              className="p-4 border-b border-gray-100"
-            >
-              <View className="flex-row justify-between items-center">
-                <Text className="text-lg font-bold text-gray-800">
+          {Object.keys(groupedSpeisen).length > 0 && (
+            <>
+              {/* Speisen Überschrift */}
+              <View className="bg-gray-200 rounded-lg p-4 mb-4 mx-[-16px]">
+                <Text className="text-2xl font-bold text-gray-800 text-center">
                   🍽️ Speisen ({filteredSpeisen.length})
-                  {searchQuery.trim() && filteredSpeisen.length !== speisen.length && (
-                    <Text className="text-sm text-gray-500"> • {speisen.length} gesamt</Text>
-                  )}
-                </Text>
-                <Text className="text-gray-600 text-xl">
-                  {speisenExpanded ? '▼' : '▶'}
                 </Text>
               </View>
-            </TouchableOpacity>
 
-            {speisenExpanded && (
-              <View className="p-2">
-                {filteredSpeisen.length > 0 ? (
-                  filteredSpeisen.map((item) => (
-                    <View key={item.id} className="flex-row justify-between items-center py-3 px-2 border-b border-gray-50 last:border-b-0">
-                      <View className="flex-1">
-                        <Text className="text-base font-medium text-gray-800">
-                          {getItemEmoji(item.name, 'speise')} {item.name}
-                        </Text>
-                        {item.info && (
-                          <Text className="text-sm text-gray-600 mt-1">
-                            {item.info}
-                          </Text>
-                        )}
-                        <Text className="text-sm font-semibold text-green-600 mt-1">
-                          {item.price.toFixed(2)}€
-                        </Text>
-                      </View>
-                      <View className="flex-row items-center gap-1">
-                        <TouchableOpacity
-                          onPress={() => item.id && updateQuantity(item.id, -1)}
-                          className="bg-red-100 w-8 h-8 rounded-full justify-center items-center"
-                          disabled={(selectedQuantities[item.id || 0] || 0) === 0}
-                        >
-                          <Text className="text-red-700 font-bold text-lg">−</Text>
-                        </TouchableOpacity>
-                        <Text className="text-lg font-bold text-gray-800 w-8 text-center">
-                          {selectedQuantities[item.id || 0] || 0}
-                        </Text>
-                        <TouchableOpacity
-                          onPress={() => item.id && updateQuantity(item.id, 1)}
-                          className="bg-green-100 w-8 h-8 rounded-full justify-center items-center"
-                        >
-                          <Text className="text-green-700 font-bold text-lg">+</Text>
-                        </TouchableOpacity>
-                      </View>
+              {/* Speisen nach Kategorien */}
+              {Object.entries(groupedSpeisen).map(([category, items]) => (
+                <View key={category} className="mb-4">
+                  {/* Kategorie-Trenner */}
+                  <View className="flex-row items-center mb-3">
+                    <View className="flex-1 h-px bg-gray-300" />
+                    <View className="px-4 py-2 bg-gray-100 rounded-full">
+                      <Text className="text-sm font-semibold text-gray-600">
+                        {getFoodCategoryIcon(category as FoodCategory)} {category}
+                      </Text>
                     </View>
-                  ))
-                ) : (
-                  <View className="p-4">
-                    <Text className="text-gray-500 text-center">
-                      Keine Speisen gefunden für "{searchQuery}"
-                    </Text>
+                    <View className="flex-1 h-px bg-gray-300" />
                   </View>
-                )}
-              </View>
-            )}
-          </View>
+
+                  {/* Items in dieser Kategorie */}
+                  <View className="bg-white rounded-lg p-4 mb-3 shadow-sm border border-gray-200">
+                    {items.map((item, index) => (
+                      <View key={item.id} className={`flex-row justify-between items-center py-3 ${index < items.length - 1 ? 'border-b border-gray-100' : ''}`}>
+                        <View className="flex-1">
+                          <Text className="text-base font-medium text-gray-800">
+                            {getItemEmoji(item.name, 'speise')} {item.name}
+                          </Text>
+                          {item.info && (
+                            <Text className="text-sm text-gray-600 mt-1">
+                              {item.info}
+                            </Text>
+                          )}
+                          <Text className="text-sm font-semibold text-green-600 mt-1">
+                            {item.price.toFixed(2)}€
+                          </Text>
+                        </View>
+                        <View className="flex-row items-center gap-1">
+                          <TouchableOpacity
+                            onPress={() => item.id && updateQuantity(item.id, -1)}
+                            className="bg-red-100 w-8 h-8 rounded-full justify-center items-center"
+                            disabled={(selectedQuantities[item.id || 0] || 0) === 0}
+                          >
+                            <Text className="text-red-700 font-bold text-lg">−</Text>
+                          </TouchableOpacity>
+                          <Text className="text-lg font-bold text-gray-800 w-8 text-center">
+                            {selectedQuantities[item.id || 0] || 0}
+                          </Text>
+                          <TouchableOpacity
+                            onPress={() => item.id && updateQuantity(item.id, 1)}
+                            className="bg-green-100 w-8 h-8 rounded-full justify-center items-center"
+                          >
+                            <Text className="text-green-700 font-bold text-lg">+</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ))}
+            </>
+          )}
+
+          {/* Keine Ergebnisse */}
+          {Object.keys(groupedGetraenke).length === 0 && Object.keys(groupedSpeisen).length === 0 && searchQuery.trim() && (
+            <View className="bg-gray-100 rounded-lg p-6 text-center">
+              <Text className="text-gray-500 text-lg text-center">
+                Keine Artikel gefunden für "{searchQuery}"
+              </Text>
+            </View>
+          )}
 
           {/* Zusammenfassung */}
           {getTotalItems() > 0 && (
