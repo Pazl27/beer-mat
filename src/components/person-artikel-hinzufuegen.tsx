@@ -113,26 +113,6 @@ export default function PersonArtikelHinzufuegen({
   // State für ausgewählte Mengen
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
 
-  const getItemEmoji = (itemName: string, itemType: 'speise' | 'getraenk') => {
-    if (itemType === 'speise') {
-      const name = itemName.toLowerCase();
-      if (name.includes('hot dog')) return '🌭';
-      if (name.includes('bratwurst') || name.includes('wurst')) return '🌭';
-      if (name.includes('steak') || name.includes('fleisch')) return '🥩';
-      if (name.includes('kuchen') || name.includes('torte')) return '🍰';
-      if (name.includes('pommes')) return '🍟';
-      return '🍽️';
-    } else {
-      const name = itemName.toLowerCase();
-      if (name.includes('bier') && !name.includes('alkoholfrei')) return '🍺';
-      if (name.includes('radler')) return '🍺';
-      if (name.includes('cola')) return '🥤';
-      if (name.includes('kaffee')) return '☕';
-      if (name.includes('wasser') || name.includes('mineral')) return '💧';
-      return '🥤';
-    }
-  };
-
   const updateQuantity = (itemId: number, change: number) => {
     setSelectedQuantities(prev => {
       const current = prev[itemId] || 0;
@@ -296,7 +276,7 @@ export default function PersonArtikelHinzufuegen({
                       <View key={item.id} className={`flex-row justify-between items-center py-3 ${index < items.length - 1 ? 'border-b border-gray-100' : ''}`}>
                         <View className="flex-1">
                           <Text className="text-base font-medium text-gray-800">
-                            {getItemEmoji(item.name, 'getraenk')} {item.name}
+                            {item.name}
                           </Text>
                           {item.info && (
                             <Text className="text-sm text-gray-600 mt-1">
@@ -368,7 +348,7 @@ export default function PersonArtikelHinzufuegen({
                       <View key={item.id} className={`flex-row justify-between items-center py-3 ${index < items.length - 1 ? 'border-b border-gray-100' : ''}`}>
                         <View className="flex-1">
                           <Text className="text-base font-medium text-gray-800">
-                            {getItemEmoji(item.name, 'speise')} {item.name}
+                            {item.name}
                           </Text>
                           {item.info && (
                             <Text className="text-sm text-gray-600 mt-1">
