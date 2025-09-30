@@ -282,8 +282,8 @@ export default function PersonArtikelHinzufuegen({
                   {/* Kategorie-Trenner */}
                   <View className="flex-row items-center mb-3">
                     <View className="flex-1 h-px bg-gray-300" />
-                    <View className="px-4 py-2 bg-gray-100 rounded-full">
-                      <Text className="text-sm font-semibold text-gray-600">
+                    <View className="px-6 py-3 bg-gray-100 rounded-full">
+                      <Text className="text-base font-semibold text-gray-600">
                         {getDrinkCategoryIcon(category as DrinkCategory)} {category}
                       </Text>
                     </View>
@@ -354,8 +354,8 @@ export default function PersonArtikelHinzufuegen({
                   {/* Kategorie-Trenner */}
                   <View className="flex-row items-center mb-3">
                     <View className="flex-1 h-px bg-gray-300" />
-                    <View className="px-4 py-2 bg-gray-100 rounded-full">
-                      <Text className="text-sm font-semibold text-gray-600">
+                    <View className="px-6 py-3 bg-gray-100 rounded-full">
+                      <Text className="text-base font-semibold text-gray-600">
                         {getFoodCategoryIcon(category as FoodCategory)} {category}
                       </Text>
                     </View>
