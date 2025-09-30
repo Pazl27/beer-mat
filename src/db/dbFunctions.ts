@@ -109,7 +109,7 @@ export const getItemsForUser = async (db: SQLiteDatabase, userId: number): Promi
     item_price: number;
     item_type: string;
     date_added: string;
-  }>('SELECT id, item_id, item_name, item_price, item_type, date_added FROM user_items WHERE user_id = ?', [userId]);
+  }>('SELECT id, item_id, item_name, item_price, item_type, date_added FROM user_items WHERE user_id = ? ORDER BY date_added DESC, item_name ASC, id ASC', [userId]);
 
   return rows.map((row) => ({
     id: row.id, // Use the unique user_items.id instead of item_id
