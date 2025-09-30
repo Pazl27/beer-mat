@@ -241,7 +241,7 @@ export default function PersonBegleichen({
         };
       });
 
-      const uniqueItemTypes = new Set(selectedItemsArray.map(item => `${item.itemName}-${item.itemType}`));
+      const uniqueItemTypes = new Set(selectedItemsArray.map(item => `${item.itemName}-${item.itemType}-${item.itemPrice}-${item.dateAdded}`));
       const hasMultipleItemTypes = uniqueItemTypes.size > 1;
 
       console.log("DEBUG: Selected items array:", selectedItemsArray);
