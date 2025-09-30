@@ -5,7 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import PersonBegleichen from '@/components/person-begleichen';
 import PersonArtikelHinzufuegen from '@/components/person-artikel-hinzufuegen';
 import { ItemType, Person, History, PaymentDetail } from '@/types';
-import { getAllUsers, createUser, deleteUser, clearUserDebt, payUserItem, payUserItems, getDetailedHistoryForUser, addItemToUser, clearUserHistory, cancelUserItem, cancelUserItems } from '@/db/dbFunctions';
+import { getAllUsers, createUser, deleteUser, clearUserDebt, payUserItem, payUserItems, paySelectedUserItems, getDetailedHistoryForUser, addItemToUser, clearUserHistory, cancelUserItem, cancelUserItems } from '@/db/dbFunctions';
 import { showSuccessToast, showWarningToast, showInfoToast } from '@/utils/toast';
 
 export default function PersonenPage() {
@@ -299,6 +299,54 @@ export default function PersonenPage() {
       }
     } catch (error) {
       console.error("Error paying items:", error);
+      Alert.alert("Fehler", "Artikel konnten nicht beglichen werden");
+    }
+  };
+
+  const paySelectedItems = async (personId: number, selectedItems: Array<{itemName: string, itemType: ItemType, itemPrice: number, quantity: number, dateAdded?: string}>) => {
+    try {
+      await paySelectedUserItems(db, personId, selectedItems);
+      await loadPersons(); // Reload from database
+
+      // Update selected person for begleichen modal if it's open
+      if (selectedPersonForBegleichen && selectedPersonForBegleichen.id === personId) {
+        const updatedPersons = await getAllUsers(db);
+        const updatedPerson = updatedPersons.find(p => p.id === personId);
+        if (updatedPerson) {
+          // Convert price from cents to euros for display
+          const personWithEuros = {
+            ...updatedPerson,
+            totalDebt: updatedPerson.totalDebt / 100,
+            items: updatedPerson.items.map(item => ({
+              ...item,
+              price: item.price / 100
+            }))
+          };
+          setSelectedPersonForBegleichen(personWithEuros);
+        }
+      }
+
+      // Update selected person for details modal if it's open and reload history
+      if (selectedPersonForDetails && selectedPersonForDetails.id === personId) {
+        const updatedPersons = await getAllUsers(db);
+        const updatedPerson = updatedPersons.find(p => p.id === personId);
+        if (updatedPerson) {
+          // Convert price from cents to euros for display
+          const personWithEuros = {
+            ...updatedPerson,
+            totalDebt: updatedPerson.totalDebt / 100,
+            items: updatedPerson.items.map(item => ({
+              ...item,
+              price: item.price / 100
+            }))
+          };
+          setSelectedPersonForDetails(personWithEuros);
+          // Reload history
+          await loadPersonHistory(personId);
+        }
+      }
+    } catch (error) {
+      console.error("Error paying selected items:", error);
       Alert.alert("Fehler", "Artikel konnten nicht beglichen werden");
     }
   };
@@ -1028,8 +1076,8 @@ export default function PersonenPage() {
                   {personHistory.length > 0 ? (
                     personHistory.map((entry, index) => {
                       const paymentDetails = getPaymentDetails(entry.details);
-                      // Nur "Alle Schulden beglichen" soll aufklappbar sein (wenn kein itemName vorhanden ist)
-                      const hasDetails = paymentDetails.length > 0 && !entry.itemName;
+                      // "Alle Schulden beglichen" und "Auswahl beglichen" sollen aufklappbar sein
+                      const hasDetails = paymentDetails.length > 0 && (!entry.itemName || entry.itemName === 'Auswahl');
                       const isExpanded = expandedHistoryItems.has(entry.id);
                       
                       return (
@@ -1044,10 +1092,14 @@ export default function PersonenPage() {
                               <View className="flex-row items-center">
                                 <Text className="text-base text-gray-700">
                                   {entry.itemName ? (
-                                    // Bei normalen Bulk-Zahlungen zeige nur die Quantity und Name
-                                    paymentDetails.length === 1 ? 
-                                      `${paymentDetails[0].quantity}x ${paymentDetails[0].name} ${paymentDetails[0].type === 'drink' ? '🍺' : '🍽️'}` :
-                                      `${entry.itemName} ${entry.itemType === 'drink' ? '🍺' : '🍽️'} (mehrere Daten)`
+                                    entry.itemName === 'Auswahl' ? (
+                                      'Auswahl beglichen'
+                                    ) : (
+                                      // Bei normalen Bulk-Zahlungen zeige nur die Quantity und Name
+                                      paymentDetails.length === 1 ? 
+                                        `${paymentDetails[0].quantity}x ${paymentDetails[0].name} ${paymentDetails[0].type === 'drink' ? '🍺' : '🍽️'}` :
+                                        `${entry.itemName} ${entry.itemType === 'drink' ? '🍺' : '🍽️'} (mehrere Daten)`
+                                    )
                                   ) : (
                                     'Alle Schulden beglichen'
                                   )}
@@ -1233,6 +1285,7 @@ export default function PersonenPage() {
           onClose={() => setSelectedPersonForBegleichen(null)}
           onPayItem={payItem}
           onPayItems={payItems}
+          onPaySelectedItems={paySelectedItems}
           onPayAll={clearDebt}
         />
       )}

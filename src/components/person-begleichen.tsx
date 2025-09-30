@@ -9,30 +9,62 @@ export default function PersonBegleichen({
   onClose,
   onPayItem,
   onPayItems,
+  onPaySelectedItems,
   onPayAll
 }: PersonBegleichenProps) {
   const [inModalToast, setInModalToast] = useState<{message: string, visible: boolean}>({message: '', visible: false});
   const [fadeAnim] = useState(new Animated.Value(0));
   const [currentAnimation, setCurrentAnimation] = useState<Animated.CompositeAnimation | null>(null);
 
-  // Begleichen Modal State
-  const [payModal, setPayModal] = useState<{
-    visible: boolean;
-    itemName: string;
-    itemType: ItemType;
-    unitPrice: number;
-    maxQuantity: number;
-    quantity: number;
-    dateAdded?: string;
-  }>({
-    visible: false,
-    itemName: '',
-    itemType: ItemType.Drink,
-    unitPrice: 0,
-    maxQuantity: 0,
-    quantity: 1,
-    dateAdded: undefined
-  });
+  // State für die ausgewählten Mengen pro Artikel (Key: itemName-itemType-unitPrice-dateAdded)
+  const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
+
+  // Hilfsfunktionen für die Auswahl
+  const getSelectionKey = (itemName: string, itemType: ItemType, unitPrice: number, dateAdded: string) => {
+    return `${itemName}-${itemType}-${unitPrice}-${dateAdded}`;
+  };
+
+  const updateSelectedQuantity = (itemName: string, itemType: ItemType, unitPrice: number, dateAdded: string, change: number, maxQuantity: number) => {
+    const key = getSelectionKey(itemName, itemType, unitPrice, dateAdded);
+    setSelectedQuantities(prev => {
+      const currentQuantity = prev[key] || 0;
+      const newQuantity = Math.max(0, Math.min(maxQuantity, currentQuantity + change));
+      
+      if (newQuantity === 0) {
+        const { [key]: _, ...rest } = prev;
+        return rest;
+      }
+      
+      return {
+        ...prev,
+        [key]: newQuantity
+      };
+    });
+  };
+
+  const getSelectedQuantity = (itemName: string, itemType: ItemType, unitPrice: number, dateAdded: string) => {
+    const key = getSelectionKey(itemName, itemType, unitPrice, dateAdded);
+    return selectedQuantities[key] || 0;
+  };
+
+  // Berechne Gesamtpreis der Auswahl
+  const calculateSelectionTotal = () => {
+    return Object.entries(selectedQuantities).reduce((total, [key, quantity]) => {
+      const [itemName, itemType, unitPriceStr, dateAdded] = key.split('-', 4);
+      const unitPrice = parseFloat(unitPriceStr);
+      return total + (quantity * unitPrice);
+    }, 0);
+  };
+
+  // Prüfe ob eine Auswahl getroffen wurde
+  const hasSelection = () => {
+    return Object.keys(selectedQuantities).length > 0;
+  };
+
+  // Reset der Auswahl
+  const resetSelection = () => {
+    setSelectedQuantities({});
+  };
 
   const showInModalToast = (message: string) => {
     // Stoppe vorherige Animation falls noch aktiv
@@ -156,57 +188,87 @@ export default function PersonBegleichen({
     return { byDate, sortedDates };
   };
 
-  // Funktion zum Öffnen des Begleichen-Modals
-  const openPayModal = (itemName: string, itemType: ItemType, unitPrice: number, dateAdded?: string) => {
-    // Finde die maximale Anzahl für diesen Artikel mit spezifischem Datum
-    const grouped = getItemsGroupedByDate(person);
-    const dateData = grouped.byDate[dateAdded || 'unknown'];
-    if (!dateData) return;
-    
-    const allItems = [...dateData.getraenke, ...dateData.speisen];
-    const itemGroup = allItems.find(item => 
-      item.name === itemName && item.type === itemType && item.unitPrice === unitPrice && item.dateAdded === (dateAdded || 'unknown')
+  const handlePaySelection = () => {
+    if (!hasSelection()) {
+      Alert.alert(
+        'Keine Auswahl',
+        'Bitte wählen Sie zuerst Artikel zum Begleichen aus.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    const selectionTotal = calculateSelectionTotal();
+    const selectedCount = Object.keys(selectedQuantities).length;
+    const isMultipleItems = selectedCount > 1;
+
+    Alert.alert(
+      'Auswahl begleichen',
+      `Möchten Sie die ausgewählten Artikel wirklich begleichen? Gesamtbetrag: ${selectionTotal.toFixed(2)}€`,
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        {
+          text: 'Begleichen',
+          onPress: async () => {
+            await paySelectedItems(isMultipleItems);
+            resetSelection();
+            showInModalToast(`Ausgewählte Artikel (${selectionTotal.toFixed(2)}€) wurden beglichen.`);
+          }
+        }
+      ]
     );
-    
-    if (!itemGroup || itemGroup.count === 0) return;
-    
-    setPayModal({
-      visible: true,
-      itemName,
-      itemType,
-      unitPrice,
-      maxQuantity: itemGroup.count,
-      quantity: 1,
-      dateAdded: dateAdded || 'unknown'
-    });
   };
 
-  // Funktion zum Schließen des Begleichen-Modals
-  const closePayModal = () => {
-    setPayModal({
-      visible: false,
-      itemName: '',
-      itemType: ItemType.Drink,
-      unitPrice: 0,
-      maxQuantity: 0,
-      quantity: 1,
-      dateAdded: undefined
-    });
-  };
+  const paySelectedItems = async (isMultipleItems: boolean) => {
+    try {
+      console.log("DEBUG: paySelectedItems called with:", selectedQuantities);
+      
+      const selectedItemsArray = Object.entries(selectedQuantities).map(([key, quantity]) => {
+        // Split only into 3 parts first, then rejoin the rest as dateAdded
+        const parts = key.split('-');
+        const itemName = parts[0];
+        const itemType = parts[1];
+        const unitPriceStr = parts[2];
+        const dateAdded = parts.slice(3).join('-'); // Rejoin remaining parts as full date
+        const unitPrice = parseFloat(unitPriceStr);
+        
+        return {
+          itemName,
+          itemType: itemType as ItemType,
+          itemPrice: unitPrice,
+          quantity,
+          dateAdded: dateAdded === 'unknown' ? undefined : dateAdded
+        };
+      });
 
-  // Funktion zum Anpassen der Begleichen-Menge
-  const updatePayQuantity = (change: number) => {
-    setPayModal(prev => ({
-      ...prev,
-      quantity: Math.max(1, Math.min(prev.maxQuantity, prev.quantity + change))
-    }));
-  };
+      const uniqueItemTypes = new Set(selectedItemsArray.map(item => `${item.itemName}-${item.itemType}`));
+      const hasMultipleItemTypes = uniqueItemTypes.size > 1;
 
-  // Funktion für das Begleichen mit variabler Anzahl
-  const payItemWithQuantity = async (itemName: string, itemType: ItemType, unitPrice: number, quantity: number, dateAdded?: string) => {
-    // Verwende die neue Bulk-Funktion statt der Schleife - inkludiert jetzt das Datum
-    onPayItems(person.id, itemName, itemType, unitPrice, quantity, dateAdded);
-    showInModalToast(`${quantity}x "${itemName}" (${(quantity * unitPrice).toFixed(2)}€) wurde beglichen.`);
+      console.log("DEBUG: Selected items array:", selectedItemsArray);
+      console.log("DEBUG: Has multiple item types:", hasMultipleItemTypes);
+
+      if (hasMultipleItemTypes) {
+        // Use the new combined function for multiple different items
+        console.log("DEBUG: Using onPaySelectedItems for multiple items");
+        await onPaySelectedItems(person.id, selectedItemsArray);
+      } else {
+        // Use the original function for single item type
+        console.log("DEBUG: Using onPayItems for single item type");
+        const item = selectedItemsArray[0];
+        await onPayItems(
+          person.id,
+          item.itemName,
+          item.itemType,
+          item.itemPrice,
+          item.quantity,
+          item.dateAdded
+        );
+      }
+      
+    } catch (error) {
+      console.error("Error paying selected items:", error);
+      Alert.alert("Fehler", "Artikel konnten nicht beglichen werden");
+    }
   };
 
   const handlePayAll = () => {
@@ -255,7 +317,10 @@ export default function PersonBegleichen({
           </Text>
           <View className="flex-1 items-end">
             <TouchableOpacity
-              onPress={onClose}
+              onPress={() => {
+                resetSelection();
+                onClose();
+              }}
               className="bg-gray-100 px-3 py-1 rounded-lg"
             >
               <Text className="text-gray-700 font-medium">✕</Text>
@@ -335,15 +400,29 @@ export default function PersonBegleichen({
                                 <Text className="text-base font-semibold text-green-600">
                                   {item.totalPrice.toFixed(2)}€
                                 </Text>
-                                <TouchableOpacity
-                                  onPress={() => openPayModal(item.name, item.type, item.unitPrice, dateKey)}
-                                  className="bg-green-100 px-3 py-1 rounded-lg"
-                                  disabled={item.count === 0}
-                                >
-                                  <Text className="text-green-700 text-sm font-medium">
-                                    begleichen
-                                  </Text>
-                                </TouchableOpacity>
+                                <View className="flex-row items-center gap-2">
+                                  <TouchableOpacity
+                                    onPress={() => updateSelectedQuantity(item.name, item.type, item.unitPrice, dateKey, -1, item.count)}
+                                    className="bg-red-100 w-8 h-8 rounded-full justify-center items-center"
+                                    disabled={getSelectedQuantity(item.name, item.type, item.unitPrice, dateKey) <= 0}
+                                  >
+                                    <Text className="text-red-700 font-bold text-lg">−</Text>
+                                  </TouchableOpacity>
+                                  
+                                  <View className="min-w-8 items-center">
+                                    <Text className="text-base font-semibold text-gray-800">
+                                      {getSelectedQuantity(item.name, item.type, item.unitPrice, dateKey)}
+                                    </Text>
+                                  </View>
+                                  
+                                  <TouchableOpacity
+                                    onPress={() => updateSelectedQuantity(item.name, item.type, item.unitPrice, dateKey, 1, item.count)}
+                                    className="bg-green-100 w-8 h-8 rounded-full justify-center items-center"
+                                    disabled={getSelectedQuantity(item.name, item.type, item.unitPrice, dateKey) >= item.count}
+                                  >
+                                    <Text className="text-green-700 font-bold text-lg">+</Text>
+                                  </TouchableOpacity>
+                                </View>
                               </View>
                             </View>
                           ))}
@@ -370,15 +449,29 @@ export default function PersonBegleichen({
                                 <Text className="text-base font-semibold text-green-600">
                                   {item.totalPrice.toFixed(2)}€
                                 </Text>
-                                <TouchableOpacity
-                                  onPress={() => openPayModal(item.name, item.type, item.unitPrice, dateKey)}
-                                  className="bg-green-100 px-3 py-1 rounded-lg"
-                                  disabled={item.count === 0}
-                                >
-                                  <Text className="text-green-700 text-sm font-medium">
-                                    begleichen
-                                  </Text>
-                                </TouchableOpacity>
+                                <View className="flex-row items-center gap-2">
+                                  <TouchableOpacity
+                                    onPress={() => updateSelectedQuantity(item.name, item.type, item.unitPrice, dateKey, -1, item.count)}
+                                    className="bg-red-100 w-8 h-8 rounded-full justify-center items-center"
+                                    disabled={getSelectedQuantity(item.name, item.type, item.unitPrice, dateKey) <= 0}
+                                  >
+                                    <Text className="text-red-700 font-bold text-lg">−</Text>
+                                  </TouchableOpacity>
+                                  
+                                  <View className="min-w-8 items-center">
+                                    <Text className="text-base font-semibold text-gray-800">
+                                      {getSelectedQuantity(item.name, item.type, item.unitPrice, dateKey)}
+                                    </Text>
+                                  </View>
+                                  
+                                  <TouchableOpacity
+                                    onPress={() => updateSelectedQuantity(item.name, item.type, item.unitPrice, dateKey, 1, item.count)}
+                                    className="bg-green-100 w-8 h-8 rounded-full justify-center items-center"
+                                    disabled={getSelectedQuantity(item.name, item.type, item.unitPrice, dateKey) >= item.count}
+                                  >
+                                    <Text className="text-green-700 font-bold text-lg">+</Text>
+                                  </TouchableOpacity>
+                                </View>
                               </View>
                             </View>
                           ))}
@@ -395,8 +488,31 @@ export default function PersonBegleichen({
           <View className="h-20" />
         </ScrollView>
 
-        {/* Alle begleichen Button */}
-        <View className="p-4 bg-white border-t border-gray-200">
+        {/* Begleichen Buttons */}
+        <View className="p-4 bg-white border-t border-gray-200 gap-3">
+          {/* Auswahl begleichen Button */}
+          <TouchableOpacity
+            onPress={handlePaySelection}
+            className={`p-4 rounded-lg items-center ${
+              hasSelection()
+                ? 'bg-blue-500'
+                : 'bg-gray-300'
+            }`}
+            disabled={!hasSelection()}
+          >
+            <Text className={`text-lg font-semibold ${
+              hasSelection()
+                ? 'text-white'
+                : 'text-gray-500'
+            }`}>
+              {hasSelection()
+                ? `✅ Auswahl begleichen (${calculateSelectionTotal().toFixed(2)}€)`
+                : '✅ Auswahl begleichen'
+              }
+            </Text>
+          </TouchableOpacity>
+
+          {/* Alle begleichen Button */}
           <TouchableOpacity
             onPress={handlePayAll}
             className={`p-4 rounded-lg items-center ${
@@ -441,98 +557,7 @@ export default function PersonBegleichen({
         )}
       </View>
 
-      {/* Begleichen Modal */}
-      <Modal
-        visible={payModal.visible}
-        animationType="fade"
-        transparent={true}
-      >
-        <View className="flex-1 bg-black/50 justify-center items-center px-6">
-          <View className="bg-white rounded-lg p-6 w-full max-w-sm">
-            <Text className="text-lg font-bold text-gray-800 mb-4 text-center">
-              Artikel begleichen
-            </Text>
-            
-            <Text className="text-base text-gray-600 mb-4 text-center">
-              Wie viele des ausgewählten Artikels sollen beglichen werden?
-            </Text>
-            
-            <View className="bg-gray-50 rounded-lg p-4 mb-6">
-              <Text className="text-center text-gray-800 font-medium">
-                {payModal.itemName}
-              </Text>
-              <Text className="text-center text-gray-600 text-sm">
-                à {payModal.unitPrice.toFixed(2)}€
-              </Text>
-              <Text className="text-center text-gray-500 text-xs">
-                Verfügbar: {payModal.maxQuantity} Stück
-              </Text>
-            </View>
 
-            {/* Anzahl Selektor */}
-            <View className="flex-row items-center justify-center mb-6">
-              <TouchableOpacity
-                onPress={() => updatePayQuantity(-1)}
-                className="bg-red-100 w-12 h-12 rounded-full justify-center items-center"
-                disabled={payModal.quantity <= 1}
-              >
-                <Text className="text-red-700 font-bold text-xl">−</Text>
-              </TouchableOpacity>
-              
-              <View className="mx-8 min-w-16 items-center">
-                <Text className="text-2xl font-bold text-gray-800">
-                  {payModal.quantity}
-                </Text>
-              </View>
-              
-              <TouchableOpacity
-                onPress={() => updatePayQuantity(1)}
-                className="bg-green-100 w-12 h-12 rounded-full justify-center items-center"
-                disabled={payModal.quantity >= payModal.maxQuantity}
-              >
-                <Text className="text-green-700 font-bold text-xl">+</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Gesamtpreis */}
-            <View className="bg-green-50 rounded-lg p-3 mb-6">
-              <Text className="text-center text-green-800 font-semibold">
-                Begleichungswert: {(payModal.quantity * payModal.unitPrice).toFixed(2)}€
-              </Text>
-            </View>
-
-            {/* Action Buttons */}
-            <View className="flex-row gap-3">
-              <TouchableOpacity
-                onPress={closePayModal}
-                className="flex-1 bg-gray-100 py-3 rounded-lg"
-              >
-                <Text className="text-gray-700 text-center font-semibold">
-                  Abbrechen
-                </Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                onPress={async () => {
-                  await payItemWithQuantity(
-                    payModal.itemName,
-                    payModal.itemType,
-                    payModal.unitPrice,
-                    payModal.quantity,
-                    payModal.dateAdded
-                  );
-                  closePayModal();
-                }}
-                className="flex-1 bg-green-600 py-3 rounded-lg"
-              >
-                <Text className="text-white text-center font-semibold">
-                  Begleichen
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </Modal>
   );
 }
