@@ -335,10 +335,14 @@ export default function PersonenPage() {
   const openCancelModal = (itemName: string, itemType: ItemType, unitPrice: number, dateAdded?: string) => {
     if (!selectedPersonForDetails) return;
     
-    // Finde die maximale Anzahl für diesen Artikel
-    const grouped = getGroupedItems(selectedPersonForDetails);
-    const itemGroup = [...grouped.getraenke, ...grouped.speisen].find(item => 
-      item.name === itemName && item.type === itemType && item.unitPrice === unitPrice
+    // Finde die maximale Anzahl für diesen Artikel mit spezifischem Datum
+    const grouped = getItemsGroupedByDate(selectedPersonForDetails);
+    const dateData = grouped.byDate[dateAdded || 'unknown'];
+    if (!dateData) return;
+    
+    const allItems = [...dateData.getraenke, ...dateData.speisen];
+    const itemGroup = allItems.find(item => 
+      item.name === itemName && item.type === itemType && item.unitPrice === unitPrice && item.dateAdded === (dateAdded || 'unknown')
     );
     
     if (!itemGroup || itemGroup.count === 0) return;
