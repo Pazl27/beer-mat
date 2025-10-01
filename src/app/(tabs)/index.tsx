@@ -1486,7 +1486,7 @@ export default function PersonenPage() {
                 {/* Alle Artikel stornieren Button */}
                 <TouchableOpacity
                   onPress={handleCancelAll}
-                  className="p-4 rounded-lg items-center bg-red-500"
+                  className="p-4 rounded-lg items-center bg-red-400"
                 >
                   <Text className="text-lg font-semibold text-white">
                     💥 Alle Artikel stornieren ({selectedPersonForDetails.totalDebt.toFixed(2)}€)
