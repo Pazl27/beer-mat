@@ -21,8 +21,9 @@ export default function PersonArtikelHinzufuegen({
   const [getraenke, setGetraenke] = useState<Item[]>([]);
   const [speisen, setSpeisen] = useState<Item[]>([]);
   
-  // State für Suchfunktion
+  // State für Suchfunktion und aktiven Tab
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'getraenke' | 'speisen'>('getraenke');
 
   // Load items from database
   useEffect(() => {
@@ -246,20 +247,31 @@ export default function PersonArtikelHinzufuegen({
             />
           </View>
 
-          {/* Getränke Section */}
-          {Object.keys(groupedGetraenke).length > 0 && (
-            <>
-              {/* Getränke Überschrift */}
-              <View className="bg-gray-200 rounded-lg p-4 mb-4 mx-[-16px]">
-                <Text className="text-2xl font-bold text-gray-800 text-center">
-                  🍺 Getränke ({filteredGetraenke.length})
-                </Text>
-              </View>
+          {/* Tab Switcher */}
+          <View className="flex-row mb-4">
+            <TouchableOpacity
+              className={`flex-1 py-3 px-4 ${activeTab === 'getraenke' ? 'bg-blue-600' : 'bg-gray-100'} rounded-l-lg`}
+              onPress={() => setActiveTab('getraenke')}
+            >
+              <Text className={`text-center font-semibold ${activeTab === 'getraenke' ? 'text-white' : 'text-gray-700'}`}>
+                🍺 Getränke
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className={`flex-1 py-3 px-4 ${activeTab === 'speisen' ? 'bg-blue-600' : 'bg-gray-100'} rounded-r-lg`}
+              onPress={() => setActiveTab('speisen')}
+            >
+              <Text className={`text-center font-semibold ${activeTab === 'speisen' ? 'text-white' : 'text-gray-700'}`}>
+                🍽️ Speisen
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-              {/* Getränke nach Kategorien */}
+          {/* Getränke Section (nur wenn Tab aktiv) */}
+          {activeTab === 'getraenke' && Object.keys(groupedGetraenke).length > 0 && (
+            <>
               {Object.entries(groupedGetraenke).map(([category, items]) => (
                 <View key={category} className="mb-4">
-                  {/* Kategorie-Trenner */}
                   <View className="flex-row items-center mb-3">
                     <View className="flex-1 h-px bg-gray-300" />
                     <View className="px-6 py-3 bg-gray-100 rounded-full">
@@ -269,8 +281,6 @@ export default function PersonArtikelHinzufuegen({
                     </View>
                     <View className="flex-1 h-px bg-gray-300" />
                   </View>
-
-                  {/* Items in dieser Kategorie */}
                   <View className="bg-white rounded-lg p-4 mb-3 shadow-sm border border-gray-200">
                     {items.map((item, index) => (
                       <View key={item.id} className={`flex-row justify-between items-center py-3 ${index < items.length - 1 ? 'border-b border-gray-100' : ''}`}>
@@ -318,20 +328,11 @@ export default function PersonArtikelHinzufuegen({
             </>
           )}
 
-          {/* Speisen Section */}
-          {Object.keys(groupedSpeisen).length > 0 && (
+          {/* Speisen Section (nur wenn Tab aktiv) */}
+          {activeTab === 'speisen' && Object.keys(groupedSpeisen).length > 0 && (
             <>
-              {/* Speisen Überschrift */}
-              <View className="bg-gray-200 rounded-lg p-4 mb-4 mx-[-16px]">
-                <Text className="text-2xl font-bold text-gray-800 text-center">
-                  🍽️ Speisen ({filteredSpeisen.length})
-                </Text>
-              </View>
-
-              {/* Speisen nach Kategorien */}
               {Object.entries(groupedSpeisen).map(([category, items]) => (
                 <View key={category} className="mb-4">
-                  {/* Kategorie-Trenner */}
                   <View className="flex-row items-center mb-3">
                     <View className="flex-1 h-px bg-gray-300" />
                     <View className="px-6 py-3 bg-gray-100 rounded-full">
@@ -341,8 +342,6 @@ export default function PersonArtikelHinzufuegen({
                     </View>
                     <View className="flex-1 h-px bg-gray-300" />
                   </View>
-
-                  {/* Items in dieser Kategorie */}
                   <View className="bg-white rounded-lg p-4 mb-3 shadow-sm border border-gray-200">
                     {items.map((item, index) => (
                       <View key={item.id} className={`flex-row justify-between items-center py-3 ${index < items.length - 1 ? 'border-b border-gray-100' : ''}`}>
@@ -386,7 +385,7 @@ export default function PersonArtikelHinzufuegen({
           )}
 
           {/* Keine Ergebnisse */}
-          {Object.keys(groupedGetraenke).length === 0 && Object.keys(groupedSpeisen).length === 0 && searchQuery.trim() && (
+          {((activeTab === 'getraenke' && Object.keys(groupedGetraenke).length === 0) || (activeTab === 'speisen' && Object.keys(groupedSpeisen).length === 0)) && searchQuery.trim() && (
             <View className="bg-gray-100 rounded-lg p-6 text-center">
               <Text className="text-gray-500 text-lg text-center">
                 Keine Artikel gefunden für "{searchQuery}"
