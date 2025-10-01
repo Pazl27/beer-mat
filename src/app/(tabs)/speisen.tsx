@@ -354,7 +354,6 @@ export default function SpeisenPage() {
       </ScrollView>
 
       {/* Speise Details Modal */}
-      {/* Speise Details Modal */}
       {selectedSpeise && (
         <PinProtection 
           onAuthenticated={() => setIsPinAuthenticated(true)}

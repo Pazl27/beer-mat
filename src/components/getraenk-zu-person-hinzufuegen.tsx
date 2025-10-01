@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
-import { Person, ItemType, GetraenkZuPersonHinzufuegenProps } from '@/types';
+import { Person, GetraenkZuPersonHinzufuegenProps } from '@/types';
 import { getAllUsers } from '@/db/dbFunctions';
 import { useTrainingsstrich } from '@/contexts/TrainingsstrichContext';
 import { showSuccessToast, showErrorToast } from '@/utils/toast';

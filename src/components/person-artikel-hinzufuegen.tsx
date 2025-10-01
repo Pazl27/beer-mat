@@ -55,8 +55,6 @@ export default function PersonArtikelHinzufuegen({
     }
   };
 
-
-
   // Icon-Funktionen für Kategorien
   const getDrinkCategoryIcon = (category: DrinkCategory) => {
     switch (category) {

@@ -7,7 +7,6 @@ export default function PersonBegleichen({
   person,
   visible,
   onClose,
-  onPayItem,
   onPayItems,
   onPaySelectedItems,
   onPayAll
@@ -110,32 +109,6 @@ export default function PersonBegleichen({
     } catch (error) {
       return '';
     }
-  };
-
-  // Group items by name, type, price AND date for summary (same logic as in person details)
-  const getGroupedItems = (person: Person) => {
-    const grouped = person.items.reduce((acc, item) => {
-      // Include price and date in the key to separate items with different prices or dates
-      const key = `${item.type}-${item.name}-${item.price}-${item.dateAdded || 'unknown'}`;
-      if (!acc[key]) {
-        acc[key] = {
-          name: item.name,
-          type: item.type,
-          count: 0,
-          totalPrice: 0,
-          unitPrice: item.price,
-          dateAdded: item.dateAdded || 'unknown'
-        };
-      }
-      acc[key].count += 1;
-      acc[key].totalPrice += item.price;
-      return acc;
-    }, {} as Record<string, GroupedItem>);
-
-    return {
-      getraenke: Object.values(grouped).filter(item => item.type === ItemType.Drink),
-      speisen: Object.values(grouped).filter(item => item.type === ItemType.Food)
-    };
   };
 
   // Neue Funktion für Datum-gruppierte Items (identisch mit index.tsx)
