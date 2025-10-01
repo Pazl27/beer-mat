@@ -24,6 +24,11 @@ export default function PersonenPage() {
     }, [])
   );
 
+    // Prüfe ob eine Auswahl getroffen wurde
+  const hasSelection = () => {
+    return Object.keys(selectedCancelQuantities).length > 0;
+  };
+
   const loadPersons = async () => {
     try {
       const users = await getAllUsers(db);
@@ -1256,6 +1261,13 @@ export default function PersonenPage() {
                           </View>
                         );
                       })}
+                      {/* Zusammenfassung */} 
+                      {hasSelection() && ( 
+                        <View className="bg-blue-50 rounded-lg p-4 mt-6 mb-6 border border-blue-200"> 
+                        <Text className="text-lg font-bold text-blue-800 mb-2 text-center"> 📋 Zusammenfassung </Text> 
+                        <Text className="text-base text-blue-700 text-center mb-2"> {Object.values(selectedCancelQuantities).reduce((sum, qty) => sum + qty, 0)} Artikel ausgewählt </Text> 
+                        <Text className="text-xl font-bold text-blue-600 text-center"> Gesamtpreis: {calculateCancelSelectionTotal().toFixed(2)}€ </Text> 
+                        </View> )}
                     </>
                   );
                 })()
