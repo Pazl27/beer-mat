@@ -484,6 +484,21 @@ export default function PersonBegleichen({
             );
           })()}
 
+          {/* Zusammenfassung */}
+          {hasSelection() && (
+            <View className="bg-blue-50 rounded-lg p-4 mt-6 mb-6 border border-blue-200">
+              <Text className="text-lg font-bold text-blue-800 mb-2 text-center">
+                📋 Zusammenfassung
+              </Text>
+              <Text className="text-base text-blue-700 text-center mb-2">
+                {Object.values(selectedQuantities).reduce((sum, qty) => sum + qty, 0)} Artikel ausgewählt
+              </Text>
+              <Text className="text-xl font-bold text-blue-600 text-center">
+                Gesamtpreis: {calculateSelectionTotal().toFixed(2)}€
+              </Text>
+            </View>
+          )}
+
           {/* Spacer für Button */}
           <View className="h-20" />
         </ScrollView>
