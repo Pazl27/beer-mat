@@ -788,28 +788,32 @@ export default function PersonenPage() {
             </View>
 
             {/* Items Vorschau */}
-            {person.items.length > 0 && (
-              <View className="border-t border-gray-100 pt-3 mb-3">
-                <Text className="text-sm font-medium text-gray-600 mb-2">
-                  Letzte Artikel:
-                </Text>
-                {person.items.slice(-2).map((item) => (
-                  <View key={item.id} className="flex-row justify-between py-1">
-                    <Text className="text-sm text-gray-700">
-                      {item.name} {item.type === ItemType.Food ? '🍽️' : '🍺'}
+            {person.items.length > 0 && (() => {
+              // Zähle alle Artikel nach Name, Typ und Preis
+              const counts: Record<string, { name: string; type: ItemType; price: number; count: number }> = {};
+              person.items.forEach(item => {
+                const key = `${item.name}-${item.type}`;
+                if (!counts[key]) {
+                  counts[key] = { name: item.name, type: item.type, price: item.price, count: 0 };
+                }
+                counts[key].count += 1;
+              });
+              // Finde den Artikel mit der höchsten Anzahl
+              const beliebtester = Object.values(counts).sort((a, b) => b.count - a.count)[0];
+
+              return (
+                <View className="border-t border-gray-100 pt-3 mb-3">
+                  <View className="flex-row justify-center items-center">
+                    <Text className="text-sm font-medium text-gray-600 mr-2">
+                      Top Artikel:
                     </Text>
-                    <Text className="text-sm font-medium text-gray-800">
-                      {item.price.toFixed(2)}€
+                    <Text className="text-sm font-medium text-gray-600 mr-2">
+                      {beliebtester.name}{beliebtester.type === ItemType.Food ? '🍽️' : '🍺'}
                     </Text>
                   </View>
-                ))}
-                {person.items.length > 2 && (
-                  <Text className="text-sm text-gray-500 italic">
-                    ... und {person.items.length - 2} weitere
-                  </Text>
-                )}
-              </View>
-            )}
+                </View>
+              );
+            })()}
 
             {/* Action Buttons */}
             <View className="flex-row gap-2">
