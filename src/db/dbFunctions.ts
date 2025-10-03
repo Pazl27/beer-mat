@@ -109,7 +109,7 @@ export const getItemsForUser = async (db: SQLiteDatabase, userId: number): Promi
     item_price: number;
     item_type: string;
     date_added: string;
-  }>('SELECT id, item_id, item_name, item_price, item_type, date_added FROM user_items WHERE user_id = ?', [userId]);
+  }>('SELECT id, item_id, item_name, item_price, item_type, date_added FROM user_items WHERE user_id = ? ORDER BY date_added DESC, item_name ASC, id ASC', [userId]);
 
   return rows.map((row) => ({
     id: row.id, // Use the unique user_items.id instead of item_id
@@ -369,8 +369,19 @@ export const clearUserDebt = async (db: SQLiteDatabase, userId: number): Promise
   }
 };
 
-export const payUserItem = async (db: SQLiteDatabase, userId: number, itemName: string, itemType: ItemType, itemPrice: number): Promise<void> => {
+export const payUserItem = async (db: SQLiteDatabase, userId: number, itemName: string, itemType: ItemType, itemPrice: number, dateAdded?: string): Promise<void> => {
   try {
+    // Erweiterte Query um Datum zu berücksichtigen
+    let query = 'SELECT id, item_id, price_per_item, item_name, item_type, date_added FROM user_items WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ?';
+    let params: any[] = [userId, itemName, itemType, Math.round(itemPrice * 100)];
+    
+    if (dateAdded) {
+      query += ' AND date_added = ?';
+      params.push(dateAdded);
+    }
+    
+    query += ' ORDER BY id ASC LIMIT 1';
+
     const matchingUserItem = await db.getFirstAsync<{
       id: number;
       item_id: number;
@@ -378,8 +389,7 @@ export const payUserItem = async (db: SQLiteDatabase, userId: number, itemName: 
       item_name: string;
       item_type: string;
       date_added: string;
-    }>('SELECT id, item_id, price_per_item, item_name, item_type, date_added FROM user_items WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ? ORDER BY id ASC LIMIT 1',
-      [userId, itemName, itemType, Math.round(itemPrice * 100)]);
+    }>(query, params);
 
     if (!matchingUserItem) {
       console.warn("No matching item found to pay");
@@ -423,15 +433,120 @@ export const payUserItem = async (db: SQLiteDatabase, userId: number, itemName: 
   }
 };
 
+export const paySelectedUserItems = async (
+  db: SQLiteDatabase, 
+  userId: number, 
+  selectedItems: Array<{
+    itemName: string;
+    itemType: ItemType;
+    itemPrice: number;
+    quantity: number;
+    dateAdded?: string;
+  }>
+): Promise<void> => {
+  try {
+    let totalAmount = 0;
+    const details: PaymentDetail[] = [];
+    
+    // Process each selected item type
+    for (const selectedItem of selectedItems) {
+      const { itemName, itemType, itemPrice, quantity, dateAdded } = selectedItem;
+      
+      // Find matching items in database
+      let query = `SELECT id, item_id, price_per_item, item_name, item_type, date_added
+          FROM user_items 
+          WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ?`;
+      let params: any[] = [userId, itemName, itemType, Math.round(itemPrice * 100)];
+      
+      if (dateAdded) {
+        query += ' AND date_added = ?';
+        params.push(dateAdded);
+      }
+      
+      query += ` ORDER BY id ASC LIMIT ?`;
+      params.push(quantity);
+
+      const matchingItems = await db.getAllAsync<{
+        id: number;
+        item_id: number;
+        price_per_item: number;
+        item_name: string;
+        item_type: string;
+        date_added: string;
+      }>(query, params);
+
+      if (matchingItems.length > 0) {
+        const itemAmount = matchingItems.reduce((sum, item) => sum + item.price_per_item, 0);
+        totalAmount += itemAmount;
+
+        // Add to payment details
+        details.push({
+          name: itemName,
+          price: matchingItems[0].price_per_item,
+          quantity: matchingItems.length,
+          type: itemType as 'drink' | 'food',
+          dateAdded: dateAdded || 'unknown'
+        });
+
+        // Delete the items
+        const itemIds = matchingItems.map(item => item.id);
+        const placeholders = itemIds.map(() => '?').join(',');
+        await db.runAsync(`DELETE FROM user_items WHERE id IN (${placeholders})`, itemIds);
+      }
+    }
+
+    // Update user debt
+    const userResult = await db.getFirstAsync<{ total_debt: number }>(
+      'SELECT total_debt FROM users WHERE id = ?',
+      [userId]
+    );
+
+    const currentDebt = userResult?.total_debt ?? 0;
+    const newDebt = Math.max(0, currentDebt - totalAmount);
+
+    await db.runAsync('UPDATE users SET total_debt = ? WHERE id = ?', [newDebt, userId]);
+
+    // Create single history entry with all details
+    await addToHistory(
+      db, 
+      userId, 
+      null, // No single item_id for multiple items
+      totalAmount, 
+      selectedItems.length > 1 ? 'Auswahl' : selectedItems[0].itemName, // Use "Auswahl" for multiple items
+      selectedItems.length > 1 ? undefined : selectedItems[0].itemType, 
+      selectedItems.length > 1 ? undefined : selectedItems[0].itemPrice * 100, 
+      details
+    );
+
+  } catch (e) {
+    console.error("Error paying selected user items:", e);
+  }
+};
+
 export const payUserItems = async (
   db: SQLiteDatabase, 
   userId: number, 
   itemName: string, 
   itemType: ItemType, 
   itemPrice: number, 
-  quantity: number
+  quantity: number,
+  dateAdded?: string
 ): Promise<void> => {
   try {
+    // Erweiterte Query um Datum zu berücksichtigen
+    let query = `SELECT id, item_id, price_per_item, item_name, item_type, date_added
+        FROM user_items 
+        WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ?`;
+    let params: any[] = [userId, itemName, itemType, Math.round(itemPrice * 100)];
+    
+    if (dateAdded) {
+      query += ' AND date_added = ?';
+      params.push(dateAdded);
+    }
+    
+    query += ` ORDER BY id ASC LIMIT ?`;
+    params.push(quantity);
+
     // Hole alle passenden Items (sortiert nach ID für konsistente Reihenfolge)
     const matchingItems = await db.getAllAsync<{
       id: number;
@@ -440,12 +555,7 @@ export const payUserItems = async (
       item_name: string;
       item_type: string;
       date_added: string;
-    }>(`SELECT id, item_id, price_per_item, item_name, item_type, date_added
-        FROM user_items 
-        WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ? 
-        ORDER BY id ASC 
-        LIMIT ?`,
-      [userId, itemName, itemType, Math.round(itemPrice * 100), quantity]);
+    }>(query, params);
 
     if (matchingItems.length === 0) {
       console.warn("No matching items found to pay");
@@ -592,16 +702,26 @@ export const clearUserHistory = async (db: SQLiteDatabase, userId: number): Prom
   }
 };
 
-export const cancelUserItem = async (db: SQLiteDatabase, userId: number, itemName: string, itemType: ItemType, itemPrice: number): Promise<void> => {
+export const cancelUserItem = async (db: SQLiteDatabase, userId: number, itemName: string, itemType: ItemType, itemPrice: number, dateAdded?: string): Promise<void> => {
   try {
+    // Erweiterte Query um Datum zu berücksichtigen
+    let query = 'SELECT id, item_id, price_per_item, item_name, item_type FROM user_items WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ?';
+    let params: any[] = [userId, itemName, itemType, Math.round(itemPrice * 100)];
+    
+    if (dateAdded) {
+      query += ' AND date_added = ?';
+      params.push(dateAdded);
+    }
+    
+    query += ' ORDER BY id ASC LIMIT 1';
+
     const matchingUserItem = await db.getFirstAsync<{
       id: number;
       item_id: number;
       price_per_item: number;
       item_name: string;
       item_type: string;
-    }>('SELECT id, item_id, price_per_item, item_name, item_type FROM user_items WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ? ORDER BY id ASC LIMIT 1',
-      [userId, itemName, itemType, Math.round(itemPrice * 100)]);
+    }>(query, params);
 
     if (!matchingUserItem) {
       console.warn("No matching item found to cancel");
@@ -626,15 +746,112 @@ export const cancelUserItem = async (db: SQLiteDatabase, userId: number, itemNam
   }
 };
 
+export const cancelSelectedUserItems = async (
+  db: SQLiteDatabase, 
+  userId: number, 
+  selectedItems: Array<{
+    itemName: string;
+    itemType: ItemType;
+    itemPrice: number;
+    quantity: number;
+    dateAdded?: string;
+  }>
+): Promise<void> => {
+  try {
+    let totalAmount = 0;
+    
+    // Process each selected item type
+    for (const selectedItem of selectedItems) {
+      const { itemName, itemType, itemPrice, quantity, dateAdded } = selectedItem;
+      
+      // Find matching items in database
+      let query = `SELECT id, item_id, price_per_item, item_name, item_type 
+          FROM user_items 
+          WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ?`;
+      let params: any[] = [userId, itemName, itemType, Math.round(itemPrice * 100)];
+      
+      if (dateAdded) {
+        query += ' AND date_added = ?';
+        params.push(dateAdded);
+      }
+      
+      query += ` ORDER BY id ASC LIMIT ?`;
+      params.push(quantity);
+
+      const matchingItems = await db.getAllAsync<{
+        id: number;
+        item_id: number;
+        price_per_item: number;
+        item_name: string;
+        item_type: string;
+      }>(query, params);
+
+      if (matchingItems.length > 0) {
+        const itemAmount = matchingItems.reduce((sum, item) => sum + item.price_per_item, 0);
+        totalAmount += itemAmount;
+
+        // Delete the items
+        const itemIds = matchingItems.map(item => item.id);
+        const placeholders = itemIds.map(() => '?').join(',');
+        await db.runAsync(`DELETE FROM user_items WHERE id IN (${placeholders})`, itemIds);
+      }
+    }
+
+    // Update user debt
+    const userResult = await db.getFirstAsync<{ total_debt: number }>(
+      'SELECT total_debt FROM users WHERE id = ?',
+      [userId]
+    );
+
+    const currentDebt = userResult?.total_debt ?? 0;
+    const newDebt = Math.max(0, currentDebt - totalAmount);
+
+    await db.runAsync('UPDATE users SET total_debt = ? WHERE id = ?', [newDebt, userId]);
+
+    // Note: No history entry is created for cancellations
+
+  } catch (e) {
+    console.error("Error canceling selected user items:", e);
+  }
+};
+
+export const cancelAllUserItems = async (db: SQLiteDatabase, userId: number): Promise<void> => {
+  try {
+    // Simply delete all items and reset debt to 0 (like clearUserDebt but without history)
+    await db.runAsync('DELETE FROM user_items WHERE user_id = ?', [userId]);
+    await db.runAsync('UPDATE users SET total_debt = 0 WHERE id = ?', [userId]);
+
+    // Note: No history entry is created for cancellations
+
+  } catch (e) {
+    console.error("Error canceling all user items:", e);
+  }
+};
+
 export const cancelUserItems = async (
   db: SQLiteDatabase, 
   userId: number, 
   itemName: string, 
   itemType: ItemType, 
   itemPrice: number, 
-  quantity: number
+  quantity: number,
+  dateAdded?: string
 ): Promise<void> => {
   try {
+    // Erweiterte Query um Datum zu berücksichtigen
+    let query = `SELECT id, item_id, price_per_item, item_name, item_type 
+        FROM user_items 
+        WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ?`;
+    let params: any[] = [userId, itemName, itemType, Math.round(itemPrice * 100)];
+    
+    if (dateAdded) {
+      query += ' AND date_added = ?';
+      params.push(dateAdded);
+    }
+    
+    query += ` ORDER BY id ASC LIMIT ?`;
+    params.push(quantity);
+
     // Hole alle passenden Items (sortiert nach ID für konsistente Reihenfolge)
     const matchingItems = await db.getAllAsync<{
       id: number;
@@ -642,12 +859,7 @@ export const cancelUserItems = async (
       price_per_item: number;
       item_name: string;
       item_type: string;
-    }>(`SELECT id, item_id, price_per_item, item_name, item_type 
-        FROM user_items 
-        WHERE user_id = ? AND item_name = ? AND item_type = ? AND price_per_item = ? 
-        ORDER BY id ASC 
-        LIMIT ?`,
-      [userId, itemName, itemType, Math.round(itemPrice * 100), quantity]);
+    }>(query, params);
 
     if (matchingItems.length === 0) {
       console.warn("No matching items found to cancel");

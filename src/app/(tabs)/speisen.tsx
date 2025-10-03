@@ -272,9 +272,16 @@ export default function SpeisenPage() {
 
           return (
             <View key={category} className="mb-6">
-              <Text className="text-xl font-bold text-gray-800 mb-3 text-center">
-                {getCategoryIcon(category)} {category} ({items.length})
-              </Text>
+              {/* Kategorie-Trenner */}
+              <View className="flex-row items-center mb-3">
+                <View className="flex-1 h-px bg-gray-300" />
+                <View className="px-6 py-3 bg-gray-100 rounded-full">
+                  <Text className="text-base font-semibold text-gray-600">
+                    {getCategoryIcon(category)} {category} ({items.length})
+                  </Text>
+                </View>
+                <View className="flex-1 h-px bg-gray-300" />
+              </View>
 
               {items.map((speise) => (
                 <View
@@ -346,7 +353,6 @@ export default function SpeisenPage() {
         )}
       </ScrollView>
 
-      {/* Speise Details Modal */}
       {/* Speise Details Modal */}
       {selectedSpeise && (
         <PinProtection 

@@ -89,13 +89,6 @@ export default function GetraenkDetails({
     );
   };
 
-  const resetChanges = () => {
-    setEditedName(getraenk.name);
-    setEditedPrice(getraenk.price.toString());
-    setEditedInfo(getraenk.info || '');
-    setEditedCategory(getraenk.category);
-  };
-
   return (
     <Modal
       visible={visible}

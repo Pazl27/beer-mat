@@ -201,7 +201,7 @@ export default function SpeiseZuPersonHinzufuegen({
                     </Text>
                   </View>
 
-                  <View className="flex-row items-center gap-3">
+                  <View className="flex-row items-center gap-1">
                     <TouchableOpacity
                       onPress={() => updateQuantity(person.id, -1)}
                       className="bg-red-100 w-8 h-8 rounded-full justify-center items-center"
