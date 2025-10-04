@@ -192,9 +192,9 @@ export default function SpeiseZuPersonHinzufuegen({
             <View className="flex-1 h-px bg-gray-300" />
           </View>
 
-          <View className="space-y-3">
+          <View>
             {filteredPersons.map((person) => (
-              <View key={person.id} className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+              <View key={person.id} className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 mb-3">
                 <View className="flex-row justify-between items-center">
                   <View className="flex-1">
                     <Text className="text-lg font-semibold text-gray-800">
