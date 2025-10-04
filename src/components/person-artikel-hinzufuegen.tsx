@@ -248,7 +248,7 @@ export default function PersonArtikelHinzufuegen({
           {/* Tab Switcher */}
           <View className="flex-row mb-4">
             <TouchableOpacity
-              className={`flex-1 py-3 px-4 ${activeTab === 'getraenke' ? 'bg-blue-600' : 'bg-gray-100'} rounded-l-lg`}
+              className={`flex-1 py-3 px-4 ${activeTab === 'getraenke' ? 'bg-blue-600' : 'bg-gray-100'} rounded-l-lg border-2 border-gray-100`}
               onPress={() => setActiveTab('getraenke')}
             >
               <Text className={`text-center font-semibold ${activeTab === 'getraenke' ? 'text-white' : 'text-gray-700'}`}>
@@ -256,7 +256,7 @@ export default function PersonArtikelHinzufuegen({
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              className={`flex-1 py-3 px-4 ${activeTab === 'speisen' ? 'bg-blue-600' : 'bg-gray-100'} rounded-r-lg`}
+              className={`flex-1 py-3 px-4 ${activeTab === 'speisen' ? 'bg-blue-600' : 'bg-gray-100'} rounded-r-lg border-2 border-gray-100`}
               onPress={() => setActiveTab('speisen')}
             >
               <Text className={`text-center font-semibold ${activeTab === 'speisen' ? 'text-white' : 'text-gray-700'}`}>
