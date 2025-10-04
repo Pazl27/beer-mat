@@ -180,10 +180,17 @@ export default function SpeiseZuPersonHinzufuegen({
             />
           </View>
 
-          {/* Personen Liste */}
-          <Text className="text-lg font-semibold text-gray-800 mb-4">
-            👥 Personen ({filteredPersons.length})
-          </Text>
+
+          {/* Personen Divider styled like Getränke category */}
+          <View className="flex-row items-center mb-4">
+            <View className="flex-1 h-px bg-gray-300" />
+            <View className="px-6 py-3 bg-gray-100 rounded-full">
+              <Text className="text-lg font-semibold text-gray-800 text-center">
+                👥 Personen ({filteredPersons.length})
+              </Text>
+            </View>
+            <View className="flex-1 h-px bg-gray-300" />
+          </View>
 
           <View className="space-y-3">
             {filteredPersons.map((person) => (
