@@ -1009,7 +1009,7 @@ export default function PersonenPage() {
                                       </Text>
                                     </View>
                                     <View className="flex-row items-center gap-3">
-                                      <Text className="text-base font-semibold text-green-600">
+                                      <Text className="text-base font-semibold text-blue-600">
                                         {item.totalPrice.toFixed(2)}€
                                       </Text>
                                       <View className="flex-row items-center gap-1">
@@ -1058,7 +1058,7 @@ export default function PersonenPage() {
                                       </Text>
                                     </View>
                                     <View className="flex-row items-center gap-3">
-                                      <Text className="text-base font-semibold text-green-600">
+                                      <Text className="text-base font-semibold text-blue-600">
                                         {item.totalPrice.toFixed(2)}€
                                       </Text>
                                       <View className="flex-row items-center gap-1">
@@ -1309,7 +1309,7 @@ export default function PersonenPage() {
                   onPress={handleCancelSelection}
                   className={`p-4 rounded-lg items-center ${
                     hasCancelSelection()
-                      ? 'bg-blue-500'
+                      ? 'bg-blue-400'
                       : 'bg-gray-300'
                   }`}
                   disabled={!hasCancelSelection()}
@@ -1329,7 +1329,7 @@ export default function PersonenPage() {
                 {/* Alle Artikel stornieren Button */}
                 <TouchableOpacity
                   onPress={handleCancelAll}
-                  className="p-4 rounded-lg items-center bg-red-300"
+                  className="p-4 rounded-lg items-center bg-blue-600"
                 >
                   <Text className="text-lg font-semibold text-white">
                     💥 Alle Artikel stornieren ({selectedPersonForDetails.totalDebt.toFixed(2)}€)
